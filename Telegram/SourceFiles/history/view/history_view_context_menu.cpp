@@ -54,7 +54,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_channel.h"
 #include "data/data_file_click_handler.h"
 #include "data/data_file_origin.h"
-#include "data/data_scheduled_messages.h"
 #include "data/data_message_reactions.h"
 #include "data/stickers/data_custom_emoji.h"
 #include "core/file_utilities.h"
@@ -559,9 +558,8 @@ bool AddRescheduleAction(
 			? SendMenu::Type::ScheduledToUser
 			: SendMenu::Type::Scheduled;
 
-		using S = Data::ScheduledMessages;
 		const auto itemDate = firstItem->date();
-		const auto date = (itemDate == S::kScheduledUntilOnlineTimestamp)
+		const auto date = (itemDate == Api::kScheduledUntilOnlineTimestamp)
 			? HistoryView::DefaultScheduleTime()
 			: itemDate + 600;
 
