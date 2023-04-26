@@ -2164,6 +2164,7 @@ void HistoryWidget::showHistory(
 	_saveEditMsgRequestId = 0;
 	_processingReplyItem = _replyEditMsg = nullptr;
 	_processingReplyId = _editMsgId = _replyToId = 0;
+	_canReplaceMedia = false;
 	_photoEditMedia = nullptr;
 	updateReplaceMediaButton();
 	_previewData = nullptr;
@@ -2499,6 +2500,9 @@ void HistoryWidget::registerDraftSource() {
 void HistoryWidget::setEditMsgId(MsgId msgId) {
 	unregisterDraftSources();
 	_editMsgId = msgId;
+	if (!msgId) {
+		_canReplaceMedia = false;
+	}
 	if (_history) {
 		refreshSendAsToggle();
 		orderWidgets();
