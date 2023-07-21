@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/random.h"
 #include "data/data_document.h"
 #include "data/data_drafts.h"
+#include "data/data_histories.h"
 #include "data/data_photo.h"
 #include "data/data_session.h"
 #include "history/history.h"
@@ -95,7 +96,7 @@ void SendAlbumFromItems(HistoryItemsList items, ToSend &&toSend) {
 	}
 	const auto history = items.front()->history();
 	auto medias = QVector<MTPInputSingleMedia>();
-	for (const auto i : items) {
+	for (const auto &i : items) {
 		medias.push_back(PrepareAlbumItemMedia(
 			i,
 			InputMediaFromItem(i),
@@ -106,11 +107,13 @@ void SendAlbumFromItems(HistoryItemsList items, ToSend &&toSend) {
 	auto &api = history->owner().session().api();
 
 	for (const auto &peer : toSend.peers) {
-		const auto replyTo = ReplyToIdFromDraft(peer);
+		const auto replyTo = FullReplyTo{
+			.msgId = ReplyToIdFromDraft(peer),
+		};
 
 		const auto flags = MTPmessages_SendMultiMedia::Flags(0)
 			| (replyTo
-				? MTPmessages_SendMultiMedia::Flag::f_reply_to_msg_id
+				? MTPmessages_SendMultiMedia::Flag::f_reply_to
 				: MTPmessages_SendMultiMedia::Flag(0))
 			| (toSend.silent
 				? MTPmessages_SendMultiMedia::Flag::f_silent
@@ -119,8 +122,7 @@ void SendAlbumFromItems(HistoryItemsList items, ToSend &&toSend) {
 		api.request(MTPmessages_SendMultiMedia(
 			MTP_flags(flags),
 			peer->input,
-			MTP_int(replyTo),
-			MTP_int(0), // Top msg id.
+			ReplyToForMTP(&history->owner(), replyTo),
 			MTP_vector<MTPInputSingleMedia>(medias),
 			MTP_int(0),
 			MTP_inputPeerEmpty()
@@ -157,7 +159,7 @@ void SendExistingMediaFromItem(
 			? toSend.comment
 			: PrepareEditText(item);
 		message.action.options.silent = toSend.silent;
-		message.action.replyTo = ReplyToIdFromDraft(peer);
+		message.action.replyTo.msgId = ReplyToIdFromDraft(peer);
 		if (const auto document = item->media()->document()) {
 			Api::SendExistingDocument(
 				std::move(message),

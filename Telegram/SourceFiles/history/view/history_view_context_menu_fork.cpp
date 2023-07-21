@@ -107,13 +107,13 @@ void AddReplaceMedia(
 	}
 }
 
-TimeId DurationFromItem(HistoryItem *item) {
+crl::time DurationFromItem(HistoryItem *item) {
 	const auto media = item ? item->media() : nullptr;
 	const auto document = media ? media->document() : nullptr;
-	return document ? document->getDuration() : TimeId(0);
+	return document ? document->duration() : crl::time(0);
 }
 
-TimeId DurationFromItem(
+crl::time DurationFromItem(
 		FullMsgId itemId,
 		not_null<Window::SessionController*> controller) {
 	return DurationFromItem(controller->session().data().message(itemId));

@@ -16,8 +16,8 @@ class HistoryItem;
 
 namespace Fork {
 
-[[nodiscard]] TimeId DurationFromItem(HistoryItem *item);
-[[nodiscard]] TimeId DurationFromItem(
+[[nodiscard]] crl::time DurationFromItem(HistoryItem *item);
+[[nodiscard]] crl::time DurationFromItem(
 	FullMsgId itemId,
 	not_null<Window::SessionController*> controller);
 
@@ -26,7 +26,7 @@ void AddShowSumDurations(
 		not_null<Ui::PopupMenu*> menu,
 		Items items,
 		not_null<Window::SessionController*> controller) {
-	auto result = TimeId(0);
+	auto result = crl::time(0);
 
 	constexpr bool isContainer = requires(const Items &t) {
 		t.begin();
@@ -63,7 +63,7 @@ void AddShowSumDurations(
 		menu->addAction("Calculate duration", [=] {
 			const auto text = QString("Summary duration: %1.").arg(
 				Ui::FormatDurationText(result));
-			Window::Show(controller).showBox(Ui::MakeInformBox(text));
+			controller->show(Ui::MakeInformBox(text));
 		});
 	}
 }
