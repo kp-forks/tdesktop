@@ -84,6 +84,16 @@ MsgId ReplyToIdFromDraft(not_null<PeerData*> peer) {
 	if (replyTo) {
 		history->clearCloudDraft(0);
 		history->clearLocalDraft(0);
+
+		peer->session().api().request(
+			MTPmessages_SaveDraft(
+				MTP_flags(MTPmessages_SaveDraft::Flags(0)),
+				MTPint(),
+				MTPint(),
+				history->peer->input,
+				MTPstring(),
+				MTPVector<MTPMessageEntity>()
+		)).send();
 	}
 	return replyTo;
 }
