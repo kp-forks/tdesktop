@@ -2259,7 +2259,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			return;
 		}
 		auto toSend = Api::AsCopy::ToSend{
-			.peers = { session->data().peer(session->userPeerId()) }
+			.peers = { _peer }
 		};
 		const auto items = session->data().idsToItems(ids);
 		auto filtered = ranges::view::all(
@@ -2440,7 +2440,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			}
 			if (selectedState.count > 1 && selectedState.count <= 10) {
 				_menu->addAction(
-					tr::lng_context_group_to_save_messages(tr::now),
+					tr::lng_context_group_items(tr::now),
 					groupToSaved);
 			}
 			if (selectedState.count > 0) {
@@ -2640,7 +2640,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			}
 			if (selectedState.count > 1 && selectedState.count <= 10) {
 				_menu->addAction(
-					tr::lng_context_group_to_save_messages(tr::now),
+					tr::lng_context_group_items(tr::now),
 					groupToSaved);
 			}
 			if (selectedState.count > 0) {

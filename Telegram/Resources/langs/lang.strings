@@ -2334,7 +2334,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_context_save_documents_selected" = "Download Selected";
 "lng_context_clear_selection" = "Clear Selection";
 "lng_context_to_save_messages" = "To Saved Messages";
-"lng_context_group_to_save_messages" = "Group Selected to Saved Messages";
+"lng_context_group_items" = "Group Selected";
 
 "lng_context_seen_loading" = "Loading...";
 "lng_context_seen_text#one" = "{count} Seen";
