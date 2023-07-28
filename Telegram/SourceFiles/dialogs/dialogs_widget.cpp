@@ -1473,6 +1473,7 @@ void Widget::stopWidthAnimation() {
 }
 
 void Widget::updateStoriesVisibility() {
+	updateLockUnlockVisibility();
 	if (!_stories) {
 		return;
 	}
@@ -1502,7 +1503,6 @@ void Widget::updateStoriesVisibility() {
 		if (_aboveScrollAdded > 0 && _updateScrollGeometryCached) {
 			_updateScrollGeometryCached();
 		}
-		updateLockUnlockVisibility();
 		updateLockUnlockPosition();
 	}
 }
