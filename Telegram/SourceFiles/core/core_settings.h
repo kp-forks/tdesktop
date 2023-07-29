@@ -809,6 +809,9 @@ public:
 	[[nodiscard]] std::optional<uint64> macRoundIconDigest() const {
 		return _macRoundIconDigest;
 	}
+	[[nodiscard]] bool storiesClickTooltipHidden() const {
+		return _storiesClickTooltipHidden.current();
+	}
 	[[nodiscard]] rpl::producer<bool> storiesClickTooltipHiddenValue() const {
 		return _storiesClickTooltipHidden.value();
 	}
