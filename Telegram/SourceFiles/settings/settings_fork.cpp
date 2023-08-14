@@ -23,6 +23,7 @@ Author: 23rd.
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
+#include "styles/style_menu_icons.h"
 
 namespace Settings {
 namespace {
@@ -387,7 +388,7 @@ void SetupForkContent(
 		inner,
 		tr::lng_settings_custom_sticker_size(),
 		st::settingsButton,
-		{ &st::settingsIconStickers, kIconLightOrange }
+		{ &st::menuIconStickers }
 	)->addClickHandler([=] {
 		controller->show(Box<StickerSizeBox>([=](bool isSuccess) {
 			if (isSuccess) {

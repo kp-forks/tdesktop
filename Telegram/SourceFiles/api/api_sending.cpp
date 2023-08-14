@@ -497,7 +497,6 @@ void SendConfirmedFile(
 	}());
 
 	if (itemToEdit) {
-		itemToEdit->savePreviousMedia();
 		auto edition = HistoryMessageEdition();
 		edition.isEditHide = (flags & MessageFlag::HideEdited);
 		edition.editDate = 0;
@@ -509,6 +508,7 @@ void SendConfirmedFile(
 		edition.useSameMarkup = true;
 		edition.useSameReplies = true;
 		edition.useSameReactions = true;
+		edition.savePreviousMedia = true;
 		itemToEdit->applyEdition(std::move(edition));
 	} else {
 		const auto viaBotId = UserId();

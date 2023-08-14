@@ -1077,6 +1077,7 @@ mac:
     cd openal-soft
     git checkout 716f5373cb
     CFLAGS=$UNGUARDED CPPFLAGS=$UNGUARDED cmake -B build . \\
+        -D CMAKE_BUILD_TYPE=RelWithDebInfo \\
         -D CMAKE_INSTALL_PREFIX:PATH=$USED_PREFIX \\
         -D ALSOFT_EXAMPLES=OFF \\
         -D ALSOFT_UTILS=OFF \\
@@ -1210,7 +1211,7 @@ stage('tg_angle', """
 win:
     git clone https://github.com/desktop-app/tg_angle.git
     cd tg_angle
-    git checkout 0bb011f9e4
+    git checkout e3f59e8d0c
     mkdir out
     cd out
     mkdir Debug
