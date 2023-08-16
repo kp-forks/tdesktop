@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "ui/effects/outline_segments.h"
 
+#include <QtCore/QtMath> // M_PI
+
 namespace Ui {
 namespace {
 
