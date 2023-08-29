@@ -15,6 +15,32 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 using namespace Images;
 
+namespace {
+
+[[nodiscard]] uint64 PixKey(int width, int height, Options options) {
+	return static_cast<uint64>(width)
+		| (static_cast<uint64>(height) << 24)
+		| (static_cast<uint64>(options) << 48);
+}
+
+[[nodiscard]] uint64 SinglePixKey(Options options) {
+	return PixKey(0, 0, options);
+}
+
+[[nodiscard]] Options OptionsByArgs(const PrepareArgs &args) {
+	return args.options | (args.colored ? Option::Colorize : Option::None);
+}
+
+[[nodiscard]] uint64 PixKey(int width, int height, const PrepareArgs &args) {
+	return PixKey(width, height, OptionsByArgs(args));
+}
+
+[[nodiscard]] uint64 SinglePixKey(const PrepareArgs &args) {
+	return SinglePixKey(OptionsByArgs(args));
+}
+
+} // namespace
+
 Image::Image(const QString &path)
 : Image(Read({ .path = path }).image) {
 }
