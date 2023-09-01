@@ -77,7 +77,11 @@ void PaintOutlineSegments(
 	const auto count = std::min(int(segments.size()), kOutlineSegmentsMax);
 	if (count == 1) {
 		p.setPen(QPen(segments.front().brush, segments.front().width));
+		if (style::SquareUserpics()) {
+		p.drawRect(ellipse);
+		} else {
 		p.drawEllipse(ellipse);
+		}
 		return;
 	}
 	const auto small = 160;

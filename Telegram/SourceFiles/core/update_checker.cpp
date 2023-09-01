@@ -934,7 +934,7 @@ void MtpChecker::start() {
 		crl::on_main(this, [=] { fail(); });
 		return;
 	}
-	const auto updaterVersion = Platform::AutoUpdateVersion();
+	const auto updaterVersion = 2;//Platform::AutoUpdateVersion();
 	const auto feed = "frkgrmfeed"
 		+ (updaterVersion > 1 ? QString::number(updaterVersion) : QString());
 	MTP::ResolveChannel(&_mtp, feed, [=](

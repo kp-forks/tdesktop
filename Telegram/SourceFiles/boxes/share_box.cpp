@@ -20,7 +20,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/toast/toast.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/multi_select.h"
-#include "ui/widgets/buttons.h"
 #include "ui/widgets/scroll_area.h"
 #include "ui/widgets/input_fields.h"
 #include "ui/widgets/popup_menu.h"
@@ -621,7 +620,7 @@ void ShareBox::submitWhenOnline() {
 	submit(Api::DefaultSendWhenOnlineOptions());
 }
 
-void ShareBox::copyLink() {
+void ShareBox::copyLink() const {
 	if (const auto onstack = _descriptor.copyCallback) {
 		onstack();
 	}
