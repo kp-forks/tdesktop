@@ -19,7 +19,7 @@ Author: 23rd.
 #include "styles/style_settings.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/widgets/checkbox.h"
-#include "ui/widgets/input_fields.h"
+#include "ui/widgets/fields/input_field.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
@@ -97,9 +97,10 @@ void SettingBox::prepare() {
 		}
 	};
 
-	connect(url, &Ui::InputField::submitted, [=] {
+	url->submits(
+	) | rpl::start_with_next([=] {
 		submit();
-	});
+	}, lifetime());
 
 	setTitle(_title());
 
