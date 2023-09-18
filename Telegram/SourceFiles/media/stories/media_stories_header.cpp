@@ -407,9 +407,9 @@ void Header::show(HeaderData data) {
 		_pauseState = _controller->pauseState();
 		applyPauseState();
 	} else {
-		_volume = nullptr;
 		_playPause = nullptr;
 		_volumeToggle = nullptr;
+		_volume = nullptr;
 	}
 
 	rpl::combine(
