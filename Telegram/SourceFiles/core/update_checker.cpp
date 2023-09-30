@@ -649,8 +649,8 @@ rpl::lifetime &Checker::lifetime() {
 	return _lifetime;
 }
 
-HttpChecker::HttpChecker(bool testing) : Checker(testing) {
-}
+// HttpChecker::HttpChecker(bool testing) : Checker(testing) {
+// }
 
 void HttpChecker::start() {
 	const auto updaterVersion = Platform::AutoUpdateVersion();
@@ -1268,9 +1268,9 @@ void Updater::start(bool forceWait) {
 	}
 
 	if (sendRequest) {
-		startImplementation(
-			&_httpImplementation,
-			std::make_unique<HttpChecker>(_testing));
+		// startImplementation(
+		// 	&_httpImplementation,
+		// 	std::make_unique<HttpChecker>(_testing));
 		startImplementation(
 			&_mtpImplementation,
 			std::make_unique<MtpChecker>(_session, _testing));
