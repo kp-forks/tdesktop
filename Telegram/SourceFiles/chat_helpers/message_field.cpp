@@ -808,7 +808,7 @@ void MessageLinksParser::parse() {
 		}
 		offset = matchOffset = p - start;
 	}
-	processTagsBefore(QFIXED_MAX);
+	processTagsBefore(Ui::kQFixedMax);
 
 	apply(text, ranges);
 }

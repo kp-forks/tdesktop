@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "lang/lang_keys.h"
 #include "ui/effects/ripple_animation.h"
+#include "ui/effects/spoiler_mess.h"
 #include "ui/image/image.h"
 #include "ui/toast/toast.h"
 #include "ui/text/text_options.h"
@@ -266,6 +267,17 @@ void HistoryMessageForwarded::create(const HistoryMessageVia *via) const {
 	}
 }
 
+HistoryMessageReply::HistoryMessageReply() = default;
+
+HistoryMessageReply &HistoryMessageReply::operator=(
+	HistoryMessageReply &&other) = default;
+
+HistoryMessageReply::~HistoryMessageReply() {
+	// clearData() should be called by holder.
+	Expects(replyToMsg.empty());
+	Expects(replyToVia == nullptr);
+}
+
 bool HistoryMessageReply::updateData(
 		not_null<HistoryItem*> holder,
 		bool force) {
@@ -317,7 +329,7 @@ bool HistoryMessageReply::updateData(
 			.customEmojiRepaint = repaint,
 		};
 		replyToText.setMarkedText(
-			st::messageTextStyle,
+			st::defaultTextStyle,
 			(replyToMsg
 				? replyToMsg->inReplyText()
 				: replyToStory->inReplyText()),
@@ -339,7 +351,8 @@ bool HistoryMessageReply::updateData(
 		if (replyToMsg) {
 			const auto peer = replyToMsg->history()->peer;
 			replyToColorKey = (!holder->out()
-					&& (peer->isMegagroup() || peer->isChat()))
+					&& (peer->isMegagroup() || peer->isChat())
+					&& replyToMsg->from()->isUser())
 				? replyToMsg->from()->id
 				: PeerId(0);
 		} else {
@@ -636,7 +649,7 @@ void HistoryMessageReply::paint(
 					.pausedEmoji = (context.paused
 						|| On(PowerSaving::kEmojiChat)),
 					.pausedSpoiler = pausedSpoiler,
-					.elisionLines = 1,
+					.elisionOneLine = true,
 				});
 				p.setTextPalette(stm->textPalette);
 			}
