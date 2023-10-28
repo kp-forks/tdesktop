@@ -74,9 +74,9 @@ MsgId ReplyToIdFromDraft(not_null<PeerData*> peer) {
 	const auto history = peer->owner().history(peer);
 	const auto replyTo = [&]() -> int64 {
 		if (const auto localDraft = history->localDraft(0)) {
-			return localDraft->msgId.bare;
+			return localDraft->reply.messageId.msg.bare;
 		} else if (const auto cloudDraft = history->cloudDraft(0)) {
-			return cloudDraft->msgId.bare;
+			return cloudDraft->reply.messageId.msg.bare;
 		} else {
 			return 0;
 		}
@@ -84,15 +84,14 @@ MsgId ReplyToIdFromDraft(not_null<PeerData*> peer) {
 	if (replyTo) {
 		history->clearCloudDraft(0);
 		history->clearLocalDraft(0);
-
 		peer->session().api().request(
 			MTPmessages_SaveDraft(
 				MTP_flags(MTPmessages_SaveDraft::Flags(0)),
-				MTPint(),
-				MTPint(),
+				MTP_inputReplyToStory(MTP_inputUserEmpty(), MTPint()),
 				history->peer->input,
 				MTPstring(),
-				MTPVector<MTPMessageEntity>()
+				MTPVector<MTPMessageEntity>(),
+				MTP_inputMediaEmpty()
 		)).send();
 	}
 	return replyTo;
@@ -118,7 +117,7 @@ void SendAlbumFromItems(HistoryItemsList items, ToSend &&toSend) {
 
 	for (const auto &peer : toSend.peers) {
 		const auto replyTo = FullReplyTo{
-			.msgId = ReplyToIdFromDraft(peer),
+			.messageId = FullMsgId(peer->id, ReplyToIdFromDraft(peer)),
 		};
 
 		const auto flags = MTPmessages_SendMultiMedia::Flags(0)
@@ -128,11 +127,10 @@ void SendAlbumFromItems(HistoryItemsList items, ToSend &&toSend) {
 			| (toSend.silent
 				? MTPmessages_SendMultiMedia::Flag::f_silent
 				: MTPmessages_SendMultiMedia::Flag(0));
-
 		api.request(MTPmessages_SendMultiMedia(
 			MTP_flags(flags),
 			peer->input,
-			ReplyToForMTP(&history->owner(), replyTo),
+			ReplyToForMTP(history, replyTo),
 			MTP_vector<MTPInputSingleMedia>(medias),
 			MTP_int(0),
 			MTP_inputPeerEmpty()
@@ -169,7 +167,9 @@ void SendExistingMediaFromItem(
 			? toSend.comment
 			: PrepareEditText(item);
 		message.action.options.silent = toSend.silent;
-		message.action.replyTo.msgId = ReplyToIdFromDraft(peer);
+		message.action.replyTo.messageId = FullMsgId(
+			peer->id,
+			ReplyToIdFromDraft(peer));
 		if (const auto document = item->media()->document()) {
 			Api::SendExistingDocument(
 				std::move(message),
