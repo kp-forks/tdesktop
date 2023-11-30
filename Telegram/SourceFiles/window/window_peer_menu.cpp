@@ -298,6 +298,7 @@ private:
 	void addGiftPremium();
 	void addCreateTopic();
 	void addViewAsMessages();
+	void addViewAsTopics();
 	void addSearchTopics();
 	void addDeleteTopic();
 	void addVideoChat();
@@ -1005,9 +1006,9 @@ void Filler::addManageTopic() {
 
 void Filler::addGoToFirstMessage() {
 	_addAction(
-		QString("Go to first message"),
+		QString("Go to the first message"),
 		GoToFirstMessageHandler(_controller, _peer),
-		nullptr);
+		&st::menuIconShowInChat);
 }
 
 void Filler::addGoToScheduled() {
@@ -1018,7 +1019,7 @@ void Filler::addGoToScheduled() {
 	_addAction(tr::lng_scheduled_messages({}), [=, controller = _controller] {
 		controller->showSection(
 			std::make_shared<HistoryView::ScheduledMemento>(history));
-	}, nullptr);
+	}, &st::menuIconGroupLog);
 }
 
 void Filler::addManageChat() {
@@ -1039,22 +1040,24 @@ void Filler::addManageChat() {
 
 void Filler::addViewStatistics() {
 	if (const auto channel = _peer->asChannel()) {
+		const auto controller = _controller;
+		const auto weak = base::make_weak(_thread);
+		const auto peer = _peer;
 		if (channel->flags() & ChannelDataFlag::CanGetStatistics) {
-			const auto controller = _controller;
-			const auto weak = base::make_weak(_thread);
-			const auto peer = _peer;
 			_addAction(tr::lng_stats_title(tr::now), [=] {
 				if (const auto strong = weak.get()) {
-					controller->showSection(Info::Statistics::Make(peer, {}));
+					using namespace Info;
+					controller->showSection(Statistics::Make(peer, {}, {}));
 				}
 			}, &st::menuIconStats);
-			if (!channel->isMegagroup()) {
-				_addAction(tr::lng_boosts_title(tr::now), [=] {
-					if (const auto strong = weak.get()) {
-						controller->showSection(Info::Boosts::Make(peer));
-					}
-				}, &st::menuIconBoosts);
-			}
+		}
+		if (!channel->isMegagroup()
+			&& (channel->amCreator() || channel->canPostStories())) {
+			_addAction(tr::lng_boosts_title(tr::now), [=] {
+				if (const auto strong = weak.get()) {
+					controller->showSection(Info::Boosts::Make(peer));
+				}
+			}, &st::menuIconBoosts);
 		}
 	}
 }
@@ -1184,8 +1187,27 @@ void Filler::addViewAsMessages() {
 	const auto peer = _peer;
 	const auto controller = _controller;
 	_addAction(tr::lng_forum_view_as_messages(tr::now), [=] {
+		if (const auto forum = peer->forum()) {
+			peer->owner().saveViewAsMessages(forum, true);
+		}
 		controller->showPeerHistory(peer->id);
-	}, &st::menuIconViewReplies);
+	}, &st::menuIconAsMessages);
+}
+
+void Filler::addViewAsTopics() {
+	if (!_peer
+		|| !_peer->isForum()
+		|| !_controller->adaptive().isOneColumn()) {
+		return;
+	}
+	const auto peer = _peer;
+	const auto controller = _controller;
+	_addAction(tr::lng_forum_view_as_topics(tr::now), [=] {
+		if (const auto forum = peer->forum()) {
+			peer->owner().saveViewAsMessages(forum, false);
+			controller->showForum(forum);
+		}
+	}, &st::menuIconAsTopics);
 }
 
 void Filler::addSearchTopics() {
@@ -1272,6 +1294,7 @@ void Filler::fillContextMenuActions() {
 void Filler::fillHistoryActions() {
 	addToggleMuteSubmenu(true);
 	addInfo();
+	addViewAsTopics();
 	addStoryArchive();
 	addSupportInfo();
 	addManageChat();

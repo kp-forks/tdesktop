@@ -117,12 +117,7 @@ HiddenSenderInfo::HiddenSenderInfo(
 	std::optional<uint8> colorIndex)
 : name(name)
 , colorIndex(colorIndex.value_or(
-	Data::DecideColorIndex(Data::FakePeerIdForJustName(name))))
-, emptyUserpic(
-	Ui::EmptyUserpic::UserpicColor(this->colorIndex),
-	(external
-		? Ui::EmptyUserpic::ExternalName()
-		: name)) {
+	Data::DecideColorIndex(Data::FakePeerIdForJustName(name)))) {
 	Expects(!name.isEmpty());
 
 	const auto parts = name.trimmed().split(' ', Qt::SkipEmptyParts);
@@ -152,35 +147,6 @@ ClickHandlerPtr HiddenSenderInfo::ForwardClickHandler() {
 		}
 	});
 	return hidden;
-}
-
-bool HiddenSenderInfo::paintCustomUserpic(
-		Painter &p,
-		Ui::PeerUserpicView &view,
-		int x,
-		int y,
-		int outerWidth,
-		int size) const {
-	Expects(!customUserpic.empty());
-
-	auto valid = true;
-	if (!customUserpic.isCurrentView(view.cloud)) {
-		view.cloud = customUserpic.createView();
-		valid = false;
-	}
-	const auto image = *view.cloud;
-	if (image.isNull()) {
-		emptyUserpic.paintCircle(p, x, y, outerWidth, size);
-		return valid;
-	}
-	Ui::ValidateUserpicCache(
-		view,
-		image.isNull() ? nullptr : &image,
-		image.isNull() ? &emptyUserpic : nullptr,
-		size * style::DevicePixelRatio(),
-		false);
-	p.drawImage(QRect(x, y, size, size), view.cached);
-	return valid;
 }
 
 void HistoryMessageForwarded::create(const HistoryMessageVia *via) const {
@@ -289,8 +255,9 @@ ReplyFields ReplyFields::clone(not_null<HistoryItem*> parent) const {
 		.messageId = messageId,
 		.topMessageId = topMessageId,
 		.storyId = storyId,
-		.topicPost = topicPost,
+		.quoteOffset = quoteOffset,
 		.manualQuote = manualQuote,
+		.topicPost = topicPost,
 	};
 }
 
@@ -309,7 +276,7 @@ ReplyFields ReplyFieldsFromMTP(
 				: id;
 			result.topMessageId
 				= data.vreply_to_top_id().value_or(id);
-			result.topicPost = data.is_forum_topic();
+			result.topicPost = data.is_forum_topic() ? 1 : 0;
 		}
 		if (const auto header = data.vreply_from()) {
 			const auto &data = header->data();
@@ -330,7 +297,8 @@ ReplyFields ReplyFieldsFromMTP(
 				&owner->session(),
 				data.vquote_entities().value_or_empty()),
 		};
-		result.manualQuote = data.is_quote();
+		result.quoteOffset = data.vquote_offset().value_or_empty();
+		result.manualQuote = data.is_quote() ? 1 : 0;
 		return result;
 	}, [&](const MTPDmessageReplyStoryHeader &data) {
 		return ReplyFields{
@@ -363,6 +331,7 @@ FullReplyTo ReplyToFromMTP(
 				&history->session(),
 				data.vquote_entities().value_or_empty()),
 		};
+		result.quoteOffset = data.vquote_offset().value_or_empty();
 		return result;
 	}, [&](const MTPDinputReplyToStory &data) {
 		if (const auto parsed = Data::UserFromInputMTP(
@@ -467,7 +436,7 @@ void HistoryMessageReply::updateFields(
 		MsgId messageId,
 		MsgId topMessageId,
 		bool topicPost) {
-	_fields.topicPost = topicPost;
+	_fields.topicPost = topicPost ? 1 : 0;
 	if ((_fields.messageId != messageId)
 		&& !IsServerMsgId(_fields.messageId)) {
 		_fields.messageId = messageId;

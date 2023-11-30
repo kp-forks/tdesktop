@@ -9,6 +9,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "api/api_common.h"
 #include "api/api_editing.h"
+#include "core/application.h"
+#include "core/core_settings.h"
+#include "core/fork_settings.h"
 #include "data/data_document.h"
 #include "data/data_peer.h"
 #include "data/data_photo.h"
@@ -76,6 +79,9 @@ void AddReplaceMedia(
 		not_null<Ui::PopupMenu*> menu,
 		not_null<HistoryItem*> item,
 		not_null<Window::SessionController*> controller) {
+	if (!Core::App().settings().fork().addToMenuRememberMedia()) {
+		return;
+	}
 	const auto media = item->media();
 	const auto photo = media ? media->photo() : nullptr;
 	const auto document = media ? media->document() : nullptr;

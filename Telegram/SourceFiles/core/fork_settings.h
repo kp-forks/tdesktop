@@ -102,6 +102,8 @@ public:
 	}
 	[[nodiscard]] bool primaryUnmutedMessages() const;
 	void setPrimaryUnmutedMessages(bool newValue);
+	[[nodiscard]] bool addToMenuRememberMedia() const;
+	void setAddToMenuRememberMedia(bool newValue);
 
 private:
 	bool _squareUserpics = false;
@@ -119,6 +121,7 @@ private:
 	bool _emojiPopupOnClick = false;
 	bool _mentionByNameDisabled = false;
 	bool _primaryUnmutedMessages = false;
+	bool _addToMenuRememberMedia = false;
 
 };
 

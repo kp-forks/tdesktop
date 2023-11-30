@@ -18,6 +18,7 @@ Author: 23rd.
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/vertical_list.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/fields/input_field.h"
 #include "ui/wrap/slide_wrap.h"
@@ -357,7 +358,7 @@ void SetupForkContent(
 
 #ifndef Q_OS_LINUX
 #ifdef Q_OS_WIN
-	AddDivider(inner);
+	Ui::AddDivider(inner);
 	add(
 		tr::lng_settings_use_black_tray_icon(tr::now),
 		Core::App().settings().fork().useBlackTrayIcon(),
@@ -367,7 +368,7 @@ void SetupForkContent(
 			Core::App().domain().notifyUnreadBadgeChanged();
 		});
 #else // !Q_OS_WIN
-	AddDivider(inner);
+	Ui::AddDivider(inner);
 	addRestart(
 		tr::lng_settings_use_black_tray_icon(tr::now),
 		[] { return Core::App().settings().fork().useBlackTrayIcon(); },
@@ -383,14 +384,14 @@ void SetupForkContent(
 			Core::App().settings().fork().setUseOriginalTrayIcon(checked);
 		});
 #endif // !Q_OS_LINUX
-	AddDivider(inner);
+	Ui::AddDivider(inner);
 
-	AddButton(
+	inner->add(CreateButtonWithIcon(
 		inner,
 		tr::lng_settings_custom_sticker_size(),
 		st::settingsButton,
 		{ &st::menuIconStickers }
-	)->addClickHandler([=] {
+	))->addClickHandler([=] {
 		controller->show(Box<StickerSizeBox>([=](bool isSuccess) {
 			if (isSuccess) {
 				restartBox([] {}, [] {});
@@ -425,14 +426,22 @@ void SetupForkContent(
 			Core::App().settings().fork().setPrimaryUnmutedMessages(checked);
 		});
 
-	AddDivider(inner);
+	//
+	add(
+		u"Add 'Remember' to menu for media"_q,
+		Core::App().settings().fork().addToMenuRememberMedia(),
+		[=](bool checked) {
+			Core::App().settings().fork().setAddToMenuRememberMedia(checked);
+		});
+
+	Ui::AddDivider(inner);
 
 }
 
 void SetupFork(
 	not_null<Ui::VerticalLayout*> container,
 	SessionController controller) {
-	AddSkip(container, st::settingsCheckboxesSkip);
+	Ui::AddSkip(container, st::settingsCheckboxesSkip);
 
 	auto wrap = object_ptr<Ui::VerticalLayout>(container);
 	SetupForkContent(wrap.data(), controller);
@@ -441,7 +450,7 @@ void SetupFork(
 		container,
 		std::move(wrap)));
 
-	AddSkip(container, st::settingsCheckboxesSkip);
+	Ui::AddSkip(container, st::settingsCheckboxesSkip);
 }
 
 } // namespace

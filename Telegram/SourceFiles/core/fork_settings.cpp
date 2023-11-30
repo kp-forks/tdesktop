@@ -50,6 +50,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_emojiPopupOnClick ? 1 : 0)
 			<< qint32(_mentionByNameDisabled ? 1 : 0)
 			<< qint32(_primaryUnmutedMessages ? 1 : 0)
+			<< qint32(_addToMenuRememberMedia ? 1 : 0)
 			;
 	}
 	return result;
@@ -78,6 +79,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 emojiPopupOnClick = _emojiPopupOnClick;
 	qint32 mentionByNameDisabled = _mentionByNameDisabled;
 	qint32 primaryUnmutedMessages = _primaryUnmutedMessages;
+	qint32 addToMenuRememberMedia = _addToMenuRememberMedia;
 
 	if (!stream.atEnd()) {
 		stream
@@ -96,6 +98,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 			>> emojiPopupOnClick
 			>> mentionByNameDisabled
 			>> primaryUnmutedMessages
+			>> addToMenuRememberMedia
 			;
 	}
 	if (stream.status() != QDataStream::Ok) {
@@ -120,6 +123,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_emojiPopupOnClick = (emojiPopupOnClick == 1);
 	_mentionByNameDisabled = (mentionByNameDisabled == 1);
 	setPrimaryUnmutedMessages(primaryUnmutedMessages == 1);
+	_addToMenuRememberMedia = (addToMenuRememberMedia == 1);
 }
 
 void ForkSettings::resetOnLastLogout() {
@@ -137,6 +141,7 @@ void ForkSettings::resetOnLastLogout() {
 	_emojiPopupOnClick = false;
 	_mentionByNameDisabled = false;
 	setPrimaryUnmutedMessages(false);
+	_addToMenuRememberMedia = false;
 }
 
 [[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
@@ -145,6 +150,13 @@ void ForkSettings::resetOnLastLogout() {
 void ForkSettings::setPrimaryUnmutedMessages(bool newValue) {
 	StaticPrimaryUnmutedMessages = newValue;
 	_primaryUnmutedMessages = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::addToMenuRememberMedia() const {
+	return _addToMenuRememberMedia;
+}
+void ForkSettings::setAddToMenuRememberMedia(bool newValue) {
+	_addToMenuRememberMedia = newValue;
 }
 
 } // namespace Core
