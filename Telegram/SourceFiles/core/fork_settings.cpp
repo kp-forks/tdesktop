@@ -98,8 +98,10 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 			>> emojiPopupOnClick
 			>> mentionByNameDisabled
 			>> primaryUnmutedMessages
-			>> addToMenuRememberMedia
 			;
+	}
+	if (!stream.atEnd()) {
+		stream >> addToMenuRememberMedia;
 	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
