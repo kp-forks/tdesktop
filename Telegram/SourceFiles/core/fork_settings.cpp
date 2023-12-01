@@ -27,7 +27,7 @@ QByteArray ForkSettings::serialize() const {
 	auto size = sizeof(qint32) * 4
 		+ Serialize::stringSize(_uriScheme)
 		+ Serialize::stringSize(_searchEngineUrl)
-		+ sizeof(qint32) * 9;
+		+ sizeof(qint32) * 10;
 
 	auto result = QByteArray();
 	result.reserve(size);

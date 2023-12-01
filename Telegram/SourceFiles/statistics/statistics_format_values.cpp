@@ -10,7 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "lang/lang_keys.h"
 
-#include <QLocale>
+#include <QtCore/QLocale>
 
 namespace Statistic {
 
