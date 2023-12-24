@@ -2983,7 +2983,7 @@ RowDescriptor Widget::resolveChatNext(RowDescriptor from) const {
 }
 
 RowDescriptor Widget::resolveChatPrevious(RowDescriptor from) const {
-   return _inner->resolveChatPrevious(from);
+	return _inner->resolveChatPrevious(from);
 }
 
 void Widget::keyPressEvent(QKeyEvent *e) {

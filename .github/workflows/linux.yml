@@ -84,8 +84,9 @@ jobs:
 
       - name: First set up.
         run: |
-          gcc --version
-          ln -s /usr/src/Libraries
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+          docker pull ghcr.io/$GITHUB_REPOSITORY/centos_env
+          docker tag ghcr.io/$GITHUB_REPOSITORY/centos_env tdesktop:centos_env
 
           yum -y install epel-release
           yum -y install wget p7zip
@@ -109,7 +110,7 @@ jobs:
 
       - name: Telegram Desktop build.
         run: |
-          cd $REPO_NAME/Telegram
+          cd $REPO_NAME
 
           DEFINE=""
           if [ -n "${{ matrix.defines }}" ]; then
