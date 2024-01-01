@@ -191,7 +191,7 @@ void HistoryMessageForwarded::create(const HistoryMessageVia *via) const {
 	const auto name = TextWithEntities{
 		.text = (originalSender
 			? originalSender->name()
-			: hiddenSenderInfo->name)
+			: originalHiddenSenderInfo->name)
 	};
 	if (!originalPostAuthor.isEmpty()) {
 		phrase = tr::lng_forwarded_signed(

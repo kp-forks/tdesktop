@@ -1778,6 +1778,7 @@ bool Widget::searchMessages(bool searchCache) {
 					(_searchQueryFrom
 						? _searchQueryFrom->input
 						: MTP_inputPeerEmpty()),
+					MTPInputPeer(), // saved_peer_id
 					MTP_int(topic ? topic->rootId() : 0),
 					MTP_inputMessagesFilterEmpty(),
 					MTP_int(0), // min_date
@@ -2019,6 +2020,7 @@ void Widget::searchMore() {
 					(_searchQueryFrom
 						? _searchQueryFrom->input
 						: MTP_inputPeerEmpty()),
+					MTPInputPeer(), // saved_peer_id
 					MTP_int(topic ? topic->rootId() : 0),
 					MTP_inputMessagesFilterEmpty(),
 					MTP_int(0), // min_date
@@ -2091,6 +2093,7 @@ void Widget::searchMore() {
 				(_searchQueryFrom
 					? _searchQueryFrom->input
 					: MTP_inputPeerEmpty()),
+				MTPInputPeer(), // saved_peer_id
 				MTPint(), // top_msg_id
 				MTP_inputMessagesFilterEmpty(),
 				MTP_int(0), // min_date
@@ -2707,7 +2710,7 @@ void Widget::filterCursorMoved() {
 }
 
 void Widget::completeHashtag(QString tag) {
-	const auto t = _filter->getLastText();;
+	const auto t = _filter->getLastText();
 	auto cur = _filter->textCursor().position();
 	auto hashtag = QString();
 	for (int start = cur; start > 0;) {
