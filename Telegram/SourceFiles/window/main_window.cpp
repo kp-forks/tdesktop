@@ -502,7 +502,6 @@ void MainWindow::init() {
 	}
 	refreshTitleWidget();
 
-	initGeometry();
 	updateTitle();
 	updateWindowIcon();
 
@@ -821,9 +820,10 @@ QRect MainWindow::countInitialGeometry(
 	return position.rect();
 }
 
-void MainWindow::initGeometry() {
+void MainWindow::firstShow() {
 	updateMinimumSize();
 	if (initGeometryFromSystem()) {
+		show();
 		return;
 	}
 	const auto geometry = countInitialGeometry(initialPosition());
@@ -833,6 +833,7 @@ void MainWindow::initGeometry() {
 		).arg(geometry.width()
 		).arg(geometry.height()));
 	setGeometry(geometry);
+	show();
 }
 
 void MainWindow::positionUpdated() {

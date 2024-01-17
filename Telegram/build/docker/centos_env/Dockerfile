@@ -54,7 +54,7 @@ FROM builder AS patches
 RUN git init patches \
 	&& cd patches \
 	&& git remote add origin {{ GIT }}/desktop-app/patches.git \
-	&& git fetch --depth=1 origin 5f434041ae25d0ae0f7936bfe76c4535f6151ba9 \
+	&& git fetch --depth=1 origin a63f0887630c3e2130ee60ef322dd51ae3983c88 \
 	&& git reset --hard FETCH_HEAD \
 	&& rm -rf .git
 

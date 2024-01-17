@@ -362,7 +362,7 @@ void Application::run() {
 
 	startTray();
 
-	_lastActivePrimaryWindow->widget()->show();
+	_lastActivePrimaryWindow->firstShow();
 
 	startMediaView();
 
