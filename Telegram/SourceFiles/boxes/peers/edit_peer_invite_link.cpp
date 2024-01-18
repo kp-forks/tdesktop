@@ -1194,6 +1194,11 @@ object_ptr<Ui::BoxContent> ShareInviteLinkBox(
 		}
 	};
 	auto filterCallback = [](not_null<Data::Thread*> thread) {
+		if (const auto user = thread->peer()->asUser()) {
+			if (user->canSendIgnoreRequirePremium()) {
+				return true;
+			}
+		}
 		return Data::CanSendTexts(thread);
 	};
 	auto object = Box<ShareBox>(ShareBox::Descriptor{
@@ -1202,6 +1207,7 @@ object_ptr<Ui::BoxContent> ShareInviteLinkBox(
 		.submitCallback = std::move(submitCallback),
 		.filterCallback = std::move(filterCallback),
 		.asCopyCallback = nullptr,
+		.premiumRequiredError = SharePremiumRequiredError(),
 	});
 	*box = Ui::MakeWeak(object.data());
 	return object;
