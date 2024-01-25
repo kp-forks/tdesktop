@@ -211,6 +211,20 @@ QByteArray Settings::serialize() const {
 		+ Serialize::stringSize(_callPlaybackDeviceId.current())
 		+ Serialize::stringSize(_callCaptureDeviceId.current());
 
+	// Fork Settings.
+	size += sizeof(qint32);
+	size += sizeof(qint32);
+	size += sizeof(qint32);
+	size += sizeof(qint32);
+	size += Serialize::stringSize(QString());
+	size += Serialize::stringSize(QString());
+	size += sizeof(qint32);
+	size += sizeof(qint32);
+	size += sizeof(qint32);
+	size += sizeof(qint32);
+	size += sizeof(qint32);
+	//
+
 	auto result = QByteArray();
 	result.reserve(size);
 	{
