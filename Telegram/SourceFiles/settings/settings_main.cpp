@@ -391,9 +391,9 @@ void SetupSections(
 		Advanced::Id(),
 		{ &st::menuIconManage });
 	addSection(
-		tr::lng_settings_section_call_settings(),
+		tr::lng_settings_section_devices(),
 		Calls::Id(),
-		{ &st::menuIconPhone });
+		{ &st::menuIconUnmute });
 	addSection(
 		tr::lng_settings_section_fork(),
 		Fork::Id(),
