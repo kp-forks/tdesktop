@@ -2180,7 +2180,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		return message;
 	};
 
-	const auto groupToSaved = [=] {
+	const auto groupToSaved = [=](bool deleteSelected) {
 		const auto ids = getSelectedItems();
 		if (ids.empty()) {
 			return;
@@ -2196,7 +2196,8 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		}) | ranges::to_vector;
 		Api::AsCopy::SendAlbumFromItems(
 			std::move(filtered),
-			std::move(toSend));
+			std::move(toSend),
+			deleteSelected);
 		_widget->clearSelected();
 	};
 
@@ -2423,10 +2424,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				}, &st::menuIconDelete);
 			}
 			if (selectedState.count > 1 && selectedState.count <= 10) {
-				_menu->addAction(
-					tr::lng_context_group_items(tr::now),
-					groupToSaved,
-					&st::menuIconDockBounce);
+				Fork::AddGroupSelected(_menu, groupToSaved);
 			}
 			if (selectedState.count > 0 && !hasCopyRestrictionForSelected()) {
 				Menu::AddDownloadFilesAction(_menu, controller, _selected, this);
@@ -2636,9 +2634,7 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 				}, &st::menuIconDelete);
 			}
 			if (selectedState.count > 1 && selectedState.count <= 10) {
-				_menu->addAction(
-					tr::lng_context_group_items(tr::now),
-					groupToSaved);
+				Fork::AddGroupSelected(_menu, groupToSaved);
 			}
 			if (selectedState.count > 0 && !hasCopyRestrictionForSelected()) {
 				Menu::AddDownloadFilesAction(_menu, controller, _selected, this);

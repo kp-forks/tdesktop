@@ -24,6 +24,9 @@ void SendExistingAlbumFromItem(not_null<HistoryItem*> item, ToSend &&toSend);
 
 void SendExistingMediaFromItem(not_null<HistoryItem*> item, ToSend &&toSend);
 
-void SendAlbumFromItems(HistoryItemsList items, ToSend &&toSend);
+void SendAlbumFromItems(
+	HistoryItemsList items,
+	ToSend &&toSend,
+	bool andDelete);
 
 } // namespace Api::AsCopy

@@ -99,11 +99,15 @@ FullReplyTo ReplyToIdFromDraft(not_null<PeerData*> peer) {
 
 } // namespace
 
-void SendAlbumFromItems(HistoryItemsList items, ToSend &&toSend) {
+void SendAlbumFromItems(
+		HistoryItemsList items,
+		ToSend &&toSend,
+		bool andDelete) {
 	if (items.empty()) {
 		return;
 	}
 	const auto history = items.front()->history();
+	const auto ids = history->owner().itemsToIds(items);
 	auto medias = QVector<MTPInputSingleMedia>();
 	for (const auto &i : items) {
 		medias.push_back(PrepareAlbumItemMedia(
@@ -134,6 +138,11 @@ void SendAlbumFromItems(HistoryItemsList items, ToSend &&toSend) {
 			MTP_inputPeerEmpty()
 		)).done([=](const MTPUpdates &result) {
 			history->owner().session().api().applyUpdates(result);
+
+			if (andDelete) {
+				history->owner().histories().deleteMessages(ids, true);
+				history->owner().sendHistoryChangeNotifications();
+			}
 		}).fail([=](const MTP::Error &error) {
 		}).send();
 	}
@@ -147,7 +156,8 @@ void SendExistingAlbumFromItem(
 	}
 	SendAlbumFromItems(
 		item->history()->owner().groups().find(item)->items,
-		std::move(toSend));
+		std::move(toSend),
+		false);
 }
 
 void SendExistingMediaFromItem(

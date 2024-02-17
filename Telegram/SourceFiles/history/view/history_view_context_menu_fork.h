@@ -74,4 +74,8 @@ void AddReplaceMedia(
 	not_null<HistoryItem*> item,
 	not_null<Window::SessionController*> controller);
 
+void AddGroupSelected(
+	not_null<Ui::PopupMenu*> menu,
+	Fn<void(bool)> callback);
+
 } // namespace Fork

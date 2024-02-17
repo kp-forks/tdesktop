@@ -17,10 +17,15 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_photo.h"
 #include "data/data_session.h"
 #include "history/history_item.h"
+#include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "window/window_session_controller.h"
+#include "ui/widgets/buttons.h"
+#include "ui/widgets/menu/menu_action.h"
+#include "ui/widgets/menu/menu_common.h"
 #include "ui/widgets/menu/menu_multiline_action.h"
 #include "styles/style_chat.h"
+#include "styles/style_giveaway.h"
 
 namespace Fork {
 
@@ -123,6 +128,39 @@ crl::time DurationFromItem(
 		FullMsgId itemId,
 		not_null<Window::SessionController*> controller) {
 	return DurationFromItem(controller->session().data().message(itemId));
+}
+
+void AddGroupSelected(
+		not_null<Ui::PopupMenu*> menu,
+		Fn<void(bool)> callback) {
+	auto item = base::make_unique_q<Ui::Menu::Action>(
+		menu.get(),
+		menu->menu()->st(),
+		Ui::Menu::CreateAction(
+			menu.get(),
+			tr::lng_context_group_items(tr::now),
+			[=] { callback(false); }),
+		&st::menuIconDockBounce,
+		&st::menuIconDockBounce);
+
+	{
+		const auto rightButton = Ui::CreateChild<Ui::IconButton>(
+			item.get(),
+			st::startGiveawayBoxTitleClose);
+		item->sizeValue(
+		) | rpl::take(1) | rpl::start_with_next([=](const QSize &s) {
+			rightButton->moveToLeft(
+				s.width() - rightButton->width(),
+				(s.height() - rightButton->height()) / 2);
+			qDebug() << rightButton->geometry() << s;
+		}, rightButton->lifetime());
+		rightButton->setClickedCallback([=] {
+			callback(true);
+			menu->hideMenu(false);
+		});
+	}
+
+	menu->addAction(std::move(item));
 }
 
 } // namespace Fork
