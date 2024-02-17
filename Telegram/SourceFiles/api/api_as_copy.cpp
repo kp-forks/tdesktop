@@ -70,15 +70,15 @@ MTPinputMedia InputMediaFromItem(not_null<HistoryItem*> i) {
 	}
 }
 
-MsgId ReplyToIdFromDraft(not_null<PeerData*> peer) {
+FullReplyTo ReplyToIdFromDraft(not_null<PeerData*> peer) {
 	const auto history = peer->owner().history(peer);
-	const auto replyTo = [&]() -> int64 {
+	const auto replyTo = [&]() -> FullReplyTo {
 		if (const auto localDraft = history->localDraft(0)) {
-			return localDraft->reply.messageId.msg.bare;
+			return localDraft->reply;
 		} else if (const auto cloudDraft = history->cloudDraft(0)) {
-			return cloudDraft->reply.messageId.msg.bare;
+			return cloudDraft->reply;
 		} else {
-			return 0;
+			return {};
 		}
 	}();
 	if (replyTo) {
@@ -87,7 +87,7 @@ MsgId ReplyToIdFromDraft(not_null<PeerData*> peer) {
 		peer->session().api().request(
 			MTPmessages_SaveDraft(
 				MTP_flags(MTPmessages_SaveDraft::Flags(0)),
-				MTP_inputReplyToStory(MTP_inputUserEmpty(), MTPint()),
+				MTP_inputReplyToStory(MTP_inputPeerEmpty(), MTPint()),
 				history->peer->input,
 				MTPstring(),
 				MTPVector<MTPMessageEntity>(),
@@ -116,9 +116,7 @@ void SendAlbumFromItems(HistoryItemsList items, ToSend &&toSend) {
 	auto &api = history->owner().session().api();
 
 	for (const auto &peer : toSend.peers) {
-		const auto replyTo = FullReplyTo{
-			.messageId = FullMsgId(peer->id, ReplyToIdFromDraft(peer)),
-		};
+		const auto replyTo = ReplyToIdFromDraft(peer);
 
 		const auto flags = MTPmessages_SendMultiMedia::Flags(0)
 			| (replyTo
@@ -167,9 +165,7 @@ void SendExistingMediaFromItem(
 			? toSend.comment
 			: PrepareEditText(item);
 		message.action.options.silent = toSend.silent;
-		message.action.replyTo.messageId = FullMsgId(
-			peer->id,
-			ReplyToIdFromDraft(peer));
+		message.action.replyTo = ReplyToIdFromDraft(peer);
 		if (const auto document = item->media()->document()) {
 			Api::SendExistingDocument(
 				std::move(message),
