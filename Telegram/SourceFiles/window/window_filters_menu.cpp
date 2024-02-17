@@ -7,6 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "window/window_filters_menu.h"
 
+#include "core/application.h"
+#include "core/core_settings.h"
+#include "core/fork_settings.h"
 #include "mainwindow.h"
 #include "window/window_session_controller.h"
 #include "window/window_controller.h"
@@ -286,6 +289,15 @@ base::unique_qptr<Ui::SideBarButton> FiltersMenu::prepareButton(
 		container,
 		id ? title : tr::lng_filters_all(tr::now),
 		st::windowFiltersButton);
+	if (!id && Core::App().settings().fork().hideAllChatsTab()) {
+		const auto raw = prepared.data();
+		raw->sizeValue(
+		) | rpl::filter([](const QSize &s) {
+			return s.height() > 0;
+		}) | rpl::start_with_next([=] {
+			raw->resize(raw->width(), 0);
+		}, raw->lifetime());
+	}
 	auto added = toBeginning
 		? container->insert(0, std::move(prepared))
 		: container->add(std::move(prepared));

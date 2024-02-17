@@ -51,6 +51,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_mentionByNameDisabled ? 1 : 0)
 			<< qint32(_primaryUnmutedMessages ? 1 : 0)
 			<< qint32(_addToMenuRememberMedia ? 1 : 0)
+			<< qint32(_hideAllChatsTab ? 1 : 0)
 			;
 	}
 	return result;
@@ -80,6 +81,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 mentionByNameDisabled = _mentionByNameDisabled;
 	qint32 primaryUnmutedMessages = _primaryUnmutedMessages;
 	qint32 addToMenuRememberMedia = _addToMenuRememberMedia;
+	qint32 hideAllChatsTab = _hideAllChatsTab;
 
 	if (!stream.atEnd()) {
 		stream
@@ -102,6 +104,9 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	}
 	if (!stream.atEnd()) {
 		stream >> addToMenuRememberMedia;
+	}
+	if (!stream.atEnd()) {
+		stream >> hideAllChatsTab;
 	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
@@ -126,6 +131,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_mentionByNameDisabled = (mentionByNameDisabled == 1);
 	setPrimaryUnmutedMessages(primaryUnmutedMessages == 1);
 	_addToMenuRememberMedia = (addToMenuRememberMedia == 1);
+	_hideAllChatsTab = (hideAllChatsTab == 1);
 }
 
 void ForkSettings::resetOnLastLogout() {
@@ -144,6 +150,7 @@ void ForkSettings::resetOnLastLogout() {
 	_mentionByNameDisabled = false;
 	setPrimaryUnmutedMessages(false);
 	_addToMenuRememberMedia = false;
+	_hideAllChatsTab = false;
 }
 
 [[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
@@ -159,6 +166,13 @@ void ForkSettings::setPrimaryUnmutedMessages(bool newValue) {
 }
 void ForkSettings::setAddToMenuRememberMedia(bool newValue) {
 	_addToMenuRememberMedia = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::hideAllChatsTab() const {
+	return _hideAllChatsTab;
+}
+void ForkSettings::setHideAllChatsTab(bool newValue) {
+	_hideAllChatsTab = newValue;
 }
 
 } // namespace Core

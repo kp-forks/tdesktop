@@ -405,7 +405,7 @@ void SetupForkContent(
 	add(
 		tr::lng_settings_auto_submit_passcode(tr::now),
 		Core::App().settings().fork().autoSubmitPasscode(),
-		[=](bool checked) {
+		[](bool checked) {
 			Core::App().settings().fork().setAutoSubmitPasscode(checked);
 			Core::App().saveSettingsDelayed();
 		});
@@ -414,7 +414,7 @@ void SetupForkContent(
 	addRestart(
 		tr::lng_settings_emoji_on_click(tr::now),
 		[] { return Core::App().settings().fork().emojiPopupOnClick(); },
-		[=](bool checked) {
+		[](bool checked) {
 			Core::App().settings().fork().setEmojiPopupOnClick(checked);
 		});
 
@@ -422,7 +422,7 @@ void SetupForkContent(
 	addRestart(
 		tr::lng_settings_primary_unmuted(tr::now),
 		[] { return Core::App().settings().fork().primaryUnmutedMessages(); },
-		[=](bool checked) {
+		[](bool checked) {
 			Core::App().settings().fork().setPrimaryUnmutedMessages(checked);
 		});
 
@@ -430,8 +430,16 @@ void SetupForkContent(
 	add(
 		u"Add 'Remember' to menu for media"_q,
 		Core::App().settings().fork().addToMenuRememberMedia(),
-		[=](bool checked) {
+		[](bool checked) {
 			Core::App().settings().fork().setAddToMenuRememberMedia(checked);
+		});
+
+	//
+	addRestart(
+		u"Hide 'All Chats' tab"_q,
+		[] { return Core::App().settings().fork().hideAllChatsTab(); },
+		[](bool checked) {
+			Core::App().settings().fork().setHideAllChatsTab(checked);
 		});
 
 	Ui::AddDivider(inner);
