@@ -77,7 +77,8 @@ namespace {
 base::options::toggle ShowPeerIdBelowAbout({
 	.id = kOptionShowPeerIdBelowAbout,
 	.name = "Show Peer IDs in Profile",
-	.description = "Show peer IDs from API below their Bio / Description.",
+	.description = "Show peer IDs from API below their Bio / Description."
+		" Add contact IDs to exported data.",
 });
 
 rpl::producer<TextWithEntities> IDValue(not_null<PeerData*> peer) {
