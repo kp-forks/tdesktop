@@ -135,7 +135,8 @@ void SendAlbumFromItems(
 			ReplyToForMTP(history, replyTo),
 			MTP_vector<MTPInputSingleMedia>(medias),
 			MTP_int(0),
-			MTP_inputPeerEmpty()
+			MTP_inputPeerEmpty(),
+			MTPInputQuickReplyShortcut()
 		)).done([=](const MTPUpdates &result) {
 			history->owner().session().api().applyUpdates(result);
 
