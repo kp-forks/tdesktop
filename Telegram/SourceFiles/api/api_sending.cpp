@@ -552,6 +552,7 @@ void SendConfirmedFile(
 			.date = HistoryItem::NewMessageDate(file->to.options),
 			.shortcutId = file->to.options.shortcutId,
 			.postAuthor = messagePostAuthor,
+			.groupedId = groupId,
 		}, caption, media);
 	}
 
