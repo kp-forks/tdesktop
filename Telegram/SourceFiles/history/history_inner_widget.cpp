@@ -36,7 +36,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/message_sending_animation_controller.h"
 #include "ui/effects/reaction_fly_animation.h"
 #include "ui/text/text_options.h"
-#include "ui/text/text_isolated_emoji.h"
 #include "ui/boxes/report_box.h"
 #include "ui/layers/generic_box.h"
 #include "ui/controls/delete_message_context_action.h"
@@ -2139,7 +2138,17 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		if (editItem) {
 			const auto editItemId = editItem->fullId();
 			_menu->addAction(tr::lng_context_edit_msg(tr::now), [=] {
-				_widget->editMessage(editItemId);
+				if (const auto item = session->data().message(editItemId)) {
+					auto it = _selected.find(item);
+					const auto selection = ((it != _selected.end())
+							&& (it->second != FullSelection))
+						? it->second
+						: TextSelection();
+					if (!selection.empty()) {
+						clearSelected(true);
+					}
+					_widget->editMessage(item, selection);
+				}
 			}, &st::menuIconEdit);
 		}
 		const auto pinItem = (item->canPin() && item->isPinned())
@@ -2290,17 +2299,6 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			Api::SendExistingDocument(msg(), document);
 		}, &st::menuIconImportTheme);
 	};
-
-	if (const auto item = _dragStateItem) {
-		const auto emojiStickers = &session->emojiStickersPack();
-		if (const auto view = item->mainView()) {
-			if (const auto isolated = view->isolatedEmoji()) {
-				if (const auto sticker = emojiStickers->stickerForEmoji(isolated)) {
-					addDocumentActions(sticker.document, item);
-				}
-			}
-		}
-	}
 
 	const auto asGroup = !Element::Moused()
 		|| (Element::Moused() != Element::Hovered())
