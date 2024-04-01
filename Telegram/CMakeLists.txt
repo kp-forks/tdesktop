@@ -114,6 +114,8 @@ PRIVATE
     api/api_chat_filters.h
     api/api_chat_invite.cpp
     api/api_chat_invite.h
+    api/api_chat_links.cpp
+    api/api_chat_links.h
     api/api_chat_participants.cpp
     api/api_chat_participants.h
     api/api_cloud_password.cpp
@@ -122,6 +124,8 @@ PRIVATE
     api/api_common.h
     api/api_confirm_phone.cpp
     api/api_confirm_phone.h
+    api/api_earn.cpp
+    api/api_earn.h
     api/api_editing.cpp
     api/api_editing.h
     api/api_global_privacy.cpp
@@ -726,6 +730,8 @@ PRIVATE
     history/view/media/history_view_media.h
     history/view/media/history_view_media_common.cpp
     history/view/media/history_view_media_common.h
+    history/view/media/history_view_media_generic.cpp
+    history/view/media/history_view_media_generic.h
     history/view/media/history_view_media_grouped.cpp
     history/view/media/history_view_media_grouped.h
     history/view/media/history_view_media_spoiler.cpp
@@ -867,14 +873,18 @@ PRIVATE
     history/history_view_highlight_manager.h
     history/history_widget.cpp
     history/history_widget.h
-    info/boosts/giveaway/giveaway_list_controllers.cpp
-    info/boosts/giveaway/giveaway_list_controllers.h
-    info/boosts/create_giveaway_box.cpp
-    info/boosts/create_giveaway_box.h
-    info/boosts/info_boosts_inner_widget.cpp
-    info/boosts/info_boosts_inner_widget.h
-    info/boosts/info_boosts_widget.cpp
-    info/boosts/info_boosts_widget.h
+    info/channel_statistics/boosts/create_giveaway_box.cpp
+    info/channel_statistics/boosts/create_giveaway_box.h
+    info/channel_statistics/boosts/giveaway/giveaway_list_controllers.cpp
+    info/channel_statistics/boosts/giveaway/giveaway_list_controllers.h
+    info/channel_statistics/boosts/info_boosts_inner_widget.cpp
+    info/channel_statistics/boosts/info_boosts_inner_widget.h
+    info/channel_statistics/boosts/info_boosts_widget.cpp
+    info/channel_statistics/boosts/info_boosts_widget.h
+    info/channel_statistics/earn/info_earn_inner_widget.cpp
+    info/channel_statistics/earn/info_earn_inner_widget.h
+    info/channel_statistics/earn/info_earn_widget.cpp
+    info/channel_statistics/earn/info_earn_widget.h
     info/common_groups/info_common_groups_inner_widget.cpp
     info/common_groups/info_common_groups_inner_widget.h
     info/common_groups/info_common_groups_widget.cpp
@@ -1143,6 +1153,8 @@ PRIVATE
     menu/menu_mute.h
     menu/menu_send.cpp
     menu/menu_send.h
+    menu/menu_sponsored.cpp
+    menu/menu_sponsored.h
     menu/menu_ttl_validator.cpp
     menu/menu_ttl_validator.h
     mtproto/config_loader.cpp
@@ -1197,8 +1209,6 @@ PRIVATE
     payments/payments_checkout_process.h
     payments/payments_form.cpp
     payments/payments_form.h
-    platform/linux/linux_desktop_environment.cpp
-    platform/linux/linux_desktop_environment.h
     platform/linux/linux_wayland_integration_dummy.cpp
     platform/linux/linux_wayland_integration.cpp
     platform/linux/linux_wayland_integration.h
@@ -1305,6 +1315,10 @@ PRIVATE
     settings/business/settings_away_message.h
     settings/business/settings_shortcut_messages.cpp
     settings/business/settings_shortcut_messages.h
+    settings/business/settings_chat_intro.cpp
+    settings/business/settings_chat_intro.h
+    settings/business/settings_chat_links.cpp
+    settings/business/settings_chat_links.h
     settings/business/settings_chatbots.cpp
     settings/business/settings_chatbots.h
     settings/business/settings_greeting.cpp
