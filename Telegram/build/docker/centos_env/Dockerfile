@@ -1,7 +1,7 @@
 {%- set GIT = "https://github.com" -%}
 {%- set GIT_FREEDESKTOP = GIT ~ "/gitlab-freedesktop-mirrors" -%}
 {%- set QT = "6.7.0" -%}
-{%- set QT_TAG = "v" ~ QT ~ "-rc2" -%}
+{%- set QT_TAG = "v" ~ QT -%}
 {%- set CMAKE_VER = "3.27.6" -%}
 {%- set CMAKE_FILE = "cmake-" ~ CMAKE_VER ~ "-Linux-x86_64.sh" -%}
 {%- set CFLAGS_DEBUG = "-g -pipe -fPIC -fstack-protector-all -fstack-clash-protection -fcf-protection -D_GLIBCXX_ASSERTIONS" -%}
@@ -51,7 +51,7 @@ FROM builder AS patches
 RUN git init patches \
 	&& cd patches \
 	&& git remote add origin {{ GIT }}/desktop-app/patches.git \
-	&& git fetch --depth=1 origin 7b8f30b787691a325d17e20ddd455e87738e7432 \
+	&& git fetch --depth=1 origin 174d6e51435e6eab0596904f9fba80a927ef4177 \
 	&& git reset --hard FETCH_HEAD \
 	&& rm -rf .git
 
@@ -79,7 +79,7 @@ RUN git init zlib \
 	&& rm -rf zlib
 
 FROM builder AS xz
-RUN git clone -b v5.4.4 --depth=1 {{ GIT }}/tukaani-project/xz.git \
+RUN git clone -b v5.4.4 --depth=1 https://git.tukaani.org/xz.git \
 	&& cd xz \
 	&& cmake -B build . -DCMAKE_BUILD_TYPE=None \
 	&& cmake --build build -j$(nproc) \
@@ -479,7 +479,7 @@ RUN git clone -b 1.19.0 --depth=1 {{ GIT_FREEDESKTOP }}/wayland.git \
 	&& rm -rf wayland
 
 FROM builder AS nv-codec-headers
-RUN git clone -b n12.0.16.0 --depth=1 {{ GIT }}/FFmpeg/nv-codec-headers.git \
+RUN git clone -b n12.1.14.0 --depth=1 {{ GIT }}/FFmpeg/nv-codec-headers.git \
 	&& DESTDIR="{{ LibrariesPath }}/nv-codec-headers-cache" make -C nv-codec-headers install \
 	&& rm -rf nv-codec-headers
 
@@ -491,7 +491,7 @@ COPY --link --from=libXext {{ LibrariesPath }}/libXext-cache /
 COPY --link --from=libXv {{ LibrariesPath }}/libXv-cache /
 COPY --link --from=nv-codec-headers {{ LibrariesPath }}/nv-codec-headers-cache /
 
-RUN git clone -b n5.1.3 --depth=1 {{ GIT }}/FFmpeg/FFmpeg.git \
+RUN git clone -b n6.1.1 --depth=1 {{ GIT }}/FFmpeg/FFmpeg.git \
 	&& cd FFmpeg \
 	&& ./configure \
 		--extra-cflags="-DCONFIG_SAFE_BITSTREAM_READER=1" \
