@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_context_menu.h"
 
 #include "forkgram/uri_menu.h"
+#include "history/view/history_view_context_menu_fork.h"
 
 #include "api/api_attached_stickers.h"
 #include "api/api_editing.h"
@@ -982,6 +983,7 @@ void AddMessageActions(
 	AddReportAction(menu, request, list);
 	AddSelectionAction(menu, request, list);
 	AddRescheduleAction(menu, request, list);
+	Fork::AddReplaceMedia(menu, request.item, request.navigation->parentController());
 }
 
 void AddCopyLinkAction(
