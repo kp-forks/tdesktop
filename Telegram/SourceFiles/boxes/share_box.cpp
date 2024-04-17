@@ -1671,10 +1671,18 @@ void FastShareMessage(
 			.peers = std::move(result),
 			.comment = std::move(comment),
 			.emptyText = emptyText,
-			.silent = base::IsCtrlPressed()
+			.silent = QGuiApplication::keyboardModifiers().testFlag(Qt::ControlModifier),
+			.scheduledDraft = QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier),
 		};
-		if (toSend.silent) {
-			show->showToast(u"Silently."_q);
+		const auto toast = (toSend.silent && toSend.scheduledDraft)
+			? u"Silently scheduled."_q
+			: toSend.silent
+			? u"Silently."_q
+			: toSend.scheduledDraft
+			? u"Scheduled."_q
+			: QString();
+		if (!toast.isEmpty()) {
+			show->showToast(toast);
 		}
 		if (item->groupId()) {
 			Api::AsCopy::SendExistingAlbumFromItem(item, std::move(toSend));

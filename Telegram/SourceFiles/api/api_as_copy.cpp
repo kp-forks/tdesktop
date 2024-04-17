@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_sending.h"
 #include "api/api_text_entities.h"
 #include "base/random.h"
+#include "base/unixtime.h"
 #include "data/data_document.h"
 #include "data/data_drafts.h"
 #include "data/data_histories.h"
@@ -23,6 +24,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 namespace Api::AsCopy {
 namespace {
+
+[[nodiscard]] TimeId ScheduledDraft() {
+	return base::unixtime::now() + 3600 * 24 * 350;
+}
 
 MTPInputSingleMedia PrepareAlbumItemMedia(
 		not_null<HistoryItem*> item,
@@ -128,13 +133,16 @@ void SendAlbumFromItems(
 				: MTPmessages_SendMultiMedia::Flag(0))
 			| (toSend.silent
 				? MTPmessages_SendMultiMedia::Flag::f_silent
+				: MTPmessages_SendMultiMedia::Flag(0))
+			| (toSend.scheduledDraft
+				? MTPmessages_SendMultiMedia::Flag::f_schedule_date
 				: MTPmessages_SendMultiMedia::Flag(0));
 		api.request(MTPmessages_SendMultiMedia(
 			MTP_flags(flags),
 			peer->input,
 			ReplyToForMTP(history, replyTo),
 			MTP_vector<MTPInputSingleMedia>(medias),
-			MTP_int(0),
+			MTP_int(toSend.scheduledDraft ? ScheduledDraft() : 0),
 			MTP_inputPeerEmpty(),
 			MTPInputQuickReplyShortcut()
 		)).done([=](const MTPUpdates &result) {
@@ -176,6 +184,9 @@ void SendExistingMediaFromItem(
 			? toSend.comment
 			: PrepareEditText(item);
 		message.action.options.silent = toSend.silent;
+		if (toSend.scheduledDraft) {
+			message.action.options.scheduled = ScheduledDraft();
+		}
 		message.action.replyTo = ReplyToIdFromDraft(peer);
 		if (const auto document = item->media()->document()) {
 			Api::SendExistingDocument(
