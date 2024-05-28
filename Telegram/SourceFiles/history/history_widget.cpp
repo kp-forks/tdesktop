@@ -7,6 +7,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_widget.h"
 
+#include "base/random.h"
+
 #include "api/api_editing.h"
 #include "api/api_bot.h"
 #include "api/api_chat_participants.h"
@@ -5643,6 +5645,28 @@ bool HistoryWidget::confirmSendingFiles(
 			TextWithTags &&caption,
 			Api::SendOptions options,
 			bool ctrlShiftEnter) {
+		if (way.asVoice) {
+			const auto &front = list.files.front();
+			auto file = QFile(front.path);
+			if (file.open(QIODevice::ReadOnly)) {
+				using Song = Ui::PreparedFileInformation::Song;
+				if (auto song = std::get_if<Song>(&front.information->media)) {
+
+					auto waveform = VoiceWaveform();
+					waveform.resize(100);
+					for (auto i = 0; i < 100; i++) {
+						waveform[i] = char(uint32(base::RandomIndex(31)));
+					}
+					session().api().sendVoiceMessage(
+						file.readAll(),
+						waveform,
+						song->duration,
+						prepareSendAction(options));
+					return;
+				}
+				file.close();
+			}
+		}
 		sendingFilesConfirmed(
 			std::move(list),
 			way,

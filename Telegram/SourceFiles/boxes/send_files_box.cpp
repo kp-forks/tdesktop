@@ -882,6 +882,16 @@ void SendFilesBox::refreshControls(bool initial) {
 void SendFilesBox::setupSendWayControls() {
 	const auto groupFilesFirst = _sendWay.current().groupFiles();
 	const auto asPhotosFirst = _sendWay.current().sendImagesAsPhotos();
+
+	if ((_list.files.size() == 1)
+		&& _list.files.front().path.endsWith(".ogg")) {
+		_sendAsVoice.create(
+			this,
+			u"Send first as Voice"_q,
+			false,
+			_st.files.checkbox,
+			_st.files.check);
+	}
 	_groupFiles.create(
 		this,
 		tr::lng_send_grouped(tr::now),
@@ -1294,11 +1304,12 @@ void SendFilesBox::updateBoxSize() {
 	if (_caption && !_caption->isHidden()) {
 		footerHeight += st::boxPhotoCaptionSkip + _caption->height();
 	}
-	const auto pairs = std::array<std::pair<RpWidget*, int>, 4>{ {
+	const auto pairs = std::array<std::pair<RpWidget*, int>, 5>{ {
 		{ _groupFiles.data(), st::boxPhotoCompressedSkip },
 		{ _sendImagesAsPhotos.data(), st::boxPhotoCompressedSkip },
 		{ _wayRemember.data(), st::boxPhotoCompressedSkip },
 		{ _hintLabel.data(), st::editMediaLabelMargins.top() },
+		{ _sendAsVoice.data(), st::boxPhotoCompressedSkip },
 	} };
 	for (const auto &pair : pairs) {
 		const auto pointer = pair.first;
@@ -1362,11 +1373,12 @@ void SendFilesBox::updateControlsGeometry() {
 			_emojiToggle->update();
 		}
 	}
-	const auto pairs = std::array<std::pair<RpWidget*, int>, 4>{ {
+	const auto pairs = std::array<std::pair<RpWidget*, int>, 5>{ {
 		{ _hintLabel.data(), st::editMediaLabelMargins.top() },
 		{ _groupFiles.data(), st::boxPhotoCompressedSkip },
 		{ _sendImagesAsPhotos.data(), st::boxPhotoCompressedSkip },
 		{ _wayRemember.data(), st::boxPhotoCompressedSkip },
+		{ _sendAsVoice.data(), st::boxPhotoCompressedSkip },
 	} };
 	for (const auto &pair : ranges::views::reverse(pairs)) {
 		const auto pointer = pair.first;
@@ -1457,7 +1469,14 @@ void SendFilesBox::send(
 		}
 		_confirmedCallback(
 			std::move(_list),
-			_sendWay.current(),
+			[&] {
+				if (_sendAsVoice && _sendAsVoice->checked()) {
+					auto way = _sendWay.current();
+					way.asVoice = true;
+					return way;
+				}
+				return _sendWay.current();
+			}(),
 			std::move(caption),
 			options,
 			ctrlShiftEnter);

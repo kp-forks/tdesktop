@@ -256,6 +256,7 @@ private:
 	object_ptr<Ui::Checkbox> _groupFiles = { nullptr };
 	object_ptr<Ui::Checkbox> _sendImagesAsPhotos = { nullptr };
 	object_ptr<Ui::Checkbox> _wayRemember = { nullptr };
+	object_ptr<Ui::Checkbox> _sendAsVoice = { nullptr };
 	object_ptr<Ui::FlatLabel> _hintLabel = { nullptr };
 	rpl::variable<Ui::SendFilesWay> _sendWay = Ui::SendFilesWay();
 
