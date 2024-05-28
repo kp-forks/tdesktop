@@ -1758,6 +1758,9 @@ HistoryItem *History::lastAvailableMessage() const {
 }
 
 int History::unreadCount() const {
+	if (isTopPromoted()) {
+		return 0;
+	}
 	return _unreadCount ? *_unreadCount : 0;
 }
 
@@ -1767,6 +1770,9 @@ bool History::unreadCountKnown() const {
 
 void History::setUnreadCount(int newUnreadCount) {
 	Expects(folderKnown());
+	if (isTopPromoted()) {
+		newUnreadCount = 0;
+	}
 
 	if (_unreadCount == newUnreadCount) {
 		return;

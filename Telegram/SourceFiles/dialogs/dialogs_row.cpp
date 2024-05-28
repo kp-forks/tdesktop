@@ -253,6 +253,10 @@ Row::~Row() {
 
 void Row::recountHeight(float64 narrowRatio) {
 	if (const auto history = _id.history()) {
+		if (history->isTopPromoted()) {
+			_height = 1;
+			return;
+		}
 		_height = history->isForum()
 			? anim::interpolate(
 				st::forumDialogRow.height,
