@@ -277,13 +277,12 @@ void HistoryMessageForwarded::create(
 				Ui::Text::WithEntities);
 		}
 	}
-	text.setMarkedText(st::fwdTextStyle, phrase, kMarkupTextOptions, context);
 	if (originalDate != TimeId(0)) {
 		phrase.append(QString(". Date: ")
 			+ base::unixtime::parse(originalDate).toString(
 				QLocale::system().dateTimeFormat(QLocale::ShortFormat)));
 	}
-	text.setMarkedText(st::fwdTextStyle, phrase);
+	text.setMarkedText(st::fwdTextStyle, phrase, kMarkupTextOptions, context);
 
 	text.setLink(1, fromChannel
 		? JumpToMessageClickHandler(originalSender, originalId)
