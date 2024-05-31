@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_list_widget.h"
 #include "history/history.h"
 #include "history/history_item.h"
+#include "history/history_item_components.h"
 #include "info/profile/info_profile_cover.h"
 #include "info/profile/info_profile_values.h"
 #include "lang/lang_keys.h"
@@ -129,6 +130,7 @@ private:
 	void listAddTranslatedItems(
 		not_null<TranslateTracker*> tracker) override;
 	not_null<Window::SessionController*> listWindow() override;
+	not_null<QWidget*> listEmojiInteractionsParent() override;
 	not_null<const Ui::ChatStyle*> listChatStyle() override;
 	rpl::producer<bool> listChatWideValue() override;
 	std::unique_ptr<Reactions::Manager> listMakeReactionsManager(
@@ -242,6 +244,7 @@ Item::Item(not_null<Ui::RpWidget*> parent, not_null<Data::Thread*> thread)
 		this,
 		tr::lng_context_mark_read(tr::now),
 		st::previewMarkRead)) {
+	_chatStyle->apply(_theme.get());
 	setPointerCursor(false);
 	setMinWidth(st::previewMenu.menu.widthMin);
 	resize(minWidth(), contentHeight());
@@ -274,11 +277,13 @@ void Item::setupTop() {
 	}, _top->lifetime());
 
 	const auto topic = _thread->asTopic();
+	auto nameValue = (topic
+		? Info::Profile::TitleValue(topic)
+		: Info::Profile::NameValue(_thread->peer())
+	) | rpl::start_spawning(_top->lifetime());
 	const auto name = Ui::CreateChild<Ui::FlatLabel>(
 		_top.get(),
-		(topic
-			? Info::Profile::TitleValue(topic)
-			: Info::Profile::NameValue(_thread->peer())),
+		rpl::duplicate(nameValue),
 		st::previewName);
 	name->setAttribute(Qt::WA_TransparentForMouseEvents);
 	auto statusFields = StatusValue(
@@ -321,12 +326,19 @@ void Item::setupTop() {
 	}
 
 	const auto shadow = Ui::CreateChild<Ui::PlainShadow>(this);
-	_top->geometryValue() | rpl::start_with_next([=](QRect geometry) {
+	rpl::combine(
+		_top->widthValue(),
+		std::move(nameValue)
+	) | rpl::start_with_next([=](int width, const auto &) {
 		const auto &st = st::previewTop;
-		name->resizeToWidth(geometry.width()
+		name->resizeToNaturalWidth(width
 			- st.namePosition.x()
 			- st.photoPosition.x());
 		name->move(st::previewTop.namePosition);
+	}, name->lifetime());
+
+	_top->geometryValue() | rpl::start_with_next([=](QRect geometry) {
+		const auto &st = st::previewTop;
 		status->resizeToWidth(geometry.width()
 			- st.statusPosition.x()
 			- st.photoPosition.x());
@@ -358,7 +370,10 @@ void Item::setupMarkRead() {
 	) | rpl::start_with_next([=] {
 		const auto state = _thread->chatListBadgesState();
 		const auto unread = (state.unreadCounter || state.unread);
-		if (_thread->asTopic() && !unread) {
+		const auto hidden = _thread->asTopic()
+			? (!unread)
+			: _thread->peer()->isForum();
+		if (hidden) {
 			_markRead->hide();
 			return;
 		}
@@ -424,17 +439,20 @@ void Item::setupHistory() {
 	_scroll->setOverscrollTypes(Type::Real, Type::Real);
 
 	_scroll->events() | rpl::start_with_next([=](not_null<QEvent*> e) {
-		if (e->type() == QEvent::MouseButtonPress) {
-			const auto relative = Ui::MapFrom(
-				_inner.data(),
-				_scroll.get(),
-				static_cast<QMouseEvent*>(e.get())->pos());
-			if (const auto view = _inner->lookupItemByY(relative.y())) {
-				_actions.fire(ChatPreviewAction{
-					.openItemId = view->data()->fullId(),
-				});
-			} else {
-				_actions.fire(ChatPreviewAction{});
+		if (e->type() == QEvent::MouseButtonDblClick) {
+			const auto button = static_cast<QMouseEvent*>(e.get())->button();
+			if (button == Qt::LeftButton) {
+				const auto relative = Ui::MapFrom(
+					_inner.data(),
+					_scroll.get(),
+					static_cast<QMouseEvent*>(e.get())->pos());
+				if (const auto view = _inner->lookupItemByY(relative.y())) {
+					_actions.fire(ChatPreviewAction{
+						.openItemId = view->data()->fullId(),
+					});
+				} else {
+					_actions.fire(ChatPreviewAction{});
+				}
 			}
 		}
 	}, lifetime());
@@ -581,7 +599,11 @@ void Item::listUpdateDateLink(
 }
 
 bool Item::listElementHideReply(not_null<const Element*> view) {
-	return false;
+	if (!view->isTopicRootReply()) {
+		return false;
+	}
+	const auto reply = view->data()->Get<HistoryMessageReply>();
+	return reply && !reply->fields().manualQuote;
 }
 
 bool Item::listElementShownUnread(not_null<const Element*> view) {
@@ -661,6 +683,10 @@ void Item::listAddTranslatedItems(
 
 not_null<Window::SessionController*> Item::listWindow() {
 	Unexpected("Item::listWindow.");
+}
+
+not_null<QWidget*> Item::listEmojiInteractionsParent() {
+	return this;
 }
 
 not_null<const Ui::ChatStyle*> Item::listChatStyle() {
@@ -751,10 +777,6 @@ ChatPreview MakeChatPreview(
 	const auto thread = entry->asThread();
 	if (!thread) {
 		return {};
-	} else if (const auto history = entry->asHistory()) {
-		if (history->peer->isForum()) {
-			return {};
-		}
 	}
 
 	auto result = ChatPreview{
