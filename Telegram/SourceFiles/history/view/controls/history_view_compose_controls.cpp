@@ -1658,6 +1658,7 @@ void ComposeControls::initField() {
 	InitMessageFieldFade(_field, _st.field.textBg);
 	_field->setEditLinkCallback(
 		DefaultEditLinkCallback(_show, _field, &_st.boxField));
+	_field->setEditLanguageCallback(DefaultEditLanguageCallback(_show));
 	initAutocomplete();
 	const auto allow = [=](not_null<DocumentData*> emoji) {
 		return _history
@@ -3281,7 +3282,7 @@ not_null<Ui::RpWidget*> ComposeControls::likeAnimationTarget() const {
 }
 
 int ComposeControls::fieldCharacterCount() const {
-	return Ui::FieldCharacterCount(_field);
+	return Ui::ComputeFieldCharacterCount(_field);
 }
 
 bool ComposeControls::preventsClose(Fn<void()> &&continueCallback) const {
@@ -3464,7 +3465,8 @@ void ComposeControls::checkCharsLimitation() {
 	const auto maxCaptionSize = !hasMediaWithCaption
 		? MaxMessageSize
 		: Data::PremiumLimits(&session()).captionLengthCurrent();
-	const auto remove = Ui::FieldCharacterCount(_field) - maxCaptionSize;
+	const auto remove = Ui::ComputeFieldCharacterCount(_field)
+		- maxCaptionSize;
 	if (remove > 0) {
 		if (!_charsLimitation) {
 			using namespace Controls;

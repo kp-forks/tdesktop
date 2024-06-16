@@ -95,6 +95,7 @@ namespace {
 
 constexpr auto kSearchPerPage = 50;
 constexpr auto kStoriesExpandDuration = crl::time(200);
+constexpr auto kSearchRequestDelay = crl::time(900);
 
 base::options::toggle OptionForumHideChatsList({
 	.id = kOptionForumHideChatsList,
@@ -324,9 +325,9 @@ Widget::Widget(
 			_scroll->scrollToY(st + _inner->st()->height);
 		}
 	}, lifetime());
-	_inner->searchMessages(
-	) | rpl::start_with_next([=] {
-		searchRequested();
+	_inner->searchRequests(
+	) | rpl::start_with_next([=](SearchRequestDelay delay) {
+		searchRequested(delay);
 	}, lifetime());
 	_inner->completeHashtagRequests(
 	) | rpl::start_with_next([=](const QString &tag) {
@@ -1936,7 +1937,7 @@ void Widget::loadMoreBlockedByDate() {
 	session().api().requestMoreBlockedByDateDialogs();
 }
 
-bool Widget::search(bool inCache) {
+bool Widget::search(bool inCache, SearchRequestDelay delay) {
 	_processingSearch = true;
 	const auto guard = gsl::finally([&] {
 		_processingSearch = false;
@@ -1965,7 +1966,7 @@ bool Widget::search(bool inCache) {
 		return true;
 	} else if (inCache) {
 		const auto success = _singleMessageSearch.lookup(query, [=] {
-			searchRequested();
+			searchRequested(delay);
 		});
 		if (!success) {
 			return false;
@@ -2083,6 +2084,9 @@ bool Widget::search(bool inCache) {
 			}).send();
 			_searchQueries.emplace(_searchRequest, _searchQuery);
 		}
+		_inner->searchRequested(true);
+	} else {
+		_inner->searchRequested(false);
 	}
 	const auto peerQuery = Api::ConvertPeerSearchQuery(query);
 	if (searchForPeersRequired(peerQuery)) {
@@ -2145,9 +2149,14 @@ bool Widget::searchForTopicsRequired(const QString &query) const {
 		&& !_openedForum->topicsList()->loaded();
 }
 
-void Widget::searchRequested() {
-	if (!search(true)) {
-		_searchTimer.callOnce(AutoSearchTimeout);
+void Widget::searchRequested(SearchRequestDelay delay) {
+	if (search(true, delay)) {
+		return;
+	} else if (delay == SearchRequestDelay::Instant) {
+		_searchTimer.cancel();
+		search();
+	} else {
+		_searchTimer.callOnce(kSearchRequestDelay);
 	}
 }
 
@@ -2202,10 +2211,11 @@ void Widget::searchTopics() {
 }
 
 void Widget::searchMore() {
-	if (_searchRequest || _searchInHistoryRequest) {
+	if (_searchRequest
+		|| _searchInHistoryRequest
+		|| _searchTimer.isActive()) {
 		return;
-	}
-	if (!_searchFull) {
+	} else if (!_searchFull) {
 		if (const auto peer = searchInPeer()) {
 			auto &histories = session().data().histories();
 			const auto topic = searchInTopic();
