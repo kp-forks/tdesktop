@@ -96,7 +96,8 @@ FullReplyTo ReplyToIdFromDraft(not_null<PeerData*> peer) {
 				history->peer->input,
 				MTPstring(),
 				MTPVector<MTPMessageEntity>(),
-				MTP_inputMediaEmpty()
+				MTP_inputMediaEmpty(),
+				MTP_long(0)
 		)).send();
 	}
 	return replyTo;
