@@ -5,7 +5,7 @@ the official desktop application for the Telegram messaging service.
 For license and copyright information please follow this link:
 https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
-#include "info/bot/earn/info_earn_inner_widget.h"
+#include "info/bot/earn/info_bot_earn_list.h"
 
 #include "api/api_credits.h"
 #include "api/api_filter_updates.h"
@@ -15,7 +15,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "data/stickers/data_custom_emoji.h"
-#include "info/bot/earn/info_earn_widget.h"
+#include "info/bot/earn/info_bot_earn_widget.h"
 #include "info/channel_statistics/earn/earn_format.h"
 #include "info/info_controller.h"
 #include "info/statistics/info_statistics_inner_widget.h" // FillLoading.
@@ -119,7 +119,6 @@ void InnerWidget::fill() {
 	const auto container = this;
 	const auto &data = _state;
 	const auto multiplier = data.usdRate * Data::kEarnMultiplier;
-	const auto session = &_peer->session();
 
 	auto availableBalanceValue = rpl::single(
 		data.availableBalance
@@ -192,7 +191,7 @@ void InnerWidget::fill() {
 			Ui::ToggleChildrenVisibility(line, true);
 
 			Ui::AddSkip(container);
-			const auto sub = container->add(
+			container->add(
 				object_ptr<Ui::FlatLabel>(
 					container,
 					text(),
