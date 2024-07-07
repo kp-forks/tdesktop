@@ -1514,7 +1514,8 @@ void Filler::fillArchiveActions() {
 
 	const auto controller = _controller;
 	const auto hidden = controller->session().settings().archiveCollapsed();
-	{
+	const auto inmenu = controller->session().settings().archiveInMainMenu();
+	if (!inmenu) {
 		const auto text = hidden
 			? tr::lng_context_archive_expand(tr::now)
 			: tr::lng_context_archive_collapse(tr::now);
@@ -1523,7 +1524,6 @@ void Filler::fillArchiveActions() {
 			controller->session().saveSettingsDelayed();
 		}, hidden ? &st::menuIconExpand : &st::menuIconCollapse);
 	}
-	const auto inmenu = controller->session().settings().archiveInMainMenu();
 	{
 		const auto text = inmenu
 			? tr::lng_context_archive_to_list(tr::now)
