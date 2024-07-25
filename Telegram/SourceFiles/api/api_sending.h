@@ -9,14 +9,18 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "data/data_file_origin.h"
 
-namespace Main {
-class Session;
-} // namespace Main
-
 class History;
 class PhotoData;
 class DocumentData;
 struct FilePrepareResult;
+
+namespace Data {
+struct InputVenue;
+} // namespace Data
+
+namespace Main {
+class Session;
+} // namespace Main
 
 namespace Api {
 
@@ -44,6 +48,13 @@ void SendExistingPhoto(
 	Data::FileOrigin origin);
 
 bool SendDice(MessageToSend &message);
+
+// We can't create Data::LocationPoint() and use it
+// for a local sending message, because we can't request
+// map thumbnail in messages history without access hash.
+void SendLocation(SendAction action, float64 lat, float64 lon);
+
+void SendVenue(SendAction action, Data::InputVenue venue);
 
 void FillMessagePostFlags(
 	const SendAction &action,
