@@ -276,6 +276,8 @@ PRIVATE
     boxes/edit_caption_box.h
     boxes/edit_privacy_box.cpp
     boxes/edit_privacy_box.h
+    boxes/gift_credits_box.cpp
+    boxes/gift_credits_box.h
     boxes/gift_premium_box.cpp
     boxes/gift_premium_box.h
     boxes/language_box.cpp
@@ -481,6 +483,8 @@ PRIVATE
     data/business/data_shortcut_messages.h
     data/components/factchecks.cpp
     data/components/factchecks.h
+    data/components/location_pickers.cpp
+    data/components/location_pickers.h
     data/components/recent_peers.cpp
     data/components/recent_peers.h
     data/components/scheduled_messages.cpp
