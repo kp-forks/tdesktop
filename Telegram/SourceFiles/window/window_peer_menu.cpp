@@ -2647,7 +2647,6 @@ void ToggleHistoryArchived(
 			.duration = (archived
 				? kArchivedToastDuration
 				: Ui::Toast::kDefaultDuration),
-			.multiline = true,
 		});
 	};
 	history->session().api().toggleHistoryArchived(
