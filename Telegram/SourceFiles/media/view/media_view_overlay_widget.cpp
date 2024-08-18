@@ -1510,10 +1510,10 @@ void OverlayWidget::refreshSponsoredButtonGeometry() {
 		(controllerBottom // Duplicated in recountSkipTop().
 			- ((_streamed && _streamed->controls)
 				? (_streamed->controls->height()
-					+ st::mediaviewCaptionMargin.height())
+					+ st::mediaviewCaptionPadding.bottom())
 				: 0)
 			- _sponsoredButton->height()
-			- st::mediaviewCaptionPadding.bottom()));
+			- st::mediaviewCaptionMargin.height()));
 	Ui::SendPendingMoveResizeEvents(_sponsoredButton.get());
 }
 
@@ -3482,6 +3482,8 @@ void OverlayWidget::displayPhoto(
 	if (!_stories && _photo->videoCanBePlayed()) {
 		initStreaming();
 	}
+
+	initSponsoredButton();
 
 	refreshCaption();
 
@@ -5954,7 +5956,7 @@ void OverlayWidget::handleMouseRelease(
 			QVariant::fromValue(ClickHandlerContext{
 				.itemId = _message ? _message->fullId() : FullMsgId(),
 				.sessionWindow = base::make_weak(findWindow()),
-				.show = _stories ? _stories->uiShow() : nullptr,
+				.show = _stories ? _stories->uiShow() : uiShow(),
 				.dark = true,
 			})
 		});
