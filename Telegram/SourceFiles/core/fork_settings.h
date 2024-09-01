@@ -108,6 +108,9 @@ public:
 	[[nodiscard]] bool hideAllChatsTab() const;
 	void setHideAllChatsTab(bool newValue);
 
+	[[nodiscard]] bool globalSearchDisabled() const;
+	void setGlobalSearchDisabled(bool newValue);
+
 private:
 	bool _squareUserpics = false;
 	bool _audioFade = true;
@@ -126,6 +129,7 @@ private:
 	bool _primaryUnmutedMessages = false;
 	bool _addToMenuRememberMedia = false;
 	bool _hideAllChatsTab = false;
+	bool _globalSearchDisabled = false;
 
 };
 

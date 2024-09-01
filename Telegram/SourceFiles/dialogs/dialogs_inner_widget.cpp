@@ -22,6 +22,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "core/application.h"
+#include "core/core_settings.h"
 #include "core/click_handler_types.h"
 #include "core/shortcuts.h"
 #include "ui/widgets/buttons.h"
@@ -3082,6 +3083,9 @@ void InnerWidget::peerSearchReceived(
 	_peerSearchQuery = query.toLower().trimmed();
 	_peerSearchResults.clear();
 	_peerSearchResults.reserve(result.size());
+	if (Core::App().settings().fork().globalSearchDisabled()) {
+		return refresh();
+	}
 	for	(const auto &mtpPeer : my) {
 		if (const auto peer = session().data().peerLoaded(peerFromMTP(mtpPeer))) {
 			appendToFiltered(peer->owner().history(peer));

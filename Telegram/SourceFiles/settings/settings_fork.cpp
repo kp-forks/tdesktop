@@ -442,6 +442,14 @@ void SetupForkContent(
 			Core::App().settings().fork().setHideAllChatsTab(checked);
 		});
 
+	//
+	add(
+		u"Disable global search"_q,
+		Core::App().settings().fork().globalSearchDisabled(),
+		[](bool checked) {
+			Core::App().settings().fork().setGlobalSearchDisabled(checked);
+		});
+
 	Ui::AddDivider(inner);
 
 }

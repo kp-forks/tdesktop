@@ -27,7 +27,7 @@ QByteArray ForkSettings::serialize() const {
 	auto size = sizeof(qint32) * 4
 		+ Serialize::stringSize(_uriScheme)
 		+ Serialize::stringSize(_searchEngineUrl)
-		+ sizeof(qint32) * 10;
+		+ sizeof(qint32) * 12;
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -52,6 +52,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_primaryUnmutedMessages ? 1 : 0)
 			<< qint32(_addToMenuRememberMedia ? 1 : 0)
 			<< qint32(_hideAllChatsTab ? 1 : 0)
+			<< qint32(_globalSearchDisabled ? 1 : 0)
 			;
 	}
 	return result;
@@ -82,6 +83,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 primaryUnmutedMessages = _primaryUnmutedMessages;
 	qint32 addToMenuRememberMedia = _addToMenuRememberMedia;
 	qint32 hideAllChatsTab = _hideAllChatsTab;
+	qint32 globalSearchDisabled = _globalSearchDisabled;
 
 	if (!stream.atEnd()) {
 		stream
@@ -108,6 +110,9 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> hideAllChatsTab;
 	}
+	if (!stream.atEnd()) {
+		stream >> globalSearchDisabled;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::ForkSettings::constructFromSerialized()"));
@@ -132,6 +137,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	setPrimaryUnmutedMessages(primaryUnmutedMessages == 1);
 	_addToMenuRememberMedia = (addToMenuRememberMedia == 1);
 	_hideAllChatsTab = (hideAllChatsTab == 1);
+	_globalSearchDisabled = (globalSearchDisabled == 1);
 }
 
 void ForkSettings::resetOnLastLogout() {
@@ -151,6 +157,7 @@ void ForkSettings::resetOnLastLogout() {
 	setPrimaryUnmutedMessages(false);
 	_addToMenuRememberMedia = false;
 	_hideAllChatsTab = false;
+	_globalSearchDisabled = false;
 }
 
 [[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
@@ -173,6 +180,13 @@ void ForkSettings::setAddToMenuRememberMedia(bool newValue) {
 }
 void ForkSettings::setHideAllChatsTab(bool newValue) {
 	_hideAllChatsTab = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::globalSearchDisabled() const {
+	return _globalSearchDisabled;
+}
+void ForkSettings::setGlobalSearchDisabled(bool newValue) {
+	_globalSearchDisabled = newValue;
 }
 
 } // namespace Core
