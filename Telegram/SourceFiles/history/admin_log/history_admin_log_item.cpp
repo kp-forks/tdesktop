@@ -1015,6 +1015,7 @@ void GenerateItems(
 			history->nextNonHistoryEntryId(),
 			PrepareLogMessage(action.vnew_message(), date),
 			MessageFlag::AdminLogEntry);
+		/*
 		if (oldValue.text.isEmpty()) {
 			oldValue = PrepareText(
 				QString(),
@@ -1027,7 +1028,17 @@ void GenerateItems(
 				? tr::lng_admin_log_previous_caption
 				: tr::lng_admin_log_previous_message)(tr::now),
 			oldValue);
+		*/
 		addPart(body, sentDate, realId);
+
+		addSimpleServiceMessage({ u"was"_q }, realId);
+		addPart(
+			history->createItem(
+				history->nextNonHistoryEntryId(),
+				PrepareLogMessage(action.vprev_message(), date),
+				MessageFlag::AdminLogEntry),
+			ExtractSentDate(action.vprev_message()),
+			ExtractRealMsgId(action.vprev_message()));
 	};
 
 	const auto createDeleteMessage = [&](const LogDelete &action) {

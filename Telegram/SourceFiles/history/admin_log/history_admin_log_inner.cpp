@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/admin_log/history_admin_log_inner.h"
 
+#include "history/view/history_view_context_menu_fork.h"
 #include "history/history.h"
 #include "history/view/media/history_view_media.h"
 #include "history/view/media/history_view_web_page.h"
@@ -1292,6 +1293,9 @@ void InnerWidget::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			_menu->addAction(tr::lng_context_copy_selected(tr::now), [=] {
 				copySelectedText();
 			}, &st::menuIconCopy);
+		}
+		if (view) {
+			Fork::AddReplaceMedia(_menu, view->data(), _controller);
 		}
 		if (lnkPhoto) {
 			const auto media = lnkPhoto->activeMediaView();
