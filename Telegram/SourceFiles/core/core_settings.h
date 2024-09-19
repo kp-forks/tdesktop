@@ -244,6 +244,12 @@ public:
 	void setIncludeMutedCounter(bool value) {
 		_includeMutedCounter = value;
 	}
+	[[nodiscard]] bool includeMutedCounterFolders() const {
+		return _includeMutedCounterFolders;
+	}
+	void setIncludeMutedCounterFolders(bool value) {
+		_includeMutedCounterFolders = value;
+	}
 	[[nodiscard]] bool countUnreadMessages() const {
 		return _countUnreadMessages;
 	}
@@ -959,6 +965,7 @@ private:
 	int _notificationsCount = 3;
 	ScreenCorner _notificationsCorner = ScreenCorner::BottomRight;
 	bool _includeMutedCounter = true;
+	bool _includeMutedCounterFolders = true;
 	bool _countUnreadMessages = true;
 	rpl::variable<bool> _notifyAboutPinned = true;
 	int _autoLock = 3600;
