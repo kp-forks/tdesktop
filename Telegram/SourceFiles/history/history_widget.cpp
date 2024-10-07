@@ -6306,7 +6306,8 @@ void HistoryWidget::updateHistoryGeometry(
 		if (!initial) {
 			visibleAreaUpdated();
 		}
-
+	}
+	if (needResize || initial) {
 		if (_autocomplete) {
 			_autocomplete->setBoundings(_scroll->geometry());
 		}
