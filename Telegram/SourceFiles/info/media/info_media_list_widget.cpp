@@ -1030,7 +1030,7 @@ void ListWidget::showContextMenu(
 				}
 			}
 		}
-	} else if (link) {
+	} else if (link && !_provider->hasSelectRestriction()) {
 		const auto actionText = link->copyToClipboardContextItemText();
 		if (!actionText.isEmpty()) {
 			_contextMenu->addAction(
