@@ -222,7 +222,7 @@ QByteArray Settings::serialize() const {
 		+ Serialize::stringSize(_customFontFamily)
 		+ sizeof(qint32) * 3
 		+ Serialize::bytearraySize(_tonsiteStorageToken)
-		+ sizeof(qint32);
+		+ sizeof(qint32) * 2;
 
 	// Fork Settings.
 	size += sizeof(qint32);
@@ -404,7 +404,8 @@ QByteArray Settings::serialize() const {
 			<< qint32(_systemUnlockEnabled ? 1 : 0)
 			<< qint32(!_weatherInCelsius ? 0 : *_weatherInCelsius ? 1 : 2)
 			<< _tonsiteStorageToken
-			<< qint32(_includeMutedCounterFolders ? 1 : 0);
+			<< qint32(_includeMutedCounterFolders ? 1 : 0)
+			<< qint32(_ivZoom.current());
 	}
 
 	Ensures(result.size() == size);
@@ -541,6 +542,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	qint32 systemUnlockEnabled = _systemUnlockEnabled ? 1 : 0;
 	qint32 weatherInCelsius = !_weatherInCelsius ? 0 : *_weatherInCelsius ? 1 : 2;
 	QByteArray tonsiteStorageToken = _tonsiteStorageToken;
+	qint32 ivZoom = _ivZoom.current();
 
 	stream >> themesAccentColors;
 	if (!stream.atEnd()) {
@@ -863,6 +865,9 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> includeMutedCounterFolders;
 	}
+	if (!stream.atEnd()) {
+		stream >> ivZoom;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::Settings::constructFromSerialized()"));
@@ -1088,6 +1093,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 		? std::optional<bool>()
 		: (weatherInCelsius == 1);
 	_tonsiteStorageToken = tonsiteStorageToken;
+	_ivZoom = ivZoom;
 }
 
 QString Settings::getSoundPath(const QString &key) const {
@@ -1477,6 +1483,7 @@ void Settings::resetOnLastLogout() {
 	_hiddenGroupCallTooltips = 0;
 	_storiesClickTooltipHidden = false;
 	_ttlVoiceClickTooltipHidden = false;
+	_ivZoom = 100;
 
 	_recentEmojiPreload.clear();
 	_recentEmoji.clear();
@@ -1614,6 +1621,18 @@ void Settings::setRememberedDeleteMessageOnlyForYou(bool value) {
 }
 bool Settings::rememberedDeleteMessageOnlyForYou() const {
 	return _rememberedDeleteMessageOnlyForYou;
+}
+
+int Settings::ivZoom() const {
+	return _ivZoom.current();
+}
+rpl::producer<int> Settings::ivZoomValue() const {
+	return _ivZoom.value();
+}
+void Settings::setIvZoom(int value) {
+	constexpr auto kMin = 30;
+	constexpr auto kMax = 200;
+	_ivZoom = std::clamp(value, kMin, kMax);
 }
 
 } // namespace Core
