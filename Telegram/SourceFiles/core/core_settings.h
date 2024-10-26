@@ -226,6 +226,9 @@ public:
 	[[nodiscard]] bool nativeNotifications() const;
 	void setNativeNotifications(bool value);
 
+	[[nodiscard]] bool skipToastsInFocus() const;
+	void setSkipToastsInFocus(bool value);
+
 	[[nodiscard]] int notificationsCount() const {
 		return _notificationsCount;
 	}
@@ -631,6 +634,13 @@ public:
 		return _floatPlayerCorner;
 	}
 
+	[[nodiscard]] bool recordVideoMessages() const {
+		return _recordVideoMessages;
+	}
+	void setRecordVideoMessages(bool value) {
+		_recordVideoMessages = value;
+	}
+
 	void updateDialogsWidthRatio(float64 ratio, bool nochat);
 	[[nodiscard]] float64 dialogsWidthRatio(bool nochat) const;
 
@@ -966,6 +976,7 @@ private:
 	bool _flashBounceNotify = true;
 	NotifyView _notifyView = NotifyView::ShowPreview;
 	std::optional<bool> _nativeNotifications;
+	bool _skipToastsInFocus = false;
 	int _notificationsCount = 3;
 	ScreenCorner _notificationsCorner = ScreenCorner::BottomRight;
 	bool _includeMutedCounter = true;
@@ -1072,6 +1083,8 @@ private:
 	bool _rememberedSoundNotifyFromTray = false;
 	bool _rememberedFlashBounceNotifyFromTray = false;
 	bool _dialogsWidthSetToZeroWithoutChat = false;
+
+	bool _recordVideoMessages = false;
 
 	QByteArray _photoEditorBrush;
 

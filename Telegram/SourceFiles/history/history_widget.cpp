@@ -152,6 +152,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "main/main_session.h"
 #include "main/main_session_settings.h"
 #include "main/session/send_as_peers.h"
+#include "webrtc/webrtc_environment.h"
 #include "window/notifications_manager.h"
 #include "window/window_adaptive.h"
 #include "window/window_controller.h"
@@ -1061,6 +1062,7 @@ void HistoryWidget::initVoiceRecordBar() {
 			data.bytes,
 			data.waveform,
 			data.duration,
+			data.video,
 			action);
 		_voiceRecordBar->clearListenState();
 	}, lifetime());
@@ -1072,6 +1074,24 @@ void HistoryWidget::initVoiceRecordBar() {
 	) | rpl::start_with_next([=] {
 		_cornerButtons.updateJumpDownVisibility();
 		_cornerButtons.updateUnreadThingsVisibility();
+	}, lifetime());
+
+	_voiceRecordBar->errors(
+	) | rpl::start_with_next([=](::Media::Capture::Error error) {
+		using Error = ::Media::Capture::Error;
+		switch (error) {
+		case Error::AudioInit:
+		case Error::AudioTimeout:
+			controller()->showToast(tr::lng_record_audio_problem(tr::now));
+			break;
+		case Error::VideoInit:
+		case Error::VideoTimeout:
+			controller()->showToast(tr::lng_record_video_problem(tr::now));
+			break;
+		default:
+			controller()->showToast(u"Unknown error."_q);
+			break;
+		}
 	}, lifetime());
 
 	_voiceRecordBar->updateSendButtonTypeRequests(
@@ -1086,7 +1106,17 @@ void HistoryWidget::initVoiceRecordBar() {
 
 	_voiceRecordBar->recordingTipRequests(
 	) | rpl::start_with_next([=] {
-		controller()->showToast(tr::lng_record_hold_tip(tr::now));
+		Core::App().settings().setRecordVideoMessages(
+			!Core::App().settings().recordVideoMessages());
+		updateSendButtonType();
+		switch (_send->type()) {
+		case Ui::SendButton::Type::Record:
+			controller()->showToast(tr::lng_record_voice_tip(tr::now));
+			break;
+		case Ui::SendButton::Type::Round:
+			controller()->showToast(tr::lng_record_video_tip(tr::now));
+			break;
+		}
 	}, lifetime());
 
 	_voiceRecordBar->recordingStateChanges(
@@ -2135,6 +2165,7 @@ void HistoryWidget::showHistory(
 		MsgId showAtMsgId,
 		const TextWithEntities &highlightPart,
 		int highlightPartOffsetHint) {
+
 	_pinnedClickedId = FullMsgId();
 	_minPinnedId = std::nullopt;
 	_showAtMsgHighlightPart = {};
@@ -2328,6 +2359,8 @@ void HistoryWidget::showHistory(
 	_historyInited = false;
 	_contactStatus = nullptr;
 	_businessBotStatus = nullptr;
+
+	updateRecordMediaState();
 
 	if (peerId) {
 		using namespace HistoryView;
@@ -4284,7 +4317,10 @@ auto HistoryWidget::computeSendButtonType() const {
 	} else if (_isInlineBot) {
 		return Type::Cancel;
 	} else if (showRecordButton()) {
-		return Type::Record;
+		return (Core::App().settings().recordVideoMessages()
+			&& _canRecordVideoMessage)
+			? Type::Round
+			: Type::Record;
 	}
 	return Type::Send;
 }
@@ -4618,7 +4654,8 @@ void HistoryWidget::sendButtonClicked() {
 	const auto type = _send->type();
 	if (type == Ui::SendButton::Type::Cancel) {
 		cancelInlineBot();
-	} else if (type != Ui::SendButton::Type::Record) {
+	} else if (type != Ui::SendButton::Type::Record
+		&& type != Ui::SendButton::Type::Round) {
 		send({});
 	}
 }
@@ -4908,7 +4945,7 @@ bool HistoryWidget::isSearching() const {
 }
 
 bool HistoryWidget::showRecordButton() const {
-	return Media::Capture::instance()->available()
+	return _canRecordAudioMessage
 		&& !_voiceRecordBar->isListenState()
 		&& !_voiceRecordBar->isRecordingByAnotherBar()
 		&& !HasSendText(_field)
@@ -4939,7 +4976,9 @@ void HistoryWidget::updateSendButtonType() {
 	}();
 	_send->setSlowmodeDelay(delay);
 	_send->setDisabled(disabledBySlowmode
-		&& (type == Type::Send || type == Type::Record));
+		&& (type == Type::Send
+			|| type == Type::Record
+			|| type == Type::Round));
 
 	if (delay != 0) {
 		base::call_delayed(
@@ -5511,6 +5550,15 @@ void HistoryWidget::inlineBotChanged() {
 	}
 }
 
+void HistoryWidget::updateRecordMediaState() {
+	Media::Capture::instance()->check();
+	_canRecordAudioMessage = Media::Capture::instance()->available();
+
+	const auto environment = &Core::App().mediaDevices();
+	const auto type = Webrtc::DeviceType::Camera;
+	_canRecordVideoMessage = !environment->devices(type).empty();
+}
+
 void HistoryWidget::fieldResized() {
 	moveFieldControls();
 	updateHistoryGeometry();
@@ -5748,6 +5796,7 @@ bool HistoryWidget::confirmSendingFiles(
 						file.readAll(),
 						waveform,
 						song->duration,
+						false,
 						prepareSendAction(options));
 					return;
 				}
