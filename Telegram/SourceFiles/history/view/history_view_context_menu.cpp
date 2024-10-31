@@ -25,6 +25,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_cursor_state.h"
 #include "history/history.h"
 #include "history/history_item.h"
+#include "history/history_item_components.h"
 #include "history/history_item_text.h"
 #include "history/view/history_view_schedule_box.h"
 #include "history/view/media/history_view_media.h"
@@ -526,7 +527,7 @@ bool AddRescheduleAction(
 	const auto owner = &request.navigation->session().data();
 
 	const auto goodSingle = HasEditMessageAction(request, list)
-		&& request.item->isScheduled();
+		&& request.item->allowsReschedule();
 	const auto goodMany = [&] {
 		if (goodSingle) {
 			return false;
@@ -538,7 +539,7 @@ bool AddRescheduleAction(
 		if (items.size() > kRescheduleLimit) {
 			return false;
 		}
-		return ranges::all_of(items, &SelectedItem::canSendNow);
+		return ranges::all_of(items, &SelectedItem::canReschedule);
 	}();
 	if (!goodSingle && !goodMany) {
 		return false;
@@ -1298,6 +1299,8 @@ base::unique_qptr<Ui::PopupMenu> FillContextMenu(
 	}
 	if (hasWhoReactedItem) {
 		AddWhoReactedAction(result, list, item, list->controller());
+	} else if (item) {
+		MaybeAddWhenEditedAction(result, item);
 	}
 
 	return result;
@@ -1453,6 +1456,24 @@ void AddSaveSoundForNotifications(
 	}, &st::menuIconSoundAdd);
 }
 
+void AddWhenEditedActionHelper(
+		not_null<Ui::PopupMenu*> menu,
+		not_null<HistoryItem*> item,
+		bool insertSeparator) {
+	if (item->history()->peer->isUser()) {
+		if (const auto edited = item->Get<HistoryMessageEdited>()) {
+			if (!item->hideEditedBadge()) {
+				if (insertSeparator && !menu->empty()) {
+					menu->addSeparator(&st::expandedMenuSeparator);
+				}
+				menu->addAction(Ui::WhenReadContextAction(
+					menu.get(),
+					Api::WhenEdited(item->from(), edited->date)));
+			}
+		}
+	}
+}
+
 void AddWhoReactedAction(
 		not_null<Ui::PopupMenu*> menu,
 		not_null<QWidget*> context,
@@ -1498,6 +1519,7 @@ void AddWhoReactedAction(
 	if (!menu->empty()) {
 		menu->addSeparator(&st::expandedMenuSeparator);
 	}
+	AddWhenEditedActionHelper(menu, item, false);
 	if (item->history()->peer->isUser()) {
 		menu->addAction(Ui::WhenReadContextAction(
 			menu.get(),
@@ -1511,6 +1533,12 @@ void AddWhoReactedAction(
 			participantChosen,
 			showAllChosen));
 	}
+}
+
+void MaybeAddWhenEditedAction(
+		not_null<Ui::PopupMenu*> menu,
+		not_null<HistoryItem*> item) {
+	AddWhenEditedActionHelper(menu, item, true);
 }
 
 void AddEditTagAction(
