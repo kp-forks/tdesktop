@@ -240,7 +240,7 @@ QByteArray Settings::serialize() const {
 		+ Serialize::stringSize(_customFontFamily)
 		+ sizeof(qint32) * 3
 		+ Serialize::bytearraySize(_tonsiteStorageToken)
-		+ sizeof(qint32) * 6;
+		+ sizeof(qint32) * 7;
 
 	// Fork Settings.
 	size += sizeof(qint32);
@@ -336,7 +336,7 @@ QByteArray Settings::serialize() const {
 			<< qint32(_thirdSectionExtendedBy)
 			<< qint32(_notifyFromAll ? 1 : 0)
 			<< qint32(_nativeWindowFrame.current() ? 1 : 0)
-			<< qint32(_systemDarkModeEnabled.current() ? 1 : 0)
+			<< qint32(0) // Legacy system dark mode
 			<< _cameraDeviceId.current()
 			<< qint32(_ipRevealWarning ? 1 : 0)
 			<< qint32(_groupCallPushToTalk ? 1 : 0)
@@ -427,7 +427,8 @@ QByteArray Settings::serialize() const {
 			<< qint32(_skipToastsInFocus ? 1 : 0)
 			<< qint32(_recordVideoMessages ? 1 : 0)
 			<< SerializeVideoQuality(_videoQuality)
-			<< qint32(_ivZoom.current());
+			<< qint32(_ivZoom.current())
+			<< qint32(_systemDarkModeEnabled.current() ? 1 : 0);
 	}
 
 	Ensures(result.size() == size);
@@ -517,6 +518,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	qint32 notifyFromAll = _notifyFromAll ? 1 : 0;
 	qint32 nativeWindowFrame = _nativeWindowFrame.current() ? 1 : 0;
 	qint32 systemDarkModeEnabled = _systemDarkModeEnabled.current() ? 1 : 0;
+	qint32 legacySystemDarkModeEnabled = 0;
 	qint32 ipRevealWarning = _ipRevealWarning ? 1 : 0;
 	qint32 groupCallPushToTalk = _groupCallPushToTalk ? 1 : 0;
 	QByteArray groupCallPushToTalkShortcut = _groupCallPushToTalkShortcut;
@@ -663,7 +665,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 		stream >> nativeWindowFrame;
 	}
 	if (!stream.atEnd()) {
-		stream >> systemDarkModeEnabled;
+		stream >> legacySystemDarkModeEnabled;
 	}
 	if (!stream.atEnd()) {
 		stream >> cameraDeviceId;
@@ -905,6 +907,9 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	}
 	if (!stream.atEnd()) {
 		stream >> ivZoom;
+	}
+	if (!stream.atEnd()) {
+		stream >> systemDarkModeEnabled;
 	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
@@ -1522,7 +1527,6 @@ void Settings::resetOnLastLogout() {
 	_thirdColumnWidth = kDefaultThirdColumnWidth; // p-w
 	_notifyFromAll = true;
 	_tabbedReplacedWithInfo = false; // per-window
-	_systemDarkModeEnabled = false;
 	_hiddenGroupCallTooltips = 0;
 	_storiesClickTooltipHidden = false;
 	_ttlVoiceClickTooltipHidden = false;
