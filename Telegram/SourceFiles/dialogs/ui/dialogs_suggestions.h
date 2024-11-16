@@ -23,6 +23,7 @@ class Session;
 } // namespace Main
 
 namespace Ui {
+class AbstractButton;
 class BoxContent;
 class ElasticScroll;
 class SettingsSlider;
@@ -117,6 +118,7 @@ private:
 	void paintEvent(QPaintEvent *e) override;
 	void resizeEvent(QResizeEvent *e) override;
 
+	void setupLocalUrlButton();
 	void setupTabs();
 	void setupChats();
 	void setupChannels();
@@ -165,6 +167,7 @@ private:
 
 	const not_null<Window::SessionController*> _controller;
 
+	base::unique_qptr<Ui::AbstractButton> _localUrlButton;
 	const std::unique_ptr<Ui::SettingsSlider> _tabs;
 	rpl::variable<Tab> _tab = Tab::Chats;
 

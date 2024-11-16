@@ -12,6 +12,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "boxes/peer_list_box.h"
+#include "core/local_url_handlers.h"
 #include "data/components/recent_peers.h"
 #include "data/components/top_peers.h"
 #include "data/data_changes.h"
@@ -27,6 +28,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "settings/settings_common.h"
+#include "ui/basic_click_handlers.h"
 #include "ui/boxes/confirm_box.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/menu/menu_add_action_callback_factory.h"
@@ -41,6 +43,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/delayed_activation.h"
 #include "ui/dynamic_thumbnails.h"
 #include "ui/painter.h"
+#include "ui/rect.h"
 #include "ui/unread_badge_paint.h"
 #include "ui/ui_utility.h"
 #include "window/window_separate_id.h"
@@ -50,6 +53,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_dialogs.h"
 #include "styles/style_layers.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_settings.h"
 #include "styles/style_window.h"
 
 namespace Dialogs {
@@ -1220,6 +1224,7 @@ Suggestions::Suggestions(
 , _recentApps(setupRecentApps())
 , _popularApps(setupPopularApps()) {
 
+	setupLocalUrlButton();
 	setupTabs();
 	setupChats();
 	setupChannels();
@@ -1228,17 +1233,62 @@ Suggestions::Suggestions(
 
 Suggestions::~Suggestions() = default;
 
+void Suggestions::setupLocalUrlButton() {
+	const auto urlFromClipboard = [=] {
+		const auto maybeUrl = QGuiApplication::clipboard()->text();
+		const auto local = Core::TryConvertUrlToLocal(maybeUrl);
+
+		const auto protocol = u"tg://"_q;
+		if (local.startsWith(protocol)) {
+			return local;
+		}
+		return QString();
+	};
+	const auto url = urlFromClipboard();
+	if (url.isEmpty()) {
+		return;
+	}
+	const auto &st = st::defaultSettingsButton;
+	_localUrlButton = base::unique_qptr<Ui::AbstractButton>(
+		Ui::CreateSimpleSettingsButton(this, st.ripple, st.textBg));
+	_localUrlButton->resize(width(), st.height + rect::m::sum::v(st.padding));
+	const auto text = lifetime().make_state<Ui::Text::String>(
+		st::semiboldTextStyle,
+		tr::lng_animated_emoji_saved_open(tr::now) + QChar(' ') + url);
+	_localUrlButton->paintRequest() | rpl::start_with_next([=] {
+		auto p = QPainter(_localUrlButton.get());
+		const auto r = _localUrlButton->rect();
+		const auto left = st::searchedBarPosition.x();
+		p.setPen(st::windowBgActive);
+		text->draw(p, {
+			.position = QPoint(left, (r.height() - text->minHeight()) / 2),
+			.outerWidth = (r.width() - left),
+			.availableWidth = (r.width() - left),
+			.elisionLines = 1,
+		});
+	}, _localUrlButton->lifetime());
+	widthValue() | rpl::start_with_next([=](int width) {
+		_localUrlButton->resizeToWidth(width);
+	}, _localUrlButton->lifetime());
+	_localUrlButton->setClickedCallback([=] {
+		const auto current = urlFromClipboard();
+		UrlClickHandler::Open(current.isEmpty() ? url : current);
+	});
+}
+
 void Suggestions::setupTabs() {
 	const auto shadow = Ui::CreateChild<Ui::PlainShadow>(this);
 	shadow->lower();
 
-	_tabs->move(st::dialogsSearchTabsPadding, 0);
+	_tabs->move(
+		st::dialogsSearchTabsPadding,
+		_localUrlButton ? _localUrlButton->height() : 0);
 	rpl::combine(
 		widthValue(),
-		_tabs->heightValue()
-	) | rpl::start_with_next([=](int width, int height) {
+		_tabs->geometryValue()
+	) | rpl::start_with_next([=](int width, const QRect &r) {
 		const auto line = st::lineWidth;
-		shadow->setGeometry(0, height - line, width, line);
+		shadow->setGeometry(0, rect::bottom(r) - line, width, line);
 	}, shadow->lifetime());
 
 	shadow->showOn(_tabs->shownValue());
@@ -1712,6 +1762,9 @@ void Suggestions::startShownAnimation(bool shown, Fn<void()> finish) {
 			resize(now, height());
 		}
 	}
+	if (_localUrlButton) {
+		_localUrlButton->hide();
+	}
 	_tabs->hide();
 	_chatsScroll->hide();
 	_channelsScroll->hide();
@@ -1727,6 +1780,9 @@ void Suggestions::finishShow() {
 	_shownAnimation.stop();
 	_cache = QPixmap();
 
+	if (_localUrlButton) {
+		_localUrlButton->show();
+	}
 	_tabs->show();
 	const auto tab = _tab.current();
 	_chatsScroll->setVisible(tab == Tab::Chats);
@@ -1769,7 +1825,10 @@ void Suggestions::paintEvent(QPaintEvent *e) {
 void Suggestions::resizeEvent(QResizeEvent *e) {
 	const auto w = std::max(width(), st::columnMinimalWidthLeft);
 	_tabs->resizeToWidth(w);
-	const auto tabs = _tabs->height();
+	if (_localUrlButton) {
+		_localUrlButton->resizeToWidth(w);
+	}
+	const auto tabs = rect::bottom(_tabs.get());
 
 	_chatsScroll->setGeometry(0, tabs, w, height() - tabs);
 	_chatsContent->resizeToWidth(w);
