@@ -293,7 +293,7 @@ private:
 	void addInfo();
 	void addStoryArchive();
 	void addNewWindow();
-	void addToggleFolder(bool onlyForChannels);
+	void addToggleFolder();
 	void addToggleUnreadMark();
 	void addToggleArchive();
 	void addClearHistory();
@@ -635,14 +635,13 @@ void Filler::addStoryArchive() {
 	}, &st::menuIconStoriesArchiveSection);
 }
 
-void Filler::addToggleFolder(bool onlyForChannels) {
+void Filler::addToggleFolder() {
 	const auto controller = _controller;
 	const auto history = _request.key.history();
-	if (_topic || !history || !history->owner().chatsFilters().has()) {
-		return;
-	}
-	if (onlyForChannels
-		&& (!history->peer->isChannel() || !history->inChatList())) {
+	if (_topic
+		|| !history
+		|| !history->owner().chatsFilters().has()
+		|| !history->inChatList()) {
 		return;
 	}
 	_addAction(PeerMenuCallback::Args{
@@ -1446,7 +1445,7 @@ void Filler::fillContextMenuActions() {
 	addToggleMuteSubmenu(false);
 	addToggleUnreadMark();
 	addToggleTopicClosed();
-	addToggleFolder(false);
+	addToggleFolder();
 	if (const auto user = _peer->asUser()) {
 		if (!user->isContact()) {
 			addBlockUser();
@@ -1496,7 +1495,7 @@ void Filler::fillProfileActions() {
 	addToggleTopicClosed();
 	addViewDiscussion();
 	addExportChat();
-	addToggleFolder(true);
+	addToggleFolder();
 	addBlockUser();
 	addReport();
 	addLeaveChat();
