@@ -2372,6 +2372,18 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			deleteSelected);
 		_widget->clearSelected();
 	};
+	const auto addSwapMediaAction = [=] {
+		const auto ids = getSelectedItems();
+		const auto items = session->data().idsToItems(ids);
+		if (items.size() != 2) {
+			return;
+		}
+		const auto controller = _controller;
+		Fork::AddSwapMedia(_menu, items[0], items[1], controller, [=] {
+			_widget->clearSelected();
+		});
+	};
+
 
 	const auto addPhotoActions = [&](not_null<PhotoData*> photo, HistoryItem *item) {
 		const auto media = photo->activeMediaView();
@@ -2686,6 +2698,9 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			if (selectedState.count > 1 && selectedState.count <= 10) {
 				Fork::AddGroupSelected(_menu, groupToSaved);
 			}
+			if (selectedState.count == 2) {
+				addSwapMediaAction();
+			}
 			if (selectedState.count > 0 && !hasCopyRestrictionForSelected()) {
 				Menu::AddDownloadFilesAction(_menu, controller, _selected, this);
 			}
@@ -2913,6 +2928,9 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			}
 			if (selectedState.count > 1 && selectedState.count <= 10) {
 				Fork::AddGroupSelected(_menu, groupToSaved);
+			}
+			if (selectedState.count == 2) {
+				addSwapMediaAction();
 			}
 			if (selectedState.count > 0 && !hasCopyRestrictionForSelected()) {
 				Menu::AddDownloadFilesAction(_menu, controller, _selected, this);

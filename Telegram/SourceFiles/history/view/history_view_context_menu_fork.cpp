@@ -50,7 +50,7 @@ void UseInputMedia(
 	if (it != end(Medias)) {
 		if ((crl::now() - it->second.last) < 60000) {
 			const auto &media = it->second.media;
-			Api::Fork::EditMessageMedia(item, options, media);
+			Api::Fork::EditMessageMedia(item, options, media, [](...){});
 		} else {
 			Medias.remove(&item->from()->session());
 		}
@@ -114,6 +114,76 @@ void AddReplaceMedia(
 	if ((photo || document) && MediaReplacement::HasInputMedia(item)) {
 		addAction(u"Replace media with remembered one"_q, [=] {
 			MediaReplacement::UseInputMedia(item, {});
+		});
+	}
+}
+
+void AddSwapMedia(
+		not_null<Ui::PopupMenu*> menu,
+		not_null<HistoryItem*> item1,
+		not_null<HistoryItem*> item2,
+		not_null<Window::SessionController*> controller,
+		Fn<void()> action) {
+	if (!Core::App().settings().fork().addToMenuRememberMedia()) {
+		return;
+	}
+	const auto media1 = item1->media();
+	const auto photo1 = media1 ? media1->photo() : nullptr;
+	const auto document1 = media1 ? media1->document() : nullptr;
+
+	const auto media2 = item2->media();
+	const auto photo2 = media2 ? media2->photo() : nullptr;
+	const auto document2 = media2 ? media2->document() : nullptr;
+
+	const auto addAction = [&](QString &&s, Fn<void()> callback) {
+		auto item = base::make_unique_q<Ui::Menu::MultilineAction>(
+			menu,
+			st::defaultMenu,
+			st::historyHasCustomEmoji,
+			st::historyHasCustomEmojiPosition,
+			TextWithEntities{ std::move(s) });
+		item->clicks() | rpl::start_with_next(callback, menu->lifetime());
+		menu->addAction(std::move(item));
+	};
+	if ((photo1 || document1) && (photo2 || document2)) {
+		addAction(u"Try to swap media"_q, [=] {
+			auto inputMedia1 = document1
+				? MTP_inputMediaDocument(
+					MTP_flags(0),
+					document1->mtpInput(),
+					MTPint(),
+					MTPstring())
+				: photo1
+				? MTP_inputMediaPhoto(
+					MTP_flags(0),
+					photo1->mtpInput(),
+					MTPint())
+				: MTP_inputMediaEmpty();
+			auto inputMedia2 = document2
+				? MTP_inputMediaDocument(
+					MTP_flags(0),
+					document2->mtpInput(),
+					MTPint(),
+					MTPstring())
+				: photo2
+				? MTP_inputMediaPhoto(
+					MTP_flags(0),
+					photo2->mtpInput(),
+					MTPint())
+				: MTP_inputMediaEmpty();
+			action();
+			const auto o1 = Api::SendOptions{
+				.scheduled = item1->isScheduled() ? item1->date() : 0,
+			};
+			const auto o2 = Api::SendOptions{
+				.scheduled = item2->isScheduled() ? item2->date() : 0,
+			};
+			Api::Fork::EditMessageMedia(item1, o1, inputMedia2, [=](auto e) {
+				controller->showToast("Message #1: " + e);
+			});
+			Api::Fork::EditMessageMedia(item2, o2, inputMedia1, [=](auto e) {
+				controller->showToast("Message #2: " + e);
+			});
 		});
 	}
 }

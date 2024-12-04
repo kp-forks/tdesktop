@@ -63,7 +63,8 @@ namespace Fork {
 void EditMessageMedia(
 	not_null<HistoryItem*> item,
 	Api::SendOptions options,
-	MTPInputMedia media);
+	MTPInputMedia media,
+	Fn<void(QString)> fail);
 
 } // namespace Fork
 

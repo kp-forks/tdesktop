@@ -74,6 +74,13 @@ void AddReplaceMedia(
 	not_null<HistoryItem*> item,
 	not_null<Window::SessionController*> controller);
 
+void AddSwapMedia(
+	not_null<Ui::PopupMenu*> menu,
+	not_null<HistoryItem*> item,
+	not_null<HistoryItem*> item2,
+	not_null<Window::SessionController*> controller,
+	Fn<void()> action);
+
 void AddGroupSelected(
 	not_null<Ui::PopupMenu*> menu,
 	Fn<void(bool)> callback);

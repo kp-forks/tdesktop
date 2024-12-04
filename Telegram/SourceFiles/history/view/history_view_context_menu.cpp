@@ -1032,7 +1032,19 @@ void AddMessageActions(
 	AddReportAction(menu, request, list);
 	AddSelectionAction(menu, request, list);
 	AddRescheduleAction(menu, request, list);
-	Fork::AddReplaceMedia(menu, request.item, request.navigation->parentController());
+	const auto controller = request.navigation->parentController();
+	Fork::AddReplaceMedia(menu, request.item, controller);
+	if (request.selectedItems.size() == 2) {
+		const auto item1 = controller->session().data().message(
+			request.selectedItems[0].msgId);
+		const auto item2 = controller->session().data().message(
+			request.selectedItems[1].msgId);
+		if (item1 && item2) {
+			Fork::AddSwapMedia(menu, item1, item2, controller, [=] {
+				list->cancelSelection();
+			});
+		}
+	}
 }
 
 void AddCopyLinkAction(
