@@ -18,7 +18,7 @@ struct ToSend {
 	TextWithTags comment;
 	bool emptyText = false;
 	bool silent = false;
-	bool scheduledDraft = false;
+	TimeId scheduled = 0;
 };
 
 void SendExistingAlbumFromItem(not_null<HistoryItem*> item, ToSend &&toSend);

@@ -89,7 +89,8 @@ public:
 	using AsCopyCallback = Fn<void(
 		std::vector<not_null<PeerData*>>&&,
 		TextWithTags&&,
-		bool emptyText)>;
+		bool emptyText,
+		TimeId scheduled)>;
 	using FilterCallback = Fn<bool(not_null<Data::Thread*>)>;
 
 	[[nodiscard]] static SubmitCallback DefaultForwardCallback(

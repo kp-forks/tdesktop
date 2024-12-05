@@ -25,10 +25,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace Api::AsCopy {
 namespace {
 
-[[nodiscard]] TimeId ScheduledDraft() {
-	return base::unixtime::now() + 3600 * 24 * 350;
-}
-
 MTPInputSingleMedia PrepareAlbumItemMedia(
 		not_null<HistoryItem*> item,
 		const MTPInputMedia &media,
@@ -135,7 +131,7 @@ void SendAlbumFromItems(
 			| (toSend.silent
 				? MTPmessages_SendMultiMedia::Flag::f_silent
 				: MTPmessages_SendMultiMedia::Flag(0))
-			| (toSend.scheduledDraft
+			| (toSend.scheduled
 				? MTPmessages_SendMultiMedia::Flag::f_schedule_date
 				: MTPmessages_SendMultiMedia::Flag(0));
 		api.request(MTPmessages_SendMultiMedia(
@@ -143,7 +139,7 @@ void SendAlbumFromItems(
 			peer->input,
 			ReplyToForMTP(history, replyTo),
 			MTP_vector<MTPInputSingleMedia>(medias),
-			MTP_int(toSend.scheduledDraft ? ScheduledDraft() : 0),
+			MTP_int(toSend.scheduled),
 			MTP_inputPeerEmpty(),
 			MTPInputQuickReplyShortcut(),
 			MTP_long(0)
@@ -186,9 +182,7 @@ void SendExistingMediaFromItem(
 			? toSend.comment
 			: PrepareEditText(item);
 		message.action.options.silent = toSend.silent;
-		if (toSend.scheduledDraft) {
-			message.action.options.scheduled = ScheduledDraft();
-		}
+		message.action.options.scheduled = toSend.scheduled;
 		message.action.replyTo = ReplyToIdFromDraft(peer);
 		if (const auto document = item->media()->document()) {
 			Api::SendExistingDocument(

@@ -38,6 +38,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/view/history_view_context_menu.h" // CopyPostLink.
 #include "settings/settings_premium.h"
 #include "window/window_session_controller.h"
+#include "window/window_controller.h"
 #include "boxes/peer_list_controllers.h"
 #include "chat_helpers/emoji_suggestions_widget.h"
 #include "chat_helpers/share_message_phrase_factory.h"
@@ -59,6 +60,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
 #include "styles/style_menu_icons.h"
+#include "styles/style_chat_helpers.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QClipboard>
@@ -588,7 +590,7 @@ void ShareBox::showMenu(not_null<Ui::RpWidget*> parent) {
 }
 
 void ShareBox::createButtons() {
-	const auto asCopyShare = [=](bool emptyText) {
+	const auto asCopyShare = [=](bool emptyText, TimeId scheduled) {
 		if (!_descriptor.asCopyCallback) {
 			return;
 		}
@@ -600,7 +602,8 @@ void ShareBox::createButtons() {
 				&Data::Thread::peer
 			) | ranges::to_vector,
 			_comment->entity()->getTextWithAppliedMarkdown(),
-			emptyText);
+			emptyText,
+			scheduled);
 		closeBox();
 	};
 	clearButtons();
@@ -620,8 +623,21 @@ void ShareBox::createButtons() {
 				showMenu(send);
 			}
 		}, send->lifetime());
-		addButton(tr::lng_share_as_copy(), [=] { asCopyShare(false); });
-		addButton(tr::lng_share_as_copy_no_text(), [=] { asCopyShare(true); });
+		addButton(tr::lng_share_as_copy(), [=] { asCopyShare(false, 0); });
+		addButton(tr::lng_share_as_copy_no_text(), [=] { asCopyShare(true, 0); });
+		addTopButton(st::historyScheduledToggle, [=] {
+			const auto window = Core::App().findWindow(this);
+			const auto controller = window ? window->sessionController() : nullptr;
+			if (!controller) {
+				return;
+			}
+			uiShow()->show(
+				HistoryView::PrepareScheduleBox(
+					this,
+					controller->uiShow(),
+					SendMenu::Details(),
+					[=](Api::SendOptions options) { asCopyShare(false, options.scheduled); }));
+		});
 	} else if (_descriptor.copyCallback) {
 		addButton(_copyLinkText.value(), [=] { copyLink(); });
 	}
@@ -1696,19 +1712,20 @@ void FastShareMessage(
 	auto asCopyCallback = [=, msgIds = owner->itemOrItsGroup(item)](
 			std::vector<not_null<PeerData*>> &&result,
 			TextWithTags &&comment,
-			bool emptyText) {
+			bool emptyText,
+			TimeId scheduled) {
 		auto toSend = Api::AsCopy::ToSend{
 			.peers = std::move(result),
 			.comment = std::move(comment),
 			.emptyText = emptyText,
 			.silent = QGuiApplication::keyboardModifiers().testFlag(Qt::ControlModifier),
-			.scheduledDraft = QGuiApplication::keyboardModifiers().testFlag(Qt::AltModifier),
+			.scheduled = scheduled,
 		};
-		const auto toast = (toSend.silent && toSend.scheduledDraft)
+		const auto toast = (toSend.silent && toSend.scheduled)
 			? u"Silently scheduled."_q
 			: toSend.silent
 			? u"Silently."_q
-			: toSend.scheduledDraft
+			: toSend.scheduled
 			? u"Scheduled."_q
 			: QString();
 		if (!toast.isEmpty()) {
