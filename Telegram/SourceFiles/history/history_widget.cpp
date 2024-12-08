@@ -930,6 +930,11 @@ HistoryWidget::HistoryWidget(
 	) | rpl::start_with_next([=] {
 		forwardSelected();
 	}, _topBar->lifetime());
+	_topBar->forwardAndDeleteSelectionRequest(
+	) | rpl::start_with_next([=] {
+		session().api().rememberToDeleteAfterForward(getSelectedItems());
+		forwardSelected();
+	}, _topBar->lifetime());
 	_topBar->deleteSelectionRequest(
 	) | rpl::start_with_next([=] {
 		confirmDeleteSelected();

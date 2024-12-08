@@ -388,6 +388,10 @@ public:
 	void registerStatsRequest(MTP::DcId dcId, mtpRequestId id);
 	void unregisterStatsRequest(MTP::DcId dcId, mtpRequestId id);
 
+	void rememberToDeleteAfterForward(MessageIdsList ids) {
+		_deleteAfterForward.insert(_deleteAfterForward.end(), ids.begin(), ids.end());
+	}
+
 	[[nodiscard]] Api::Authorizations &authorizations();
 	[[nodiscard]] Api::AttachedStickers &attachedStickers();
 	[[nodiscard]] Api::BlockedPeers &blockedPeers();
@@ -747,6 +751,8 @@ private:
 	const std::unique_ptr<Api::Usernames> _usernames;
 	const std::unique_ptr<Api::Websites> _websites;
 	const std::unique_ptr<Api::PeerColors> _peerColors;
+
+	MessageIdsList _deleteAfterForward;
 
 	mtpRequestId _wallPaperRequestId = 0;
 	QString _wallPaperSlug;

@@ -3355,6 +3355,31 @@ void ApiWrap::forwardMessages(
 				(sendAs ? sendAs->input : MTP_inputPeerEmpty()),
 				Data::ShortcutIdToMTP(_session, action.options.shortcutId)
 			)).done([=](const MTPUpdates &result) {
+				{ // Delete after forward.
+					auto toDelete = MessageIdsList();
+					for (const auto &id : ids) {
+						const auto it = ranges::find_if(_deleteAfterForward, [&](const FullMsgId &m) {
+							return m.msg.bare == id.v && forwardFrom->id == m.peer;
+						});
+						if (it != _deleteAfterForward.end()) {
+							toDelete.push_back(*it);
+							_deleteAfterForward.erase(it);
+						}
+					}
+					const auto count = toDelete.size();
+					if (count > 0) {
+						_session->data().histories().deleteMessages(
+							toDelete,
+							true);
+						if (const auto w = Core::App().activeWindow()) {
+							if (const auto c = w->sessionController()) {
+								c->uiShow()->showToast((count > 1)
+									? (u"Delete %1 messages."_q.arg(count))
+									: (u"Delete %1 message."_q.arg(count)));
+							}
+						}
+					}
+				}
 				if (!scheduled) {
 					this->updates().checkForSentToScheduled(result);
 				}

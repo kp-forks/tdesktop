@@ -111,6 +111,9 @@ public:
 	[[nodiscard]] bool globalSearchDisabled() const;
 	void setGlobalSearchDisabled(bool newValue);
 
+	[[nodiscard]] bool thirdButtonTopBar() const;
+	void setThirdButtonTopBar(bool newValue);
+
 private:
 	bool _squareUserpics = false;
 	bool _audioFade = true;
@@ -130,6 +133,7 @@ private:
 	bool _addToMenuRememberMedia = false;
 	bool _hideAllChatsTab = false;
 	bool _globalSearchDisabled = false;
+	bool _thirdButtonTopBar = false;
 
 };
 

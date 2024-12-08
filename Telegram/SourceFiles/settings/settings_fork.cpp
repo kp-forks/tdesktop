@@ -450,6 +450,14 @@ void SetupForkContent(
 			Core::App().settings().fork().setGlobalSearchDisabled(checked);
 		});
 
+	//
+	add(
+		u"Button to forward and remove"_q,
+		Core::App().settings().fork().thirdButtonTopBar(),
+		[](bool checked) {
+			Core::App().settings().fork().setThirdButtonTopBar(checked);
+		});
+
 	Ui::AddDivider(inner);
 
 }
