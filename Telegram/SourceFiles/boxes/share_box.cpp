@@ -1732,9 +1732,14 @@ void FastShareMessage(
 			show->showToast(toast);
 		}
 		if (item->groupId()) {
-			Api::AsCopy::SendExistingAlbumFromItem(item, std::move(toSend));
+			Api::AsCopy::GuardedSendExistingAlbumFromItem(item, std::move(toSend));
 		} else if (const auto i = history->owner().message(msgIds[0])) {
-			Api::AsCopy::SendExistingMediaFromItem(i, std::move(toSend));
+			Api::AsCopy::UpdateFileRef(
+				{ i },
+				[=, toSend = std::move(toSend)] {
+					Api::AsCopy::SendExistingMediaFromItem(i, base::duplicate(toSend));
+				},
+				[=](QString a) { show->showToast(a); });
 		}
 	};
 

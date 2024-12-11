@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/view/history_view_context_menu_fork.h"
 
+#include "api/api_as_copy.h"
 #include "api/api_common.h"
 #include "api/api_editing.h"
 #include "core/application.h"
@@ -146,7 +147,7 @@ void AddSwapMedia(
 		menu->addAction(std::move(item));
 	};
 	if ((photo1 || document1) && (photo2 || document2)) {
-		addAction(u"Try to swap media"_q, [=] {
+		const auto swap = [=] {
 			auto inputMedia1 = document1
 				? MTP_inputMediaDocument(
 					MTP_flags(0),
@@ -184,6 +185,12 @@ void AddSwapMedia(
 			Api::Fork::EditMessageMedia(item2, o2, inputMedia1, [=](auto e) {
 				controller->showToast("Message #2: " + e);
 			});
+		};
+		addAction(u"Try to swap media"_q, [=] {
+			const auto fail = [=](const QString &from) {
+				controller->showToast("Failed from: " + from);
+			};
+			Api::AsCopy::UpdateFileRef({ item1, item2 }, swap, fail);
 		});
 	}
 }

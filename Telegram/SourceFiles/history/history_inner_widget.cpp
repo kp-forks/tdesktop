@@ -2366,10 +2366,15 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 		) | ranges::view::filter([=](HistoryItem *item) -> bool {
 			return item->media();
 		}) | ranges::to_vector;
-		Api::AsCopy::SendAlbumFromItems(
-			std::move(filtered),
-			std::move(toSend),
-			deleteSelected);
+		Api::AsCopy::UpdateFileRef(
+			items,
+			[=] {
+				Api::AsCopy::SendAlbumFromItems(
+					std::move(filtered),
+					base::duplicate(toSend),
+					deleteSelected);
+			},
+			[=](QString a) { _controller->showToast(a); });
 		_widget->clearSelected();
 	};
 	const auto addSwapMediaAction = [=] {

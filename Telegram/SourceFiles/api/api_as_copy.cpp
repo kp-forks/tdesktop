@@ -7,11 +7,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_as_copy.h"
 
-#include "apiwrap.h"
 #include "api/api_sending.h"
 #include "api/api_text_entities.h"
+#include "apiwrap.h"
 #include "base/random.h"
 #include "base/unixtime.h"
+#include "chat_helpers/message_field.h"
+#include "data/data_channel.h"
 #include "data/data_document.h"
 #include "data/data_drafts.h"
 #include "data/data_histories.h"
@@ -20,7 +22,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "history/history_item.h"
 #include "main/main_session.h"
-#include "chat_helpers/message_field.h"
 
 namespace Api::AsCopy {
 namespace {
@@ -155,16 +156,17 @@ void SendAlbumFromItems(
 	}
 }
 
-void SendExistingAlbumFromItem(
+void GuardedSendExistingAlbumFromItem(
 		not_null<HistoryItem*> item,
 		Api::AsCopy::ToSend &&toSend) {
 	if (!item->groupId()) {
 		return;
 	}
-	SendAlbumFromItems(
-		item->history()->owner().groups().find(item)->items,
-		std::move(toSend),
-		false);
+	const auto items = item->history()->owner().groups().find(item)->items;
+	UpdateFileRef(
+		items,
+		[=] { SendAlbumFromItems(items, base::duplicate(toSend), false); },
+		[](QString){});
 }
 
 void SendExistingMediaFromItem(
@@ -192,6 +194,54 @@ void SendExistingMediaFromItem(
 		} else if (const auto photo = item->media()->photo()) {
 			Api::SendExistingPhoto(std::move(message), photo, item->fullId());
 		}
+	}
+}
+
+void UpdateFileRef(
+		HistoryItemsList list,
+		Fn<void()> success,
+		Fn<void(QString)> fail) {
+	if (list.empty()) {
+		return;
+	}
+	const auto history = list.front()->history();
+	auto inputMessages = ranges::views::all(
+		list
+	) | ranges::views::transform([&](const auto &item) {
+		return MTP_inputMessageID(MTP_int(item->id));
+	}) | ranges::to<QVector<MTPInputMessage>>();
+	const auto receive = [=](const MTPmessages_Messages &result) {
+		result.match([&](const MTPDmessages_messagesNotModified &) {
+			fail("MTPDmessages_messagesNotModified");
+		}, [&](const auto &d) {
+			auto good = true;
+			for (const auto tlMessage : d.vmessages().v) {
+				tlMessage.match([&](const MTPDmessage &d) {
+					history->session().data().updateExistingMessage(d);
+				}, [&](const auto &) {
+					good = false;
+					fail("MTPDmessageService or MTPDmessageEmpty");
+				});
+			}
+			if (good) {
+				success();
+			}
+		});
+	};
+	const auto receiveError = [=](auto error) {
+		fail("Get Message error: " + error.type());
+	};
+	if (const auto channel = history->peer->asChannel()) {
+		history->session().api().request(
+			MTPchannels_GetMessages(
+				channel->inputChannel,
+				MTP_vector<MTPInputMessage>(std::move(inputMessages)))
+		).done(receive).fail(receiveError).send();
+	} else {
+		history->session().api().request(
+			MTPmessages_GetMessages(
+				MTP_vector<MTPInputMessage>(std::move(inputMessages)))
+		).done(receive).fail(receiveError).send();
 	}
 }
 
