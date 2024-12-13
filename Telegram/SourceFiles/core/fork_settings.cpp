@@ -54,6 +54,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_hideAllChatsTab ? 1 : 0)
 			<< qint32(_globalSearchDisabled ? 1 : 0)
 			<< qint32(_thirdButtonTopBar ? 1 : 0)
+			<< qint32(_skipShareFromBot ? 1 : 0)
 			;
 	}
 	return result;
@@ -86,6 +87,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 hideAllChatsTab = _hideAllChatsTab;
 	qint32 globalSearchDisabled = _globalSearchDisabled;
 	qint32 thirdButtonTopBar = _thirdButtonTopBar;
+	qint32 skipShareFromBot = _skipShareFromBot;
 
 	if (!stream.atEnd()) {
 		stream
@@ -118,6 +120,9 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> thirdButtonTopBar;
 	}
+	if (!stream.atEnd()) {
+		stream >> skipShareFromBot;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::ForkSettings::constructFromSerialized()"));
@@ -144,6 +149,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_hideAllChatsTab = (hideAllChatsTab == 1);
 	_globalSearchDisabled = (globalSearchDisabled == 1);
 	_thirdButtonTopBar = (thirdButtonTopBar == 1);
+	_skipShareFromBot = (skipShareFromBot == 1);
 }
 
 void ForkSettings::resetOnLastLogout() {
@@ -165,6 +171,7 @@ void ForkSettings::resetOnLastLogout() {
 	_hideAllChatsTab = false;
 	_globalSearchDisabled = false;
 	_thirdButtonTopBar = false;
+	_skipShareFromBot = false;
 }
 
 [[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
@@ -201,6 +208,13 @@ void ForkSettings::setGlobalSearchDisabled(bool newValue) {
 }
 void ForkSettings::setThirdButtonTopBar(bool newValue) {
 	_thirdButtonTopBar = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::skipShareFromBot() const {
+	return _skipShareFromBot;
+}
+void ForkSettings::setSkipShareFromBot(bool newValue) {
+	_skipShareFromBot = newValue;
 }
 
 } // namespace Core

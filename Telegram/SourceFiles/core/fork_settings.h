@@ -114,6 +114,9 @@ public:
 	[[nodiscard]] bool thirdButtonTopBar() const;
 	void setThirdButtonTopBar(bool newValue);
 
+	[[nodiscard]] bool skipShareFromBot() const;
+	void setSkipShareFromBot(bool newValue);
+
 private:
 	bool _squareUserpics = false;
 	bool _audioFade = true;
@@ -134,6 +137,7 @@ private:
 	bool _hideAllChatsTab = false;
 	bool _globalSearchDisabled = false;
 	bool _thirdButtonTopBar = false;
+	bool _skipShareFromBot = false;
 
 };
 

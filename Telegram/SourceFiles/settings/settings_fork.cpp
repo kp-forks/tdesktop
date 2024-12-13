@@ -458,6 +458,14 @@ void SetupForkContent(
 			Core::App().settings().fork().setThirdButtonTopBar(checked);
 		});
 
+	//
+	add(
+		u"Skip share box from app bots"_q,
+		Core::App().settings().fork().skipShareFromBot(),
+		[](bool checked) {
+			Core::App().settings().fork().setSkipShareFromBot(checked);
+		});
+
 	Ui::AddDivider(inner);
 
 }

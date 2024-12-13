@@ -26,6 +26,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/click_handler_types.h"
 #include "core/local_url_handlers.h"
 #include "core/shortcuts.h"
+#include "core/core_settings.h"
 #include "data/components/location_pickers.h"
 #include "data/data_bot_app.h"
 #include "data/data_changes.h"
@@ -1784,6 +1785,10 @@ void WebViewInstance::botSendPreparedMessage(
 		bot->inputUser,
 		MTP_string(request.id)
 	)).done([=](const MTPmessages_PreparedInlineMessage &result) {
+		if (Core::App().settings().fork().skipShareFromBot()) {
+			callback(QString());
+			return;
+		}
 		const auto panel = weak.get();
 		const auto &data = result.data();
 		bot->owner().processUsers(data.vusers());
