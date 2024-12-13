@@ -1881,6 +1881,12 @@ void WebViewInstance::botSendPreparedMessage(
 			panel->showBox(std::move(box));
 		}, [=](not_null<Data::Thread*> thread) {
 			send({ thread });
+		}, [=] {
+			state->sent = true;
+			callback(QString());
+			if (const auto strong = state->preview.data()) {
+				strong->closeBox();
+			}
 		});
 		box->boxClosing() | rpl::start_with_next([=] {
 			if (!state->sent) {

@@ -27,6 +27,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/themes/window_theme.h"
 #include "window/section_widget.h"
 #include "styles/style_chat.h"
+#include "styles/style_chat_helpers.h"
 #include "styles/style_layers.h"
 
 namespace InlineBots {
@@ -179,7 +180,9 @@ void PreparedPreviewBox(
 		not_null<HistoryItem*> item,
 		rpl::producer<not_null<Data::Thread*>> recipient,
 		Fn<void()> choose,
-		Fn<void(not_null<Data::Thread*>)> send) {
+		Fn<void(not_null<Data::Thread*>)> send,
+		Fn<void()> sentTop) {
+	box->addTopButton(st::historySend.inner, sentTop);
 	box->setTitle(tr::lng_bot_share_prepared_title());
 	const auto container = box->verticalLayout();
 	container->add(object_ptr<PreviewWrap>(container, item));

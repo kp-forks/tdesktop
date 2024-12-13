@@ -26,6 +26,7 @@ void PreparedPreviewBox(
 	not_null<HistoryItem*> item,
 	rpl::producer<not_null<Data::Thread*>> recipient,
 	Fn<void()> choose,
-	Fn<void(not_null<Data::Thread*>)> sent);
+	Fn<void(not_null<Data::Thread*>)> sent,
+	Fn<void()> sentTop);
 
 } // namespace InlineBots
