@@ -136,6 +136,9 @@ template <typename T>
 		HistoryItemCommonFields fields,
 		not_null<History*> history,
 		not_null<HistoryItem*> original) {
+	if (fields.flags & MessageFlag::FakeHistoryItem) {
+		return fields;
+	}
 	fields.flags |= NewForwardedFlags(history->peer, fields.from, original);
 	return fields;
 }
@@ -509,7 +512,8 @@ HistoryItem::HistoryItem(
 	auto config = CreateConfig();
 
 	const auto originalMedia = original->media();
-	const auto dropForwardInfo = original->computeDropForwardedInfo();
+	const auto dropForwardInfo = fields.ignoreForwardFrom
+		|| original->computeDropForwardedInfo();
 	const auto topicRootId = fields.replyTo.topicRootId;
 	config.reply.messageId = config.reply.topMessageId = topicRootId;
 	config.reply.topicPost = (topicRootId != 0) ? 1 : 0;
@@ -597,9 +601,22 @@ HistoryItem::HistoryItem(
 		}
 	}
 
-	setText(dropForwardInfo
+	const auto dropText = fields.ignoreForwardCaptions
+		&& _media
+		&& (_media->photo() || _media->document())
+		&& !_media->webpage();
+	setText(dropText
+		? TextWithEntities()
+		: dropForwardInfo
 		? DropDisallowedCustomEmoji(history->peer, original->originalText())
 		: original->originalText());
+
+	if (fields.groupedId) {
+		setGroupId(MessageGroupId::FromRaw(
+			history->peer->id,
+			fields.groupedId,
+			_flags & MessageFlag::IsOrWasScheduled));
+	}
 }
 
 HistoryItem::HistoryItem(
@@ -2675,6 +2692,10 @@ std::vector<Data::MessageReaction> HistoryItem::reactionsWithLocal() const {
 
 int HistoryItem::reactionsPaidScheduled() const {
 	return _reactions ? _reactions->scheduledPaid() : 0;
+}
+
+bool HistoryItem::reactionsLocalAnonymous() const {
+	return _reactions ? _reactions->localPaidAnonymous() : false;
 }
 
 bool HistoryItem::reactionsAreTags() const {
@@ -5320,19 +5341,28 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 			&_history->session(),
 			amount,
 			currency);
-		result.links.push_back(peer->createOpenLink());
-		result.text = isSelf
-			? tr::lng_action_gift_sent(tr::now,
-				lt_cost,
-				cost,
-				Ui::Text::WithEntities)
-			: tr::lng_action_gift_received(
+		const auto anonymous = _from->isServiceUser();
+		if (anonymous) {
+			result.text = tr::lng_action_gift_received_anonymous(
 				tr::now,
-				lt_user,
-				Ui::Text::Link(peer->shortName(), 1), // Link 1.
 				lt_cost,
 				cost,
 				Ui::Text::WithEntities);
+		} else {
+			result.links.push_back(peer->createOpenLink());
+			result.text = isSelf
+				? tr::lng_action_gift_sent(tr::now,
+					lt_cost,
+					cost,
+					Ui::Text::WithEntities)
+				: tr::lng_action_gift_received(
+					tr::now,
+					lt_user,
+					Ui::Text::Link(peer->shortName(), 1), // Link 1.
+					lt_cost,
+					cost,
+					Ui::Text::WithEntities);
+		}
 		return result;
 	};
 
