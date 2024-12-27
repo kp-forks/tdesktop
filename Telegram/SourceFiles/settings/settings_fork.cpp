@@ -493,21 +493,6 @@ void SetupForkContent(
 			box->setTitle(rpl::single(u"Custom Bot Platofrm"_q));
 
 			const auto content = box->verticalLayout();
-			content->add(
-				object_ptr<Ui::FlatLabel>(
-					content,
-					rpl::single(
-						TextWithEntities()
-						.append("Use ")
-						.append(Ui::Text::Bold("android"))
-						.append("/")
-						.append(Ui::Text::Bold("ios"))
-						.append("/")
-						.append(Ui::Text::Bold("macos"))
-						.append("/")
-						.append(Ui::Text::Bold("tdesktop"))
-						.append("."))),
-				st::boxRowPadding);
 			const auto wrap = content->add(
 				object_ptr<Ui::RpWidget>(content),
 				st::boxRowPadding);
@@ -516,16 +501,42 @@ void SetupForkContent(
 				wrap,
 				st::defaultInputField);
 			field->setText(Core::App().settings().fork().platformBot());
-			field->selectAll();
 			field->resizeToWidth(wrap->width());
-			field->setFocus();
-			wrap->resize(wrap->width(), field->height());
-
-			box->addButton(tr::lng_box_ok(), [=] {
-				Core::App().settings().fork().setPlatformBot(field->getLastText());
+			const auto submit = [=] {
+				Core::App().settings().fork().setPlatformBot(
+					field->getLastText());
 				Core::App().saveSettings();
 				box->closeBox();
+			};
+			field->submits() | rpl::start_with_next(
+				submit,
+				box->lifetime());
+			wrap->resize(wrap->width(), field->height());
+			const auto platformButton = [&](const QString &text) {
+				const auto b = content->add(
+					object_ptr<Ui::SettingsButton>(
+						content,
+						rpl::single(text)));
+				b->setClickedCallback([=] {
+					field->setText(text);
+					field->selectAll();
+					field->setFocus();
+				});
+			};
+			Ui::AddSkip(content);
+			platformButton("android");
+			platformButton("ios");
+			platformButton("macos");
+			platformButton("tdesktop");
+			box->setFocusCallback([=] {
+				field->selectAll();
+				field->setFocus();
 			});
+			box->setShowFinishedCallback([=] {
+				field->setFocus();
+			});
+
+			box->addButton(tr::lng_box_ok(), submit);
 			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
 		}));
 	});
