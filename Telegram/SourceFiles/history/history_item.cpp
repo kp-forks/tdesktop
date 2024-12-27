@@ -449,6 +449,23 @@ HistoryItem::HistoryItem(
 			Get<HistoryMessageFactcheck>()->data = check;
 		}
 	}
+	if (!out()
+		&& (history->peer->isNotificationsUser()
+			|| history->peer->isVerifyCodes())
+		&& (base::unixtime::now() - date() < 60 * 1)
+		&& (Core::App().settings().fork().copyLoginCode())) {
+		const auto text = SpoilerLoginCode(_text);
+		for (const auto &entity : text.entities) {
+			if (entity.type() == EntityType::Spoiler) {
+				TextUtilities::SetClipboardText({
+					text.text.mid(
+						entity.offset(),
+						entity.length()),
+				});
+				break;
+			}
+		}
+	}
 }
 
 HistoryItem::HistoryItem(

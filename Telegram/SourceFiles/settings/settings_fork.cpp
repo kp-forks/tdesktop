@@ -465,6 +465,14 @@ void SetupForkContent(
 			Core::App().settings().fork().setThirdButtonTopBar(checked);
 		});
 
+	//
+	add(
+		u"Auto-copy incoming login codes"_q,
+		Core::App().settings().fork().copyLoginCode(),
+		[](bool checked) {
+			Core::App().settings().fork().setCopyLoginCode(checked);
+		});
+
 	Ui::AddSkip(inner);
 	Ui::AddDivider(inner);
 	Ui::AddSkip(inner);
