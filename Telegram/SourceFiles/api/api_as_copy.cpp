@@ -215,7 +215,7 @@ void UpdateFileRef(
 			fail("MTPDmessages_messagesNotModified");
 		}, [&](const auto &d) {
 			auto good = true;
-			for (const auto tlMessage : d.vmessages().v) {
+			for (const auto &tlMessage : d.vmessages().v) {
 				tlMessage.match([&](const MTPDmessage &d) {
 					history->session().data().updateExistingMessage(d);
 				}, [&](const auto &) {
