@@ -18,6 +18,7 @@ Author: 23rd.
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/text/text_utilities.h"
 #include "ui/vertical_list.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/fields/input_field.h"
@@ -91,7 +92,7 @@ void SettingBox::prepare() {
 		}
 		const auto weak = base::make_weak(this);
 		getOrSetGlobal(linkUrl);
-		Core::App().saveSettingsDelayed();
+		Core::App().saveSettings();
 		_callback(!isInvalid);
 		if (weak) {
 			closeBox();
@@ -239,7 +240,7 @@ void SetupForkContent(
 				.text = tr::lng_settings_need_restart(tr::now),
 				.confirmed = [=] {
 					ok();
-					Core::App().saveSettingsDelayed(0);
+					Core::App().saveSettings();
 					Core::Restart();
 				},
 				.cancelled = [=](Fn<void()> &&close) {
@@ -282,7 +283,7 @@ void SetupForkContent(
 		Core::App().settings().fork().audioFade(),
 		[=](bool checked) {
 			Core::App().settings().fork().setAudioFade(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		});
 
 	//
@@ -298,7 +299,7 @@ void SetupForkContent(
 			auto callback = [=](bool isSuccess) {
 				uriScheme->setChecked(isSuccess);
 				Core::App().settings().fork().setAskUriScheme(checked);
-				Core::App().saveSettingsDelayed();
+				Core::App().saveSettings();
 			};
 			controller->show(Box<URISchemeBox>(
 				std::move(callback),
@@ -307,7 +308,7 @@ void SetupForkContent(
 			Ui::LayerOption::KeepOther);
 		} else {
 			Core::App().settings().fork().setAskUriScheme(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		}
 	}, uriScheme->lifetime());
 
@@ -317,7 +318,7 @@ void SetupForkContent(
 		Core::App().settings().fork().lastSeenInDialogs(),
 		[=](bool checked) {
 			Core::App().settings().fork().setLastSeenInDialogs(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		});
 
 	//
@@ -335,7 +336,7 @@ void SetupForkContent(
 			auto callback = [=](bool isSuccess) {
 				searchEngine->setChecked(isSuccess);
 				Core::App().settings().fork().setSearchEngine(checked);
-				Core::App().saveSettingsDelayed();
+				Core::App().saveSettings();
 			};
 			controller->show(Box<SearchEngineBox>(
 				std::move(callback),
@@ -344,7 +345,7 @@ void SetupForkContent(
 			Ui::LayerOption::KeepOther);
 		} else {
 			Core::App().settings().fork().setSearchEngine(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		}
 	}, searchEngine->lifetime());
 	//
@@ -353,22 +354,26 @@ void SetupForkContent(
 		Core::App().settings().fork().mentionByNameDisabled(),
 		[=](bool checked) {
 			Core::App().settings().fork().setMentionByNameDisabled(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		});
 
 #ifndef Q_OS_LINUX
 #ifdef Q_OS_WIN
+	Ui::AddSkip(inner);
 	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
 	add(
 		tr::lng_settings_use_black_tray_icon(tr::now),
 		Core::App().settings().fork().useBlackTrayIcon(),
 		[](bool checked) {
 			Core::App().settings().fork().setUseBlackTrayIcon(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 			Core::App().domain().notifyUnreadBadgeChanged();
 		});
 #else // !Q_OS_WIN
+	Ui::AddSkip(inner);
 	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
 	addRestart(
 		tr::lng_settings_use_black_tray_icon(tr::now),
 		[] { return Core::App().settings().fork().useBlackTrayIcon(); },
@@ -384,7 +389,9 @@ void SetupForkContent(
 			Core::App().settings().fork().setUseOriginalTrayIcon(checked);
 		});
 #endif // !Q_OS_LINUX
+	Ui::AddSkip(inner);
 	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
 
 	inner->add(CreateButtonWithIcon(
 		inner,
@@ -407,7 +414,7 @@ void SetupForkContent(
 		Core::App().settings().fork().autoSubmitPasscode(),
 		[](bool checked) {
 			Core::App().settings().fork().setAutoSubmitPasscode(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		});
 
 	//
@@ -458,6 +465,11 @@ void SetupForkContent(
 			Core::App().settings().fork().setThirdButtonTopBar(checked);
 		});
 
+	Ui::AddSkip(inner);
+	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
+
+	Ui::AddSubsectionTitle(inner, tr::lng_filters_type_bots());
 	//
 	add(
 		u"Skip share box from app bots"_q,
@@ -465,8 +477,54 @@ void SetupForkContent(
 		[](bool checked) {
 			Core::App().settings().fork().setSkipShareFromBot(checked);
 		});
+	inner->add(object_ptr<Ui::SettingsButton>(
+		inner,
+		rpl::single(u"Custom Bot Platofrm"_q)
+	))->addClickHandler([=] {
+		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
+			box->setTitle(rpl::single(u"Custom Bot Platofrm"_q));
 
+			const auto content = box->verticalLayout();
+			content->add(
+				object_ptr<Ui::FlatLabel>(
+					content,
+					rpl::single(
+						TextWithEntities()
+						.append("Use ")
+						.append(Ui::Text::Bold("android"))
+						.append("/")
+						.append(Ui::Text::Bold("ios"))
+						.append("/")
+						.append(Ui::Text::Bold("macos"))
+						.append("/")
+						.append(Ui::Text::Bold("tdesktop"))
+						.append("."))),
+				st::boxRowPadding);
+			const auto wrap = content->add(
+				object_ptr<Ui::RpWidget>(content),
+				st::boxRowPadding);
+			content->resizeToWidth(st::boxWidth);
+			const auto field = Ui::CreateChild<Ui::InputField>(
+				wrap,
+				st::defaultInputField);
+			field->setText(Core::App().settings().fork().platformBot());
+			field->selectAll();
+			field->resizeToWidth(wrap->width());
+			field->setFocus();
+			wrap->resize(wrap->width(), field->height());
+
+			box->addButton(tr::lng_box_ok(), [=] {
+				Core::App().settings().fork().setPlatformBot(field->getLastText());
+				Core::App().saveSettings();
+				box->closeBox();
+			});
+			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
+		}));
+	});
+
+	Ui::AddSkip(inner);
 	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
 
 }
 

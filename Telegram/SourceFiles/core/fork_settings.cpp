@@ -27,7 +27,8 @@ QByteArray ForkSettings::serialize() const {
 	auto size = sizeof(qint32) * 4
 		+ Serialize::stringSize(_uriScheme)
 		+ Serialize::stringSize(_searchEngineUrl)
-		+ sizeof(qint32) * 12;
+		+ sizeof(qint32) * 12
+		+ Serialize::stringSize(_platformBot);
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -55,6 +56,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_globalSearchDisabled ? 1 : 0)
 			<< qint32(_thirdButtonTopBar ? 1 : 0)
 			<< qint32(_skipShareFromBot ? 1 : 0)
+			<< _platformBot
 			;
 	}
 	return result;
@@ -88,6 +90,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 globalSearchDisabled = _globalSearchDisabled;
 	qint32 thirdButtonTopBar = _thirdButtonTopBar;
 	qint32 skipShareFromBot = _skipShareFromBot;
+	QString platformBot = _platformBot;
 
 	if (!stream.atEnd()) {
 		stream
@@ -123,6 +126,9 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> skipShareFromBot;
 	}
+	if (!stream.atEnd()) {
+		stream >> platformBot;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::ForkSettings::constructFromSerialized()"));
@@ -150,13 +156,14 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_globalSearchDisabled = (globalSearchDisabled == 1);
 	_thirdButtonTopBar = (thirdButtonTopBar == 1);
 	_skipShareFromBot = (skipShareFromBot == 1);
+	_platformBot = std::move(platformBot);
 }
 
 void ForkSettings::resetOnLastLogout() {
 	_squareUserpics = false;
 	_audioFade = true;
 	_askUriScheme = false;
-	_uriScheme = qsl("");
+	_uriScheme = QString();
 	_lastSeenInDialogs = false;
 	_searchEngineUrl = qsl("https://dgg.gg/%q");
 	_searchEngine = false;
@@ -172,6 +179,7 @@ void ForkSettings::resetOnLastLogout() {
 	_globalSearchDisabled = false;
 	_thirdButtonTopBar = false;
 	_skipShareFromBot = false;
+	_platformBot = QString();
 }
 
 [[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
@@ -215,6 +223,16 @@ void ForkSettings::setThirdButtonTopBar(bool newValue) {
 }
 void ForkSettings::setSkipShareFromBot(bool newValue) {
 	_skipShareFromBot = newValue;
+}
+
+[[nodiscard]] QString ForkSettings::platformBot() const {
+	if (_platformBot.isEmpty()) {
+		return u"tdesktop"_q;
+	}
+	return _platformBot;
+}
+void ForkSettings::setPlatformBot(QString newValue) {
+	_platformBot = newValue;
 }
 
 } // namespace Core

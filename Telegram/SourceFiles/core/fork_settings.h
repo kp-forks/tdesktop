@@ -117,13 +117,16 @@ public:
 	[[nodiscard]] bool skipShareFromBot() const;
 	void setSkipShareFromBot(bool newValue);
 
+	[[nodiscard]] QString platformBot() const;
+	void setPlatformBot(QString);
+
 private:
 	bool _squareUserpics = false;
 	bool _audioFade = true;
 	bool _askUriScheme = false;
 	bool _lastSeenInDialogs = false;
-	QString _uriScheme = qsl("");
-	QString _searchEngineUrl = qsl("https://dgg.gg/%q");
+	QString _uriScheme;
+	QString _searchEngineUrl = u"https://dgg.gg/%q"_q;
 	bool _searchEngine = false;
 	bool _allRecentStickers = true;
 	int _customStickerSize = 256;
@@ -138,6 +141,7 @@ private:
 	bool _globalSearchDisabled = false;
 	bool _thirdButtonTopBar = false;
 	bool _skipShareFromBot = false;
+	QString _platformBot = QString();
 
 };
 

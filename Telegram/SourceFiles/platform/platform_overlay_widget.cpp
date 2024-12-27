@@ -227,11 +227,9 @@ rpl::producer<> DefaultOverlayWidgetHelper::controlsActivations() {
 }
 
 rpl::producer<bool> DefaultOverlayWidgetHelper::controlsSideRightValue() {
-	using namespace Ui::Platform;
-
-	return TitleControlsLayoutValue(
-	) | rpl::map([=](const TitleControls::Layout &layout) {
-		return !TitleControlsOnLeft(layout);
+	return _controls->controls.layout().value(
+	) | rpl::map([=](const auto &layout) {
+		return !layout.onLeft();
 	}) | rpl::distinct_until_changed();
 }
 
