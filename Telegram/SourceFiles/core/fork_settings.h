@@ -123,6 +123,9 @@ public:
 	[[nodiscard]] bool copyLoginCode() const;
 	void setCopyLoginCode(bool);
 
+	[[nodiscard]] bool copyBotUrls() const;
+	void setCopyBotUrls(bool);
+
 private:
 	bool _squareUserpics = false;
 	bool _audioFade = true;
@@ -146,6 +149,7 @@ private:
 	bool _skipShareFromBot = false;
 	QString _platformBot = QString();
 	bool _copyLoginCode = false;
+	bool _copyBotUrls = false;
 
 };
 

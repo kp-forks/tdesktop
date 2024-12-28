@@ -1215,7 +1215,7 @@ void Panel::openExternalLink(const QJsonObject &args) {
 	const auto url = args["url"].toString();
 	if (!_delegate->botValidateExternalLink(url)) {
 		LOG(("BotWebView Error: Bad url in openExternalLink: %1").arg(url));
-		_delegate->botClose();
+		// _delegate->botClose();
 		return;
 	} else if (!allowOpenLink()) {
 		return;

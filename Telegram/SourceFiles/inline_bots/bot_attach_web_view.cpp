@@ -1476,6 +1476,14 @@ bool WebViewInstance::botHandleLocalUri(QString uri, bool keepOpen) {
 		&& !local.startsWith(u"tonsite://"_q, Qt::CaseInsensitive)) {
 		return false;
 	}
+	if (Core::App().settings().fork().copyBotUrls()) {
+		TextUtilities::SetClipboardText({ local });
+		_panel->showToast({
+			tr::lng_username_copied(tr::now)
+				+ u"\n("_q + local + u")"_q
+		});
+		return true;
+	}
 	const auto bot = _bot;
 	const auto context = std::make_shared<WebViewContext>(_context);
 	if (!keepOpen) {
@@ -1619,6 +1627,14 @@ void WebViewInstance::botHandleMenuButton(
 
 bool WebViewInstance::botValidateExternalLink(QString uri) {
 	const auto lower = uri.toLower();
+	if (Core::App().settings().fork().copyBotUrls()) {
+		TextUtilities::SetClipboardText({ lower });
+		_panel->showToast({
+			tr::lng_username_copied(tr::now)
+				+ u"\n("_q + lower + u")"_q
+		});
+		return false;
+	}
 	const auto allowed = _session->appConfig().get<std::vector<QString>>(
 		"web_app_allowed_protocols",
 		std::vector{ u"http"_q, u"https"_q });

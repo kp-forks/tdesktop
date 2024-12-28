@@ -229,9 +229,10 @@ void SetupForkContent(
 			checkbox(label, checked),
 			st::settingsCheckboxPadding
 		)->checkedChanges(
-		) | rpl::start_with_next(
-			std::move(handle),
-			inner->lifetime());
+		) | rpl::start_with_next([handle = std::move(handle)](bool v) {
+			handle(v);
+			Core::App().saveSettings();
+		}, inner->lifetime());
 	};
 
 	const auto restartBox = [=](Fn<void()> ok, Fn<void()> cancel) {
@@ -540,6 +541,14 @@ void SetupForkContent(
 			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
 		}));
 	});
+
+	//
+	add(
+		u"Copy instead of Open links from app bots"_q,
+		Core::App().settings().fork().copyBotUrls(),
+		[](bool checked) {
+			Core::App().settings().fork().setCopyBotUrls(checked);
+		});
 
 	Ui::AddSkip(inner);
 	Ui::AddDivider(inner);

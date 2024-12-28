@@ -28,7 +28,8 @@ QByteArray ForkSettings::serialize() const {
 		+ Serialize::stringSize(_uriScheme)
 		+ Serialize::stringSize(_searchEngineUrl)
 		+ sizeof(qint32) * 12
-		+ Serialize::stringSize(_platformBot);
+		+ Serialize::stringSize(_platformBot)
+		+ sizeof(qint32) * 2;
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -57,7 +58,8 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_thirdButtonTopBar ? 1 : 0)
 			<< qint32(_skipShareFromBot ? 1 : 0)
 			<< _platformBot
-			<< _copyLoginCode
+			<< qint32(_copyLoginCode ? 1 : 0)
+			<< qint32(_copyBotUrls ? 1 : 0)
 			;
 	}
 	return result;
@@ -93,6 +95,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 skipShareFromBot = _skipShareFromBot;
 	QString platformBot = _platformBot;
 	qint32 copyLoginCode = _copyLoginCode;
+	qint32 copyBotUrls = _copyBotUrls;
 
 	if (!stream.atEnd()) {
 		stream
@@ -134,6 +137,9 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> copyLoginCode;
 	}
+	if (!stream.atEnd()) {
+		stream >> copyBotUrls;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::ForkSettings::constructFromSerialized()"));
@@ -163,6 +169,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_skipShareFromBot = (skipShareFromBot == 1);
 	_platformBot = std::move(platformBot);
 	_copyLoginCode = (copyLoginCode == 1);
+	_copyBotUrls = (copyBotUrls == 1);
 }
 
 void ForkSettings::resetOnLastLogout() {
@@ -187,6 +194,7 @@ void ForkSettings::resetOnLastLogout() {
 	_skipShareFromBot = false;
 	_platformBot = QString();
 	_copyLoginCode = false;
+	_copyBotUrls = false;
 }
 
 [[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
@@ -247,6 +255,13 @@ void ForkSettings::setPlatformBot(QString newValue) {
 }
 void ForkSettings::setCopyLoginCode(bool newValue) {
 	_copyLoginCode = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::copyBotUrls() const {
+	return _copyBotUrls;
+}
+void ForkSettings::setCopyBotUrls(bool newValue) {
+	_copyBotUrls = newValue;
 }
 
 } // namespace Core
