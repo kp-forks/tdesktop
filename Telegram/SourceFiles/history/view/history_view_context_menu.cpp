@@ -1485,16 +1485,7 @@ void AddWhenEditedForwardedActionHelper(
 		not_null<Ui::PopupMenu*> menu,
 		not_null<HistoryItem*> item,
 		bool insertSeparator) {
-	if (const auto edited = item->Get<HistoryMessageEdited>()) {
-		if (!item->hideEditedBadge()) {
-			if (insertSeparator && !menu->empty()) {
-				menu->addSeparator(&st::expandedMenuSeparator);
-			}
-			menu->addAction(Ui::WhenReadContextAction(
-				menu.get(),
-				Api::WhenEdited(item->from(), edited->date)));
-		}
-	} else if (const auto forwarded = item->Get<HistoryMessageForwarded>()) {
+	if (const auto forwarded = item->Get<HistoryMessageForwarded>()) {
 		if (!forwarded->story && forwarded->psaType.isEmpty()) {
 			if (insertSeparator && !menu->empty()) {
 				menu->addSeparator(&st::expandedMenuSeparator);
@@ -1502,6 +1493,15 @@ void AddWhenEditedForwardedActionHelper(
 			menu->addAction(Ui::WhenReadContextAction(
 				menu.get(),
 				Api::WhenOriginal(item->from(), forwarded->originalDate)));
+		}
+	} else if (const auto edited = item->Get<HistoryMessageEdited>()) {
+		if (!item->hideEditedBadge()) {
+			if (insertSeparator && !menu->empty()) {
+				menu->addSeparator(&st::expandedMenuSeparator);
+			}
+			menu->addAction(Ui::WhenReadContextAction(
+				menu.get(),
+				Api::WhenEdited(item->from(), edited->date)));
 		}
 	}
 }
