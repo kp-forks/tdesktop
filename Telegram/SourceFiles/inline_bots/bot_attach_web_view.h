@@ -312,6 +312,9 @@ private:
 
 	static base::weak_ptr<WebViewInstance> PendingActivation;
 
+	QString _platform;
+	bool _copyBotUrls = false;
+
 };
 
 class AttachWebView final : public base::has_weak_ptr {

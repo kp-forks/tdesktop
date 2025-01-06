@@ -486,69 +486,6 @@ void SetupForkContent(
 		[](bool checked) {
 			Core::App().settings().fork().setSkipShareFromBot(checked);
 		});
-	inner->add(object_ptr<Ui::SettingsButton>(
-		inner,
-		rpl::single(u"Custom Bot Platofrm"_q)
-	))->addClickHandler([=] {
-		controller->show(Box([=](not_null<Ui::GenericBox*> box) {
-			box->setTitle(rpl::single(u"Custom Bot Platofrm"_q));
-
-			const auto content = box->verticalLayout();
-			const auto wrap = content->add(
-				object_ptr<Ui::RpWidget>(content),
-				st::boxRowPadding);
-			content->resizeToWidth(st::boxWidth);
-			const auto field = Ui::CreateChild<Ui::InputField>(
-				wrap,
-				st::defaultInputField);
-			field->setText(Core::App().settings().fork().platformBot());
-			field->resizeToWidth(wrap->width());
-			const auto submit = [=] {
-				Core::App().settings().fork().setPlatformBot(
-					field->getLastText());
-				Core::App().saveSettings();
-				box->closeBox();
-			};
-			field->submits() | rpl::start_with_next(
-				submit,
-				box->lifetime());
-			wrap->resize(wrap->width(), field->height());
-			const auto platformButton = [&](const QString &text) {
-				const auto b = content->add(
-					object_ptr<Ui::SettingsButton>(
-						content,
-						rpl::single(text)));
-				b->setClickedCallback([=] {
-					field->setText(text);
-					field->selectAll();
-					field->setFocus();
-				});
-			};
-			Ui::AddSkip(content);
-			platformButton("android");
-			platformButton("ios");
-			platformButton("macos");
-			platformButton("tdesktop");
-			box->setFocusCallback([=] {
-				field->selectAll();
-				field->setFocus();
-			});
-			box->setShowFinishedCallback([=] {
-				field->setFocus();
-			});
-
-			box->addButton(tr::lng_box_ok(), submit);
-			box->addButton(tr::lng_cancel(), [=] { box->closeBox(); });
-		}));
-	});
-
-	//
-	add(
-		u"Copy instead of Open links from app bots"_q,
-		Core::App().settings().fork().copyBotUrls(),
-		[](bool checked) {
-			Core::App().settings().fork().setCopyBotUrls(checked);
-		});
 
 	Ui::AddSkip(inner);
 	Ui::AddDivider(inner);

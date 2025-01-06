@@ -1127,7 +1127,7 @@ void WebViewInstance::requestButton() {
 		MTP_bytes(_button.url),
 		MTP_string(_button.startCommand),
 		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
-		MTP_string(Core::App().settings().fork().platformBot()),
+		MTP_string(_platform),
 		action.mtpReplyTo(),
 		(action.options.sendAs
 			? action.options.sendAs->input
@@ -1165,7 +1165,7 @@ void WebViewInstance::requestSimple() {
 		MTP_bytes(_button.url),
 		MTP_string(_button.startCommand),
 		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
-		MTP_string(Core::App().settings().fork().platformBot())
+		MTP_string(_platform)
 	)).done([=](const MTPWebViewResult &result) {
 		const auto &data = result.data();
 		show({
@@ -1195,7 +1195,7 @@ void WebViewInstance::requestMain() {
 		_bot->inputUser,
 		MTP_string(_button.startCommand),
 		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
-		MTP_string(Core::App().settings().fork().platformBot())
+		MTP_string(_platform)
 	)).done([=](const MTPWebViewResult &result) {
 		const auto &data = result.data();
 		show({
@@ -1225,7 +1225,7 @@ void WebViewInstance::requestApp(bool allowWrite) {
 		MTP_inputBotAppID(MTP_long(app->id), MTP_long(app->accessHash)),
 		MTP_string(_appStartParam),
 		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
-		MTP_string(Core::App().settings().fork().platformBot())
+		MTP_string(_platform)
 	)).done([=](const MTPWebViewResult &result) {
 		_requestId = 0;
 		const auto &data = result.data();
@@ -1366,6 +1366,60 @@ void WebViewInstance::show(ShowArgs &&args) {
 		.allowClipboardRead = allowClipboardRead,
 		.downloadsProgress = downloads->progress(_bot),
 	});
+	{
+		const auto platforms = std::vector<QString>{
+			u"tdesktop"_q,
+			u"android"_q,
+			u"ios"_q,
+			u"macos"_q,
+		};
+		const auto platformButton = Ui::CreateChild<Ui::LinkButton>(
+			_panel->toastParent(),
+			u""_q);
+		const auto index = platformButton->lifetime().make_state<int>(0);
+		const auto platformUpdate = [=] {
+			_platform = platforms[*index];
+			platformButton->setText(_platform);
+		};
+		if (_platform.isEmpty()) {
+			platformUpdate();
+		}
+		platformButton->setClickedCallback([=] {
+			(*index)++;
+			if (*index >= platforms.size()) {
+				*index = 0;
+			}
+			platformUpdate();
+		});
+
+		const auto copyBotUrls = Ui::CreateChild<Ui::LinkButton>(
+			_panel->toastParent(),
+			u""_q);
+		const auto copy = platformButton->lifetime().make_state<bool>(false);
+		const auto copyBotUrlsUpdate = [=] {
+			_copyBotUrls = *copy;
+			copyBotUrls->setText(_copyBotUrls ? u"Copy url"_q : u"Open url"_q);
+		};
+		copyBotUrlsUpdate();
+		copyBotUrls->setClickedCallback([=] {
+			*copy = !(*copy);
+			copyBotUrlsUpdate();
+		});
+
+		const auto p = dynamic_cast<Ui::RpWidget*>(
+			_panel->toastParent().get());
+		p->geometryValue() | rpl::start_with_next([=](QRect r) {
+			platformButton->moveToLeft(15, r.height() - 40);
+			platformButton->show();
+			platformButton->raise();
+
+			copyBotUrls->moveToLeft(
+				platformButton->x() + platformButton->width() + 10,
+				r.height() - 40);
+			copyBotUrls->show();
+			copyBotUrls->raise();
+		}, platformButton->lifetime());
+	}
 	started(args.queryId);
 	_panel->toastParent()->windowHandle()->setTitle(u"Bot_%1_%2_%3"_q
 		.arg(_bot->id.value)
@@ -1476,7 +1530,7 @@ bool WebViewInstance::botHandleLocalUri(QString uri, bool keepOpen) {
 		&& !local.startsWith(u"tonsite://"_q, Qt::CaseInsensitive)) {
 		return false;
 	}
-	if (Core::App().settings().fork().copyBotUrls()) {
+	if (_copyBotUrls) {
 		TextUtilities::SetClipboardText({ local });
 		_panel->showToast({
 			tr::lng_username_copied(tr::now)
@@ -1627,7 +1681,7 @@ void WebViewInstance::botHandleMenuButton(
 
 bool WebViewInstance::botValidateExternalLink(QString uri) {
 	const auto lower = uri.toLower();
-	if (Core::App().settings().fork().copyBotUrls()) {
+	if (_copyBotUrls) {
 		TextUtilities::SetClipboardText({ lower });
 		_panel->showToast({
 			tr::lng_username_copied(tr::now)

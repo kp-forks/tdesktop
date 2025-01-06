@@ -117,14 +117,8 @@ public:
 	[[nodiscard]] bool skipShareFromBot() const;
 	void setSkipShareFromBot(bool newValue);
 
-	[[nodiscard]] QString platformBot() const;
-	void setPlatformBot(QString);
-
 	[[nodiscard]] bool copyLoginCode() const;
 	void setCopyLoginCode(bool);
-
-	[[nodiscard]] bool copyBotUrls() const;
-	void setCopyBotUrls(bool);
 
 private:
 	bool _squareUserpics = false;
@@ -147,9 +141,7 @@ private:
 	bool _globalSearchDisabled = false;
 	bool _thirdButtonTopBar = false;
 	bool _skipShareFromBot = false;
-	QString _platformBot = QString();
 	bool _copyLoginCode = false;
-	bool _copyBotUrls = false;
 
 };
 
