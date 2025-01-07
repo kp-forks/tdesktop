@@ -92,6 +92,20 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace InlineBots {
 namespace {
 
+base::flat_map<PeerId, QString> PlatformForBotData;
+
+[[nodiscard]] QString PlatformForBot(PeerId botId) {
+	const auto it = PlatformForBotData.find(botId);
+	if (it != PlatformForBotData.end()) {
+		return it->second;
+	}
+	return u"tdesktop"_q;
+}
+
+void SetPlatformForBot(PeerId botId, QString platform) {
+	PlatformForBotData[botId] = platform;
+}
+
 constexpr auto kProlongTimeout = 60 * crl::time(1000);
 constexpr auto kRefreshBotsTimeout = 60 * 60 * crl::time(1000);
 constexpr auto kPopularAppBotsLimit = 100;
@@ -1127,7 +1141,7 @@ void WebViewInstance::requestButton() {
 		MTP_bytes(_button.url),
 		MTP_string(_button.startCommand),
 		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
-		MTP_string(_platform),
+		MTP_string(PlatformForBot(_bot->id)),
 		action.mtpReplyTo(),
 		(action.options.sendAs
 			? action.options.sendAs->input
@@ -1165,7 +1179,7 @@ void WebViewInstance::requestSimple() {
 		MTP_bytes(_button.url),
 		MTP_string(_button.startCommand),
 		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
-		MTP_string(_platform)
+		MTP_string(PlatformForBot(_bot->id))
 	)).done([=](const MTPWebViewResult &result) {
 		const auto &data = result.data();
 		show({
@@ -1195,7 +1209,7 @@ void WebViewInstance::requestMain() {
 		_bot->inputUser,
 		MTP_string(_button.startCommand),
 		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
-		MTP_string(_platform)
+		MTP_string(PlatformForBot(_bot->id))
 	)).done([=](const MTPWebViewResult &result) {
 		const auto &data = result.data();
 		show({
@@ -1225,7 +1239,7 @@ void WebViewInstance::requestApp(bool allowWrite) {
 		MTP_inputBotAppID(MTP_long(app->id), MTP_long(app->accessHash)),
 		MTP_string(_appStartParam),
 		MTP_dataJSON(MTP_bytes(botThemeParams().json)),
-		MTP_string(_platform)
+		MTP_string(PlatformForBot(_bot->id))
 	)).done([=](const MTPWebViewResult &result) {
 		_requestId = 0;
 		const auto &data = result.data();
@@ -1378,12 +1392,11 @@ void WebViewInstance::show(ShowArgs &&args) {
 			u""_q);
 		const auto index = platformButton->lifetime().make_state<int>(0);
 		const auto platformUpdate = [=] {
-			_platform = platforms[*index];
-			platformButton->setText(_platform);
+			const auto p = platforms[*index];
+			SetPlatformForBot(_bot->id, p);
+			platformButton->setText(p);
 		};
-		if (_platform.isEmpty()) {
-			platformUpdate();
-		}
+		platformButton->setText(PlatformForBot(_bot->id));
 		platformButton->setClickedCallback([=] {
 			(*index)++;
 			if (*index >= platforms.size()) {
