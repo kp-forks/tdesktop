@@ -1401,6 +1401,7 @@ void Filler::fillChatsListActions() {
 	}
 	addManageChat();
 	addNewMembers();
+	addBoostChat();
 	addVideoChat();
 	_addAction(PeerMenuCallback::Args{ .isSeparator = true });
 	addReport();
@@ -1510,6 +1511,7 @@ void Filler::fillRepliesActions() {
 		addInfo();
 		addManageTopic();
 	}
+	addBoostChat();
 	addCreatePoll();
 	addToggleTopicClosed();
 	addDeleteTopic();
