@@ -272,6 +272,10 @@ void SendExistingDocument(
 		return MTP_inputMediaDocument(
 			MTP_flags(0),
 			document->mtpInput(),
+			document->goodThumbnailPhoto()
+				? document->goodThumbnailPhoto()->mtpInput()
+				: MTPInputPhoto(),
+			MTPint(),
 			MTPint(), // ttl_seconds
 			MTPstring()); // query
 	};
@@ -313,7 +317,9 @@ void SendExistingDocument(
 		return MTP_inputMediaDocument(
 			MTP_flags(0),
 			document->mtpInput(),
+			MTPInputPhoto(), // video_cover
 			MTPint(), // ttl_seconds
+			MTPint(), // video_timestamp
 			MTPstring()); // query
 	};
 	SendExistingMedia(
@@ -591,6 +597,8 @@ void SendConfirmedFile(
 					| (file->spoiler ? Flag::f_spoiler : Flag())),
 				file->document,
 				MTPVector<MTPDocument>(), // alt_documents
+				MTPPhoto(), // video_cover
+				MTPint(), // video_timestamp
 				MTPint());
 		} else if (file->type == SendMediaType::Audio) {
 			const auto ttlSeconds = file->to.options.ttlSeconds;
@@ -601,6 +609,8 @@ void SendConfirmedFile(
 					| (ttlSeconds ? Flag::f_ttl_seconds : Flag())),
 				file->document,
 				MTPVector<MTPDocument>(), // alt_documents
+				MTPPhoto(), // video_cover
+				MTPint(), // video_timestamp
 				MTP_int(ttlSeconds));
 		} else if (file->type == SendMediaType::Round) {
 			using Flag = MTPDmessageMediaDocument::Flag;
@@ -612,6 +622,8 @@ void SendConfirmedFile(
 					| (file->spoiler ? Flag::f_spoiler : Flag())),
 				file->document,
 				MTPVector<MTPDocument>(), // alt_documents
+				MTPPhoto(), // video_cover
+				MTPint(), // video_timestamp
 				MTP_int(ttlSeconds));
 		} else {
 			Unexpected("Type in sendFilesConfirmed.");

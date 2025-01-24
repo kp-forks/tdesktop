@@ -60,6 +60,10 @@ MTPinputMedia InputMediaFromItem(not_null<HistoryItem*> i) {
 		return MTP_inputMediaDocument(
 			MTP_flags(MTPDinputMediaDocument::Flag(0)),
 			document->mtpInput(),
+			document->goodThumbnailPhoto()
+				? document->goodThumbnailPhoto()->mtpInput()
+				: MTPInputPhoto(),
+			MTP_int(0),
 			MTP_int(0),
 			MTPstring());
 	} else if (const auto photo = i->media()->photo()) {

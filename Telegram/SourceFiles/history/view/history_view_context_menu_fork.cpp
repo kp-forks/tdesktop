@@ -64,6 +64,10 @@ void RememberDocumentAsInputMedia(not_null<DocumentData*> document) {
 		.media = MTP_inputMediaDocument(
 			MTP_flags(0),
 			document->mtpInput(),
+			document->goodThumbnailPhoto()
+				? document->goodThumbnailPhoto()->mtpInput()
+				: MTPInputPhoto(),
+			MTPint(),
 			MTPint(),
 			MTPstring()),
 	};
@@ -152,6 +156,10 @@ void AddSwapMedia(
 				? MTP_inputMediaDocument(
 					MTP_flags(0),
 					document1->mtpInput(),
+					document1->goodThumbnailPhoto()
+						? document1->goodThumbnailPhoto()->mtpInput()
+						: MTPInputPhoto(),
+					MTPint(),
 					MTPint(),
 					MTPstring())
 				: photo1
@@ -164,6 +172,10 @@ void AddSwapMedia(
 				? MTP_inputMediaDocument(
 					MTP_flags(0),
 					document2->mtpInput(),
+					document2->goodThumbnailPhoto()
+						? document2->goodThumbnailPhoto()->mtpInput()
+						: MTPInputPhoto(),
+					MTPint(),
 					MTPint(),
 					MTPstring())
 				: photo2
