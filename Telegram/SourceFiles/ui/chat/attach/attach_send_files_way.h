@@ -53,6 +53,8 @@ public:
 	[[nodiscard]] static std::optional<SendFilesWay> FromSerialized(
 		int32 value);
 
+	bool asVoice = false;
+
 private:
 	[[nodiscard]] bool hasCompressedStickers() const {
 		return (_flags & Flag::HasCompressedStickers) != 0;

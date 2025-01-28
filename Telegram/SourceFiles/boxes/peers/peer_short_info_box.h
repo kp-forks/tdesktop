@@ -7,12 +7,17 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
-#include "boxes/abstract_box.h"
+#include "data/data_birthday.h"
+#include "ui/layers/box_content.h"
 
 namespace style {
 struct ShortInfoCover;
 struct ShortInfoBox;
 } // namespace style
+
+namespace Ui::Menu {
+struct MenuCallback;
+} // namespace Ui::Menu
 
 namespace Media::Streaming {
 class Document;
@@ -28,6 +33,7 @@ class RpWidget;
 } // namespace Ui
 
 enum class PeerShortInfoType {
+	Self,
 	User,
 	Group,
 	Channel,
@@ -35,10 +41,13 @@ enum class PeerShortInfoType {
 
 struct PeerShortInfoFields {
 	QString name;
+	QString channelName;
+	QString channelLink;
 	QString phone;
 	QString link;
 	TextWithEntities about;
 	QString username;
+	Data::Birthday birthday;
 	bool isBio = false;
 };
 
@@ -50,6 +59,7 @@ struct PeerShortInfoUserpic {
 	float64 photoLoadingProgress = 0.;
 	std::shared_ptr<Media::Streaming::Document> videoDocument;
 	crl::time videoStartPosition = 0;
+	QString additionalStatus;
 };
 
 class PeerShortInfoCover final {
@@ -87,6 +97,7 @@ private:
 	[[nodiscard]] QImage currentVideoFrame() const;
 
 	void applyUserpic(PeerShortInfoUserpic &&value);
+	void applyAdditionalStatus(const QString &status);
 	[[nodiscard]] QRect radialRect() const;
 
 	void videoWaiting();
@@ -99,6 +110,7 @@ private:
 	void updateRadialState();
 	void refreshCoverCursor();
 	void refreshBarImages();
+	void refreshLabelsGeometry();
 
 	const style::ShortInfoCover &_st;
 
@@ -108,6 +120,7 @@ private:
 	object_ptr<Ui::FlatLabel> _name;
 	std::unique_ptr<CustomLabelStyle> _statusStyle;
 	object_ptr<Ui::FlatLabel> _status;
+	object_ptr<Ui::FlatLabel> _additionalStatus = { nullptr };
 
 	std::array<QImage, 4> _roundMask;
 	QImage _userpicImage;
@@ -151,11 +164,15 @@ public:
 
 	[[nodiscard]] rpl::producer<> openRequests() const;
 	[[nodiscard]] rpl::producer<int> moveRequests() const;
+	[[nodiscard]] auto fillMenuRequests() const
+	-> rpl::producer<Ui::Menu::MenuCallback>;
+
+protected:
+	void contextMenuEvent(QContextMenuEvent *e) override;
 
 private:
 	void prepare() override;
 	void prepareRows();
-	RectParts customCornersFilling() override;
 
 	void resizeEvent(QResizeEvent *e) override;
 
@@ -163,9 +180,12 @@ private:
 	int fillRoundedTopHeight();
 
 	[[nodiscard]] rpl::producer<QString> nameValue() const;
+	[[nodiscard]] rpl::producer<TextWithEntities> channelValue() const;
 	[[nodiscard]] rpl::producer<TextWithEntities> linkValue() const;
 	[[nodiscard]] rpl::producer<QString> phoneValue() const;
 	[[nodiscard]] rpl::producer<QString> usernameValue() const;
+	[[nodiscard]] rpl::producer<QString> birthdayLabel() const;
+	[[nodiscard]] rpl::producer<QString> birthdayValue() const;
 	[[nodiscard]] rpl::producer<TextWithEntities> aboutValue() const;
 
 	const style::ShortInfoBox &_st;
@@ -180,6 +200,9 @@ private:
 	object_ptr<Ui::ScrollArea> _scroll;
 	not_null<Ui::VerticalLayout*> _rows;
 	PeerShortInfoCover _cover;
+
+	base::unique_qptr<Ui::RpWidget> _menuHolder;
+	rpl::event_stream<Ui::Menu::MenuCallback> _fillMenuRequests;
 
 	rpl::event_stream<> _openRequests;
 

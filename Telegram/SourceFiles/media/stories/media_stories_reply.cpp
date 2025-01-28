@@ -11,6 +11,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "api/api_sending.h"
 #include "apiwrap.h"
 #include "base/call_delayed.h"
+#include "base/timer_rpl.h"
+#include "base/unixtime.h"
 #include "boxes/premium_limits_box.h"
 #include "boxes/send_files_box.h"
 #include "chat_helpers/compose/compose_show.h"
@@ -18,8 +20,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/file_utilities.h"
 #include "core/mime_type.h"
 #include "data/stickers/data_custom_emoji.h"
+#include "data/data_chat_participant_status.h"
 #include "data/data_document.h"
 #include "data/data_message_reaction_id.h"
+#include "data/data_peer_values.h"
 #include "data/data_session.h"
 #include "data/data_user.h"
 #include "history/view/controls/compose_controls_common.h"
@@ -30,11 +34,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "media/stories/media_stories_controller.h"
+#include "media/stories/media_stories_stealth.h"
 #include "menu/menu_send.h"
 #include "storage/localimageloader.h"
 #include "storage/storage_account.h"
 #include "storage/storage_media_prepare.h"
 #include "ui/chat/attach/attach_prepare.h"
+#include "ui/text/format_values.h"
 #include "ui/round_rect.h"
 #include "window/section_widget.h"
 #include "styles/style_boxes.h" // sendMediaPreviewSize.
@@ -42,6 +48,41 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_media_view.h"
 
 namespace Media::Stories {
+namespace {
+
+[[nodiscard]] rpl::producer<QString> PlaceholderText(
+		const std::shared_ptr<ChatHelpers::Show> &show,
+		rpl::producer<bool> isComment) {
+	return rpl::combine(
+		show->session().data().stories().stealthModeValue(),
+		std::move(isComment)
+	) | rpl::map([](Data::StealthMode value, bool isComment) {
+		return std::tuple(value.enabledTill, isComment);
+	}) | rpl::distinct_until_changed(
+	) | rpl::map([](TimeId till, bool isComment) {
+		return rpl::single(
+			rpl::empty
+		) | rpl::then(
+			base::timer_each(250)
+		) | rpl::map([=] {
+			return till - base::unixtime::now();
+		}) | rpl::take_while([](TimeId left) {
+			return left > 0;
+		}) | rpl::then(
+			rpl::single(0)
+		) | rpl::map([=](TimeId left) {
+			return left
+				? tr::lng_stealth_mode_countdown(
+					lt_left,
+					rpl::single(TimeLeftText(left)))
+				: isComment
+				? tr::lng_story_comment_ph()
+				: tr::lng_story_reply_ph();
+		}) | rpl::flatten_latest();
+	}) | rpl::flatten_latest();
+}
+
+} // namespace
 
 class ReplyArea::Cant final : public Ui::RpWidget {
 public:
@@ -83,12 +124,15 @@ ReplyArea::ReplyArea(not_null<Controller*> controller)
 			showPremiumToast(emoji);
 		},
 		.mode = HistoryView::ComposeControlsMode::Normal,
-		.sendMenuType = SendMenu::Type::SilentOnly,
+		.sendMenuDetails = sendMenuDetails(),
 		.stickerOrEmojiChosen = _controller->stickerOrEmojiChosen(),
-		.customPlaceholder = tr::lng_story_reply_ph(),
+		.customPlaceholder = PlaceholderText(
+			_controller->uiShow(),
+			rpl::deferred([=] { return _isComment.value(); })),
 		.voiceCustomCancelText = tr::lng_record_cancel_stories(tr::now),
 		.voiceLockFromBottom = true,
 		.features = {
+			.likes = true,
 			.sendAs = false,
 			.ttlInfo = false,
 			.botCommandSend = false,
@@ -137,14 +181,14 @@ void ReplyArea::initGeometry() {
 	}, _lifetime);
 }
 
-void ReplyArea::sendReaction(const Data::ReactionId &id) {
-	Expects(_data.user != nullptr);
+bool ReplyArea::sendReaction(const Data::ReactionId &id) {
+	Expects(_data.peer != nullptr);
 
 	auto message = Api::MessageToSend(prepareSendAction({}));
 	if (const auto emoji = id.emoji(); !emoji.isEmpty()) {
 		message.textWithTags = { emoji };
 	} else if (const auto customId = id.custom()) {
-		const auto document = _data.user->owner().document(customId);
+		const auto document = _data.peer->owner().document(customId);
 		if (const auto sticker = document->sticker()) {
 			const auto text = sticker->alt;
 			const auto id = Data::SerializeCustomEmojiId(customId);
@@ -154,40 +198,45 @@ void ReplyArea::sendReaction(const Data::ReactionId &id) {
 			};
 		}
 	}
-	if (!message.textWithTags.empty()) {
-		send(std::move(message), {}, true);
-	}
+	return !message.textWithTags.empty()
+		&& send(std::move(message), {}, true);
 }
 
 void ReplyArea::send(Api::SendOptions options) {
-	const auto webPageId = _controls->webPageId();
+	const auto webPageDraft = _controls->webPageDraft();
 
 	auto message = Api::MessageToSend(prepareSendAction(options));
 	message.textWithTags = _controls->getTextWithAppliedMarkdown();
-	message.webPageId = webPageId;
+	message.webPage = webPageDraft;
 
 	send(std::move(message), options);
 }
 
-void ReplyArea::send(
+bool ReplyArea::send(
 		Api::MessageToSend message,
 		Api::SendOptions options,
 		bool skipToast) {
-	const auto error = GetErrorTextForSending(
-		_data.user,
+	if (!options.scheduled && showSlowmodeError()) {
+		return false;
+	}
+
+	const auto error = GetErrorForSending(
+		_data.peer,
 		{
 			.topicRootId = MsgId(0),
 			.text = &message.textWithTags,
 			.ignoreSlowmodeCountdown = (options.scheduled != 0),
 		});
-	if (!error.isEmpty()) {
-		_controller->uiShow()->showToast(error);
+	if (error) {
+		Data::ShowSendErrorToast(_controller->uiShow(), _data.peer, error);
+		return false;
 	}
 
 	session().api().sendMessage(std::move(message));
 
-	_controls->clear();
 	finishSending(skipToast);
+	_controls->clear();
+	return true;
 }
 
 void ReplyArea::sendVoice(VoiceToSend &&data) {
@@ -196,6 +245,7 @@ void ReplyArea::sendVoice(VoiceToSend &&data) {
 		data.bytes,
 		data.waveform,
 		data.duration,
+		data.video,
 		std::move(action));
 
 	_controls->clearListenState();
@@ -204,25 +254,23 @@ void ReplyArea::sendVoice(VoiceToSend &&data) {
 
 bool ReplyArea::sendExistingDocument(
 		not_null<DocumentData*> document,
-		Api::SendOptions options,
+		Api::MessageToSend messageToSend,
 		std::optional<MsgId> localId) {
-	Expects(_data.user != nullptr);
+	Expects(_data.peer != nullptr);
 
 	const auto show = _controller->uiShow();
 	const auto error = Data::RestrictionError(
-		_data.user,
+		_data.peer,
 		ChatRestriction::SendStickers);
 	if (error) {
-		show->showToast(*error);
+		Data::ShowSendErrorToast(show, _data.peer, error);
 		return false;
-	} else if (Window::ShowSendPremiumError(show, document)) {
+	} else if (showSlowmodeError()
+		|| Window::ShowSendPremiumError(show, document)) {
 		return false;
 	}
 
-	Api::SendExistingDocument(
-		Api::MessageToSend(prepareSendAction(options)),
-		document,
-		localId);
+	Api::SendExistingDocument(std::move(messageToSend), document, localId);
 
 	_controls->cancelReplyMessage();
 	finishSending();
@@ -236,14 +284,16 @@ void ReplyArea::sendExistingPhoto(not_null<PhotoData*> photo) {
 bool ReplyArea::sendExistingPhoto(
 		not_null<PhotoData*> photo,
 		Api::SendOptions options) {
-	Expects(_data.user != nullptr);
+	Expects(_data.peer != nullptr);
 
 	const auto show = _controller->uiShow();
 	const auto error = Data::RestrictionError(
-		_data.user,
+		_data.peer,
 		ChatRestriction::SendPhotos);
 	if (error) {
-		show->showToast(*error);
+		Data::ShowSendErrorToast(show, _data.peer, error);
+		return false;
+	} else if (showSlowmodeError()) {
 		return false;
 	}
 
@@ -259,9 +309,9 @@ bool ReplyArea::sendExistingPhoto(
 void ReplyArea::sendInlineResult(
 		not_null<InlineBots::Result*> result,
 		not_null<UserData*> bot) {
-	const auto errorText = result->getErrorOnSend(history());
-	if (!errorText.isEmpty()) {
-		_controller->uiShow()->showToast(errorText);
+	if (const auto error = result->getErrorOnSend(history())) {
+		const auto show = _controller->uiShow();
+		Data::ShowSendErrorToast(show, history()->peer, error);
 		return;
 	}
 	sendInlineResult(result, bot, {}, std::nullopt);
@@ -276,8 +326,6 @@ void ReplyArea::sendInlineResult(
 	action.generateLocal = true;
 	session().api().sendInlineResult(bot, result, action, localMessageId);
 
-	_controls->clear();
-
 	auto &bots = cRefRecentInlineBots();
 	const auto index = bots.indexOf(bot);
 	if (index) {
@@ -290,11 +338,12 @@ void ReplyArea::sendInlineResult(
 		bot->session().local().writeRecentHashtagsAndBots();
 	}
 	finishSending();
+	_controls->clear();
 }
 
 void ReplyArea::finishSending(bool skipToast) {
 	_controls->hidePanelsAnimated();
-	_controller->wrap()->setFocus();
+	_controller->unfocusReply();
 	if (!skipToast) {
 		_controller->uiShow()->showToast(
 			tr::lng_stories_reply_sent(tr::now));
@@ -315,11 +364,11 @@ bool ReplyArea::showSendingFilesError(
 bool ReplyArea::showSendingFilesError(
 		const Ui::PreparedList &list,
 		std::optional<bool> compress) const {
-	const auto text = [&] {
-		const auto peer = _data.user;
+	const auto error = [&]() -> Data::SendError {
+		const auto peer = _data.peer;
 		const auto error = Data::FileRestrictionError(peer, list, compress);
 		if (error) {
-			return *error;
+			return error;
 		}
 		using Error = Ui::PreparedList::Error;
 		switch (list.error) {
@@ -334,9 +383,9 @@ bool ReplyArea::showSendingFilesError(
 		}
 		return tr::lng_forward_send_files_cant(tr::now);
 	}();
-	if (text.isEmpty()) {
+	if (!error) {
 		return false;
-	} else if (text == u"(toolarge)"_q) {
+	} else if (error.text == u"(toolarge)"_q) {
 		const auto fileSize = list.files.back().size;
 		_controller->uiShow()->showBox(Box(
 			FileSizeLimitBox,
@@ -346,42 +395,44 @@ bool ReplyArea::showSendingFilesError(
 		return true;
 	}
 
-	_controller->uiShow()->showToast(text);
+	Data::ShowSendErrorToast(_controller->uiShow(), _data.peer, error);
 	return true;
 }
 
 not_null<History*> ReplyArea::history() const {
-	Expects(_data.user != nullptr);
+	Expects(_data.peer != nullptr);
 
-	return _data.user->owner().history(_data.user);
+	return _data.peer->owner().history(_data.peer);
 }
 
 Api::SendAction ReplyArea::prepareSendAction(
 		Api::SendOptions options) const {
-	Expects(_data.user != nullptr);
+	Expects(_data.peer != nullptr);
 
 	auto result = Api::SendAction(history(), options);
 	result.options.sendAs = _controls->sendAsPeer();
-	result.replyTo.storyId = { .peer = _data.user->id, .story = _data.id };
+	result.replyTo.storyId = { .peer = _data.peer->id, .story = _data.id };
 	return result;
 }
 
 void ReplyArea::chooseAttach(
 		std::optional<bool> overrideSendImagesAsPhotos) {
 	_chooseAttachRequest = false;
-	if (!_data.user) {
+	if (!_data.peer) {
 		return;
 	}
-	const auto user = not_null(_data.user);
-	if (const auto error = Data::AnyFileRestrictionError(user)) {
-		_controller->uiShow()->showToast(*error);
+	const auto peer = not_null(_data.peer);
+	if (const auto error = Data::AnyFileRestrictionError(peer)) {
+		Data::ShowSendErrorToast(_controller->uiShow(), peer, error);
+		return;
+	} else if (showSlowmodeError()) {
 		return;
 	}
 
 	const auto filter = (overrideSendImagesAsPhotos == true)
-		? FileDialog::ImagesOrAllFilter()
+		? FileDialog::PhotoVideoFilesFilter()
 		: FileDialog::AllOrImagesFilter();
-	const auto weak = make_weak(&_shownUserGuard);
+	const auto weak = make_weak(&_shownPeerGuard);
 	const auto callback = [=](FileDialog::OpenResult &&result) {
 		const auto guard = gsl::finally([&] {
 			_choosingAttach = false;
@@ -419,6 +470,15 @@ void ReplyArea::chooseAttach(
 		filter,
 		crl::guard(this, callback),
 		crl::guard(this, [=] { _choosingAttach = false; }));
+}
+
+Fn<SendMenu::Details()> ReplyArea::sendMenuDetails() const {
+	return crl::guard(this, [=] {
+		return SendMenu::Details{
+			.type = SendMenu::Type::SilentOnly,
+			.effectAllowed = _data.peer && _data.peer->isUser(),
+		};
+	});
 }
 
 bool ReplyArea::confirmSendingFiles(
@@ -468,21 +528,19 @@ bool ReplyArea::confirmSendingFiles(
 	auto confirmed = [=](auto &&...args) {
 		sendingFilesConfirmed(std::forward<decltype(args)>(args)...);
 	};
-	auto box = Box<SendFilesBox>(SendFilesBoxDescriptor{
+	show->show(Box<SendFilesBox>(SendFilesBoxDescriptor{
 		.show = show,
 		.list = std::move(list),
 		.caption = _controls->getTextWithAppliedMarkdown(),
-		.limits = DefaultLimitsForPeer(_data.user),
-		.check = DefaultCheckForPeer(show, _data.user),
+		.captionToPeer = _data.peer,
+		.limits = DefaultLimitsForPeer(_data.peer),
+		.check = DefaultCheckForPeer(show, _data.peer),
 		.sendType = Api::SendType::Normal,
-		.sendMenuType = SendMenu::Type::SilentOnly,
+		.sendMenuDetails = sendMenuDetails(),
 		.stOverride = &st::storiesComposeControls,
 		.confirmed = crl::guard(this, confirmed),
 		.cancelled = _controls->restoreTextCallback(insertTextOnCancel),
-	});
-	if (const auto shown = show->show(std::move(box))) {
-		shown->setCloseByOutsideClick(false);
-	}
+	}));
 
 	return true;
 }
@@ -501,7 +559,7 @@ void ReplyArea::sendingFilesConfirmed(
 	auto groups = DivideByGroups(
 		std::move(list),
 		way,
-		_data.user->slowmodeApplied());
+		_data.peer->slowmodeApplied());
 	const auto type = way.sendImagesAsPhotos()
 		? SendMediaType::Photo
 		: SendMediaType::File;
@@ -574,8 +632,13 @@ void ReplyArea::initActions() {
 	_controls->fileChosen(
 	) | rpl::start_with_next([=](ChatHelpers::FileChosen data) {
 		_controller->uiShow()->hideLayer();
-		const auto localId = data.messageSendingFrom.localId;
-		sendExistingDocument(data.document, data.options, localId);
+		auto messageToSend = Api::MessageToSend(
+			prepareSendAction(data.options));
+		messageToSend.textWithTags = base::take(data.caption);
+		sendExistingDocument(
+			data.document,
+			std::move(messageToSend),
+			data.messageSendingFrom.localId);
 	}, _lifetime);
 
 	_controls->photoChosen(
@@ -587,6 +650,11 @@ void ReplyArea::initActions() {
 	) | rpl::start_with_next([=](ChatHelpers::InlineChosen chosen) {
 		const auto localId = chosen.messageSendingFrom.localId;
 		sendInlineResult(chosen.result, chosen.bot, chosen.options, localId);
+	}, _lifetime);
+
+	_controls->likeToggled(
+	) | rpl::start_with_next([=] {
+		_controller->toggleLiked();
 	}, _lifetime);
 
 	_controls->setMimeDataHook([=](
@@ -612,27 +680,58 @@ void ReplyArea::initActions() {
 	_controls->showFinished();
 }
 
-void ReplyArea::show(ReplyAreaData data) {
+void ReplyArea::show(
+		ReplyAreaData data,
+		rpl::producer<Data::ReactionId> likedValue) {
 	if (_data == data) {
 		return;
 	}
-	const auto userChanged = (_data.user != data.user);
+	const auto peerChanged = (_data.peer != data.peer);
 	_data = data;
-	if (!userChanged) {
-		if (_data.user) {
+	if (!peerChanged) {
+		if (_data.peer) {
 			_controls->clear();
 		}
 		return;
 	}
-	invalidate_weak_ptrs(&_shownUserGuard);
-	const auto user = data.user;
-	const auto history = user ? user->owner().history(user).get() : nullptr;
+	invalidate_weak_ptrs(&_shownPeerGuard);
+	const auto peer = data.peer;
+	const auto history = peer ? peer->owner().history(peer).get() : nullptr;
+	const auto user = peer->asUser();
+	_isComment = peer->isMegagroup();
+	auto writeRestriction = Data::CanSendAnythingValue(
+		peer
+	) | rpl::map([=](bool can) {
+		using namespace HistoryView::Controls;
+		return (can
+			|| !user
+			|| !user->meRequiresPremiumToWrite()
+			|| user->session().premium())
+			? WriteRestriction()
+			: WriteRestriction{
+				.text = tr::lng_send_non_premium_story(tr::now),
+				.button = tr::lng_send_non_premium_unlock(tr::now),
+				.type = WriteRestrictionType::PremiumRequired,
+			};
+	});
+	using namespace HistoryView;
 	_controls->setHistory({
 		.history = history,
+		.showSlowmodeError = [=] { return showSlowmodeError(); },
+		.sendActionFactory = [=] { return prepareSendAction({}); },
+		.slowmodeSecondsLeft = SlowmodeSecondsLeft(history->peer),
+		.sendDisabledBySlowmode = SendDisabledBySlowmode(history->peer),
+		.liked = std::move(
+			likedValue
+		) | rpl::map([](const Data::ReactionId &id) {
+			return !id.empty();
+		}),
+		.writeRestriction = std::move(writeRestriction),
 	});
 	_controls->clear();
-	const auto hidden = user && user->isSelf();
-	const auto cant = !user || user->isServiceUser();
+	const auto hidden = peer
+		&& (peer->isBroadcast() || peer->isSelf() || peer->isServiceUser());
+	const auto cant = !peer;
 	if (!hidden && !cant) {
 		_controls->show();
 	} else {
@@ -653,10 +752,41 @@ void ReplyArea::show(ReplyAreaData data) {
 	}
 }
 
-Main::Session &ReplyArea::session() const {
-	Expects(_data.user != nullptr);
+bool ReplyArea::showSlowmodeError() {
+	const auto text = [&] {
+		const auto story = _controller->story();
+		if (!story) {
+			return QString();
+		}
+		const auto peer = story->peer();
+		if (const auto left = peer->slowmodeSecondsLeft()) {
+			return tr::lng_slowmode_enabled(
+				tr::now,
+				lt_left,
+				Ui::FormatDurationWordsSlowmode(left));
+		} else if (peer->slowmodeApplied()) {
+			const auto history = peer->owner().history(peer);
+			if (const auto item = history->latestSendingMessage()) {
+				return tr::lng_slowmode_no_many(tr::now);
+			}
+		}
+		return QString();
+	}();
+	if (text.isEmpty()) {
+		return false;
+	}
+	_controller->uiShow()->showToast(text);
+	return true;
+}
 
-	return _data.user->session();
+Main::Session &ReplyArea::session() const {
+	Expects(_data.peer != nullptr);
+
+	return _data.peer->session();
+}
+
+bool ReplyArea::focused() const {
+	return _controls->focused();
 }
 
 rpl::producer<bool> ReplyArea::focusedValue() const {
@@ -673,8 +803,9 @@ rpl::producer<bool> ReplyArea::activeValue() const {
 		_controls->focusedValue(),
 		_controls->recordingActiveValue(),
 		_controls->tabbedPanelShownValue(),
+		_controls->fieldMenuShownValue(),
 		_choosingAttach.value(),
-		_1 || _2 || _3 || _4
+		_1 || _2 || _3 || _4 || _5
 	) | rpl::distinct_until_changed();
 }
 
@@ -684,6 +815,10 @@ bool ReplyArea::ignoreWindowMove(QPoint position) const {
 
 void ReplyArea::tryProcessKeyInput(not_null<QKeyEvent*> e) {
 	_controls->tryProcessKeyInput(e);
+}
+
+not_null<Ui::RpWidget*> ReplyArea::likeAnimationTarget() const {
+	return _controls->likeAnimationTarget();
 }
 
 void ReplyArea::showPremiumToast(not_null<DocumentData*> emoji) {

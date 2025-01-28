@@ -49,7 +49,9 @@ public:
 		rpl::producer<QString> title,
 		Flags options,
 		Flags selected,
-		const base::flat_set<not_null<History*>> &peers);
+		const base::flat_set<not_null<History*>> &peers,
+		int limit,
+		Fn<void()> showLimitReached);
 
 	[[nodiscard]] Main::Session &session() const override;
 	[[nodiscard]] Flags chosenOptions() const {
@@ -70,6 +72,7 @@ private:
 	void updateTitle();
 
 	const not_null<Main::Session*> _session;
+	const Fn<void()> _showLimitReached;
 	rpl::producer<QString> _title;
 	base::flat_set<not_null<History*>> _peers;
 	Flags _options;

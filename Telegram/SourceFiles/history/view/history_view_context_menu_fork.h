@@ -11,6 +11,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/format_values.h"
 #include "ui/widgets/popup_menu.h"
 #include "window/window_session_controller.h"
+#include "styles/style_menu_icons.h"
 
 class HistoryItem;
 
@@ -64,7 +65,7 @@ void AddShowSumDurations(
 			const auto text = QString("Summary duration: %1.").arg(
 				Ui::FormatDurationText(result));
 			controller->show(Ui::MakeInformBox(text));
-		});
+		}, &st::menuIconReschedule);
 	}
 }
 
@@ -72,5 +73,16 @@ void AddReplaceMedia(
 	not_null<Ui::PopupMenu*> menu,
 	not_null<HistoryItem*> item,
 	not_null<Window::SessionController*> controller);
+
+void AddSwapMedia(
+	not_null<Ui::PopupMenu*> menu,
+	not_null<HistoryItem*> item,
+	not_null<HistoryItem*> item2,
+	not_null<Window::SessionController*> controller,
+	Fn<void()> action);
+
+void AddGroupSelected(
+	not_null<Ui::PopupMenu*> menu,
+	Fn<void(bool)> callback);
 
 } // namespace Fork

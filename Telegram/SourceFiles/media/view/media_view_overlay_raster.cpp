@@ -20,10 +20,21 @@ OverlayWidget::RendererSW::RendererSW(not_null<OverlayWidget*> owner)
 , _transparentBrush(style::TransparentPlaceholder()) {
 }
 
+bool OverlayWidget::RendererSW::handleHideWorkaround() {
+	// This is needed on Windows or Linux,
+	// because on reopen it blinks with the last shown content.
+	return _owner->_hideWorkaround != nullptr;
+}
+
 void OverlayWidget::RendererSW::paintFallback(
 		Painter &&p,
 		const QRegion &clip,
 		Ui::GL::Backend backend) {
+	if (handleHideWorkaround()) {
+		p.setCompositionMode(QPainter::CompositionMode_Source);
+		p.fillRect(clip.boundingRect(), Qt::transparent);
+		return;
+	}
 	_p = &p;
 	_clip = &clip;
 	_clipOuter = clip.boundingRect();
@@ -44,6 +55,12 @@ void OverlayWidget::RendererSW::paintBackground() {
 		: st::mediaviewBg;
 	for (const auto &rect : region) {
 		_p->fillRect(rect, bg);
+	}
+	if (const auto notch = _owner->topNotchSkip()) {
+		const auto top = QRect(0, 0, _owner->width(), notch);
+		if (const auto black = top.intersected(_clipOuter); !black.isEmpty()) {
+			_p->fillRect(black, Qt::black);
+		}
 	}
 	_p->setCompositionMode(m);
 }
@@ -101,8 +118,8 @@ void OverlayWidget::RendererSW::paintTransformedStaticContent(
 }
 
 void OverlayWidget::RendererSW::paintControlsFade(
-	QRect content,
-	const ContentGeometry &geometry) {
+		QRect content,
+		const ContentGeometry &geometry) {
 	auto opacity = geometry.controlsOpacity;
 	if (geometry.fade > 0.) {
 		_p->setOpacity(geometry.fade);

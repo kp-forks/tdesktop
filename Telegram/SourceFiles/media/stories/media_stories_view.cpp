@@ -59,6 +59,10 @@ void View::updatePlayback(const Player::TrackState &state) {
 	_controller->updateVideoPlayback(state);
 }
 
+ClickHandlerPtr View::lookupAreaHandler(QPoint point) const {
+	return _controller->lookupAreaHandler(point);
+}
+
 bool View::subjumpAvailable(int delta) const {
 	return _controller->subjumpAvailable(delta);
 }
@@ -99,8 +103,8 @@ void View::reportRequested() {
 	_controller->reportRequested();
 }
 
-void View::togglePinnedRequested(bool pinned) {
-	_controller->togglePinnedRequested(pinned);
+void View::toggleInProfileRequested(bool inProfile) {
+	_controller->toggleInProfileRequested(inProfile);
 }
 
 bool View::ignoreWindowMove(QPoint position) const {
@@ -109,6 +113,21 @@ bool View::ignoreWindowMove(QPoint position) const {
 
 void View::tryProcessKeyInput(not_null<QKeyEvent*> e) {
 	_controller->tryProcessKeyInput(e);
+}
+
+bool View::allowStealthMode() const {
+	return _controller->allowStealthMode();
+}
+
+void View::setupStealthMode() {
+	_controller->setupStealthMode();
+}
+
+auto View::attachReactionsToMenu(
+	not_null<Ui::PopupMenu*> menu,
+	QPoint desiredPosition)
+-> AttachStripResult {
+	return _controller->attachReactionsToMenu(menu, desiredPosition);
 }
 
 SiblingView View::sibling(SiblingType type) const {
@@ -123,8 +142,36 @@ TextWithEntities View::captionText() const {
 	return _controller->captionText();
 }
 
+bool View::skipCaption() const {
+	return _controller->skipCaption();
+}
+
+bool View::repost() const {
+	return _controller->repost();
+}
+
+QMargins View::repostCaptionPadding() const {
+	return _controller->repostCaptionPadding();
+}
+
+void View::drawRepostInfo(
+		Painter &p,
+		int x,
+		int y,
+		int availableWidth) const {
+	_controller->drawRepostInfo(p, x, y, availableWidth);
+}
+
+RepostClickHandler View::lookupRepostHandler(QPoint position) const {
+	return _controller->lookupRepostHandler(position);
+}
+
 void View::showFullCaption() {
 	_controller->showFullCaption();
+}
+
+std::shared_ptr<ChatHelpers::Show> View::uiShow() const {
+	return _controller->uiShow();
 }
 
 rpl::lifetime &View::lifetime() {

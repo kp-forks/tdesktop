@@ -11,10 +11,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "data/data_document.h"
 #include "data/data_document_media.h"
 #include "data/data_file_origin.h"
+#include "data/data_peer.h"
 #include "data/data_photo.h"
 #include "data/data_photo_media.h"
 #include "data/data_session.h"
-#include "data/data_user.h"
 #include "lang/lang_keys.h"
 #include "main/main_session.h"
 #include "media/stories/media_stories_controller.h"
@@ -32,6 +32,18 @@ constexpr auto kSiblingFade = 0.5;
 constexpr auto kSiblingFadeOver = 0.4;
 constexpr auto kSiblingNameOpacity = 0.8;
 constexpr auto kSiblingNameOpacityOver = 1.;
+constexpr auto kSiblingScaleOver = 0.05;
+
+[[nodiscard]] StoryId LookupShownId(
+		const Data::StoriesSource &source,
+		StoryId suggestedId) {
+	const auto i = suggestedId
+		? source.ids.lower_bound(Data::StoryIdDates{ suggestedId })
+		: end(source.ids);
+	return (i != end(source.ids) && i->id == suggestedId)
+		? suggestedId
+		: source.toOpen().id;
+}
 
 } // namespace
 
@@ -131,7 +143,7 @@ Sibling::LoaderVideo::LoaderVideo(
 	Fn<void()> update)
 : _video(video)
 , _origin(origin)
-, _update(std::move(                                                                                                                     update))
+, _update(std::move(update))
 , _media(_video->createMediaView()) {
 	_media->goodThumbnailWanted();
 }
@@ -229,10 +241,11 @@ bool Sibling::LoaderVideo::updateAfterGoodCheck() {
 
 Sibling::Sibling(
 	not_null<Controller*> controller,
-	const Data::StoriesSource &source)
+	const Data::StoriesSource &source,
+	StoryId suggestedId)
 : _controller(controller)
-, _id{ source.user->id, source.ids.front().id }
-, _peer(source.user) {
+, _id{ source.peer->id, LookupShownId(source, suggestedId) }
+, _peer(source.peer) {
 	checkStory();
 	_goodShown.stop();
 }
@@ -288,10 +301,14 @@ not_null<PeerData*> Sibling::peer() const {
 	return _peer;
 }
 
-bool Sibling::shows(const Data::StoriesSource &source) const {
-	Expects(!source.ids.empty());
-
-	return _id == FullStoryId{ source.user->id, source.ids.front().id };
+bool Sibling::shows(
+		const Data::StoriesSource &source,
+		StoryId suggestedId) const {
+	const auto fullId = FullStoryId{
+		source.peer->id,
+		LookupShownId(source, suggestedId),
+	};
+	return (_id == fullId);
 }
 
 SiblingView Sibling::view(const SiblingLayout &layout, float64 over) {
@@ -309,6 +326,7 @@ SiblingView Sibling::view(const SiblingLayout &layout, float64 over) {
 		.namePosition = namePosition(layout, name),
 		.nameOpacity = (kSiblingNameOpacity * (1 - over)
 			+ kSiblingNameOpacityOver * over),
+		.scale = 1. + (over * kSiblingScaleOver),
 	};
 }
 
@@ -318,7 +336,10 @@ QImage Sibling::userpicImage(const SiblingLayout &layout) {
 	const auto key = _peer->userpicUniqueKey(_userpicView);
 	if (_userpicImage.width() != size || _userpicKey != key) {
 		_userpicKey = key;
-		_userpicImage = _peer->generateUserpicImage(_userpicView, size);
+		_userpicImage = PeerData::GenerateUserpicImage(
+			_peer,
+			_userpicView,
+			size);
 		_userpicImage.setDevicePixelRatio(ratio);
 	}
 	return _userpicImage;
@@ -331,13 +352,11 @@ QImage Sibling::nameImage(const SiblingLayout &layout) {
 		const auto family = 0; // Default font family.
 		const auto font = style::font(
 			_nameFontSize,
-			style::internal::FontSemibold,
+			style::FontFlag::Semibold,
 			family);
 		_name.reset();
 		_nameStyle = std::make_unique<style::TextStyle>(style::TextStyle{
 			.font = font,
-			.linkFont = font,
-			.linkFontOver = font,
 		});
 	};
 	const auto text = _peer->isSelf()

@@ -10,6 +10,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "info/media/info_media_widget.h"
 #include "info/media/info_media_list_section.h"
 #include "info/info_controller.h"
+#include "data/data_changes.h"
+#include "data/data_channel.h"
 #include "data/data_document.h"
 #include "data/data_media_types.h"
 #include "data/data_session.h"
@@ -54,6 +56,14 @@ Provider::Provider(not_null<AbstractController*> controller)
 			layout.second.item->invalidateCache();
 		}
 	}, _lifetime);
+
+	_peer->session().changes().storyUpdates(
+		Data::StoryUpdate::Flag::Destroyed
+	) | rpl::filter([=](const Data::StoryUpdate &update) {
+		return update.story->peer() == _peer;
+	}) | rpl::start_with_next([=](const Data::StoryUpdate &update) {
+		storyRemoved(update.story);
+	}, _lifetime);
 }
 
 Provider::~Provider() {
@@ -65,6 +75,9 @@ Type Provider::type() {
 }
 
 bool Provider::hasSelectRestriction() {
+	if (const auto channel = _peer->asChannel()) {
+		return !channel->canEditStories() && !channel->canDeleteStories();
+	}
 	return !_peer->isSelf();
 }
 
@@ -165,10 +178,9 @@ void Provider::setSearchQuery(QString query) {
 void Provider::refreshViewer() {
 	_viewerLifetime.destroy();
 	const auto idForViewer = _aroundId;
-	const auto session = &_peer->session();
 	auto ids = (_tab == Tab::Saved)
 		? Data::SavedStoriesIds(_peer, idForViewer, _idsLimit)
-		: Data::ArchiveStoriesIds(session, idForViewer, _idsLimit);
+		: Data::ArchiveStoriesIds(_peer, idForViewer, _idsLimit);
 	std::move(
 		ids
 	) | rpl::start_with_next([=](Data::StoriesIdsSlice &&slice) {
@@ -177,9 +189,22 @@ void Provider::refreshViewer() {
 			return;
 		}
 		_slice = std::move(slice);
-		if (const auto nearest = _slice.nearest(idForViewer)) {
-			_aroundId = *nearest;
+
+		auto nearestId = std::optional<StoryId>();
+		for (auto i = 0; i != _slice.size(); ++i) {
+			if (!nearestId
+				|| std::abs(*nearestId - idForViewer)
+					> std::abs(_slice[i] - idForViewer)) {
+				nearestId = _slice[i];
+			}
 		}
+		if (nearestId) {
+			_aroundId = *nearestId;
+		}
+
+		//if (const auto nearest = _slice.nearest(idForViewer)) {
+		//	_aroundId = *nearest;
+		//}
 		_refreshed.fire({});
 	}, _viewerLifetime);
 }
@@ -196,8 +221,8 @@ std::vector<ListSection> Provider::fillSections(
 	auto result = std::vector<ListSection>();
 	auto section = ListSection(Type::PhotoVideo, sectionDelegate());
 	auto count = _slice.size();
-	for (auto i = count; i != 0;) {
-		const auto storyId = _slice[--i];
+	for (auto i = 0; i != count; ++i) {
+		const auto storyId = _slice[i];
 		if (const auto layout = getLayout(storyId, delegate)) {
 			if (!section.addItem(layout)) {
 				section.finishSection();
@@ -253,15 +278,17 @@ bool Provider::isAfter(
 	return (a->id < b->id);
 }
 
-void Provider::itemRemoved(not_null<const HistoryItem*> item) {
-	const auto id = StoryIdFromMsgId(item->id);
-	if (const auto i = _layouts.find(id); i != end(_layouts)) {
+void Provider::storyRemoved(not_null<Data::Story*> story) {
+	Expects(story->peer() == _peer);
+
+	if (const auto i = _layouts.find(story->id()); i != end(_layouts)) {
 		_peer->owner().stories().unregisterPolling(
-			{ _peer->id, id },
+			story,
 			Data::Stories::Polling::Chat);
 		_layoutRemoved.fire(i->second.item.get());
 		_layouts.erase(i);
 	}
+	_items.remove(story->id());
 }
 
 BaseLayout *Provider::getLayout(
@@ -272,9 +299,10 @@ BaseLayout *Provider::getLayout(
 		if (auto layout = createLayout(id, delegate)) {
 			layout->initDimensions();
 			it = _layouts.emplace(id, std::move(layout)).first;
-			_peer->owner().stories().registerPolling(
+			const auto ok = _peer->owner().stories().registerPolling(
 				{ _peer->id, id },
 				Data::Stories::Polling::Chat);
+			Assert(ok);
 		} else {
 			return nullptr;
 		}
@@ -315,7 +343,10 @@ std::unique_ptr<BaseLayout> Provider::createLayout(
 		return nullptr;
 	};
 	using namespace Overview::Layout;
-	const auto options = MediaOptions{ .story = true };
+	const auto options = MediaOptions{
+		.pinned = item->isPinned(),
+		.story = true,
+	};
 	if (const auto photo = getPhoto()) {
 		return std::make_unique<Photo>(delegate, item, photo, options);
 	} else if (const auto file = getFile()) {
@@ -334,24 +365,22 @@ ListItemSelectionData Provider::computeSelectionData(
 		not_null<const HistoryItem*> item,
 		TextSelection selection) {
 	auto result = ListItemSelectionData(selection);
+	const auto id = item->id;
+	if (!IsStoryMsgId(id)) {
+		return result;
+	}
 	const auto peer = item->history()->peer;
-	result.canDelete = peer->isSelf();
-	result.canForward = [&] {
-		if (!peer->isSelf()) {
-			return false;
-		}
-		const auto id = item->id;
-		if (!IsStoryMsgId(id)) {
-			return false;
-		}
-		const auto maybeStory = peer->owner().stories().lookup(
-			{ peer->id, StoryIdFromMsgId(id) });
-		if (!maybeStory) {
-			return false;
-		}
-		return (*maybeStory)->canShare();
-	}();
-	result.canToggleStoryPin = peer->isSelf();
+	const auto channel = peer->asChannel();
+	const auto maybeStory = peer->owner().stories().lookup(
+		{ peer->id, StoryIdFromMsgId(id) });
+	if (maybeStory) {
+		const auto story = *maybeStory;
+		result.canForward = peer->isSelf() && story->canShare();
+		result.canDelete = story->canDelete();
+		result.canUnpinStory = story->pinnedToTop();
+	}
+	result.canToggleStoryPin = peer->isSelf()
+		|| (channel && channel->canEditStories());
 	return result;
 }
 
@@ -405,12 +434,28 @@ int64 Provider::scrollTopStatePosition(not_null<HistoryItem*> item) {
 HistoryItem *Provider::scrollTopStateItem(ListScrollTopState state) {
 	if (state.item && _slice.indexOf(StoryIdFromMsgId(state.item->id))) {
 		return state.item;
-	} else if (const auto id = _slice.nearest(state.position)) {
-		const auto full = FullMsgId(_peer->id, StoryIdToMsgId(*id));
+	//} else if (const auto id = _slice.nearest(state.position)) {
+	//	const auto full = FullMsgId(_peer->id, StoryIdToMsgId(*id));
+	//	if (const auto item = _controller->session().data().message(full)) {
+	//		return item;
+	//	}
+	}
+
+	auto nearestId = std::optional<StoryId>();
+	for (auto i = 0; i != _slice.size(); ++i) {
+		if (!nearestId
+			|| std::abs(*nearestId - state.position)
+				> std::abs(_slice[i] - state.position)) {
+			nearestId = _slice[i];
+		}
+	}
+	if (nearestId) {
+		const auto full = FullMsgId(_peer->id, StoryIdToMsgId(*nearestId));
 		if (const auto item = _controller->session().data().message(full)) {
 			return item;
 		}
 	}
+
 	return state.item;
 }
 

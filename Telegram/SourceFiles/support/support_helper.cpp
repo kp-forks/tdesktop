@@ -9,6 +9,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 
 #include "dialogs/dialogs_key.h"
 #include "data/data_drafts.h"
+#include "data/data_forum.h"
+#include "data/data_forum_topic.h"
 #include "data/data_user.h"
 #include "data/data_session.h"
 #include "data/data_changes.h"
@@ -16,7 +18,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "boxes/abstract_box.h"
 #include "ui/toast/toast.h"
-#include "ui/widgets/input_fields.h"
+#include "ui/widgets/fields/input_field.h"
 #include "ui/chat/attach/attach_prepare.h"
 #include "ui/text/format_values.h"
 #include "ui/text/text_entity.h"
@@ -26,15 +28,20 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "lang/lang_keys.h"
 #include "window/window_session_controller.h"
+#include "storage/storage_account.h"
 #include "storage/storage_media_prepare.h"
 #include "storage/localimageloader.h"
 #include "core/launcher.h"
 #include "core/application.h"
 #include "core/core_settings.h"
+#include "main/main_account.h"
 #include "main/main_session.h"
 #include "apiwrap.h"
 #include "styles/style_layers.h"
 #include "styles/style_boxes.h"
+
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonArray>
 
 namespace Main {
 class Session;
@@ -86,7 +93,7 @@ EditInfoBox::EditInfoBox(
 	_field->setInstantReplaces(Ui::InstantReplaces::Default());
 	_field->setInstantReplacesEnabled(
 		Core::App().settings().replaceEmojiValue());
-	_field->setMarkdownReplacesEnabled(rpl::single(true));
+	_field->setMarkdownReplacesEnabled(true);
 	_field->setEditLinkCallback(
 		DefaultEditLinkCallback(controller->uiShow(), _field));
 }
@@ -107,8 +114,11 @@ void EditInfoBox::prepare() {
 	addButton(tr::lng_settings_save(), save);
 	addButton(tr::lng_cancel(), [=] { closeBox(); });
 
-	connect(_field, &Ui::InputField::submitted, save);
-	connect(_field, &Ui::InputField::cancelled, [=] { closeBox(); });
+	_field->submits() | rpl::start_with_next(save, _field->lifetime());
+	_field->cancelled(
+	) | rpl::start_with_next([=] {
+		closeBox();
+	}, _field->lifetime());
 	Ui::Emoji::SuggestionsController::Init(
 		getDelegate()->outerContainer(),
 		_field,
@@ -154,10 +164,9 @@ Data::Draft OccupiedDraft(const QString &normalizedName) {
 			+ QString::number(OccupationTag())
 			+ ";n:"
 			+ normalizedName },
-		MsgId(0), // replyTo
-		kTopicRootId,
+		FullReplyTo(),
 		MessageCursor(),
-		Data::PreviewState::Allowed
+		Data::WebPageDraft()
 	};
 }
 
@@ -250,6 +259,12 @@ TimeId OccupiedBySomeoneTill(History *history) {
 		}
 	}
 	return valid ? result : 0;
+}
+
+QString FastButtonModeIdsPath(not_null<Main::Session*> session) {
+	const auto base = session->account().local().supportModePath();
+	QDir().mkpath(base);
+	return base + u"/fast_button_mode_ids.json"_q;
 }
 
 } // namespace
@@ -468,6 +483,79 @@ UserInfo Helper::infoCurrent(not_null<UserData*> user) const {
 	return (i != end(_userInformation)) ? i->second : UserInfo();
 }
 
+void Helper::readFastButtonModeBots() {
+	_readFastButtonModeBots = true;
+
+	auto f = QFile(FastButtonModeIdsPath(_session));
+	if (!f.open(QIODevice::ReadOnly)) {
+		return;
+	}
+	const auto data = f.readAll();
+	const auto json = QJsonDocument::fromJson(data);
+	if (!json.isObject()) {
+		return;
+	}
+	const auto object = json.object();
+	const auto array = object.value(u"ids"_q).toArray();
+	for (const auto &value : array) {
+		const auto bareId = value.toString().toULongLong();
+		_fastButtonModeBots.emplace(PeerId(bareId));
+	}
+}
+
+void Helper::writeFastButtonModeBots() {
+	auto array = QJsonArray();
+	for (const auto &id : _fastButtonModeBots) {
+		array.append(QString::number(id.value));
+	}
+	auto object = QJsonObject();
+	object[u"ids"_q] = array;
+	auto f = QFile(FastButtonModeIdsPath(_session));
+	if (f.open(QIODevice::WriteOnly)) {
+		f.write(QJsonDocument(object).toJson(QJsonDocument::Indented));
+	}
+}
+
+bool Helper::fastButtonMode(not_null<PeerData*> peer) const {
+	if (!_readFastButtonModeBots) {
+		const_cast<Helper*>(this)->readFastButtonModeBots();
+	}
+	return _fastButtonModeBots.contains(peer->id);
+}
+
+rpl::producer<bool> Helper::fastButtonModeValue(
+		not_null<PeerData*> peer) const {
+	return rpl::single(
+		fastButtonMode(peer)
+	) | rpl::then(_fastButtonModeBotsChanges.events(
+	) | rpl::filter([=](PeerId id) {
+		return (peer->id == id);
+	}) | rpl::map([=] {
+		return fastButtonMode(peer);
+	}));
+}
+
+void Helper::setFastButtonMode(not_null<PeerData*> peer, bool fast) {
+	if (fast == fastButtonMode(peer)) {
+		return;
+	} else if (fast) {
+		_fastButtonModeBots.emplace(peer->id);
+	} else {
+		_fastButtonModeBots.remove(peer->id);
+	}
+	if (_fastButtonModeBots.empty()) {
+		QFile(FastButtonModeIdsPath(_session)).remove();
+	} else {
+		writeFastButtonModeBots();
+	}
+	_fastButtonModeBotsChanges.fire_copy(peer->id);
+	if (const auto history = peer->owner().history(peer)) {
+		if (const auto item = history->lastMessage()) {
+			history->owner().requestItemRepaint(item);
+		}
+	}
+}
+
 void Helper::editInfo(
 		not_null<Window::SessionController*> controller,
 		not_null<UserData*> user) {
@@ -555,6 +643,7 @@ QString InterpretSendPath(
 	f.close();
 	const auto lines = content.split('\n');
 	auto toId = PeerId(0);
+	auto topicRootId = MsgId(0);
 	auto filePath = QString();
 	auto caption = QString();
 	for (const auto &line : lines) {
@@ -570,6 +659,11 @@ QString InterpretSendPath(
 				line,
 				u"channel: "_q.size()).toULongLong();
 			toId = peerFromChannel(channelId);
+		} else if (line.startsWith(u"topic: "_q)) {
+			const auto topicId = base::StringViewMid(
+				line,
+				u"topic: "_q.size()).toULongLong();
+			topicRootId = MsgId(topicId);
 		} else if (line.startsWith(u"file: "_q)) {
 			const auto path = line.mid(u"file: "_q.size());
 			if (!QFile(path).exists()) {
@@ -585,21 +679,33 @@ QString InterpretSendPath(
 		}
 	}
 	const auto history = window->session().data().historyLoaded(toId);
+	const auto sendTo = [=](not_null<Data::Thread*> thread) {
+		window->showThread(thread);
+		const auto premium = thread->session().user()->isPremium();
+		thread->session().api().sendFiles(
+			Storage::PrepareMediaList(
+				QStringList(filePath),
+				st::sendMediaPreviewSize,
+				premium),
+			SendMediaType::File,
+			{ caption },
+			nullptr,
+			Api::SendAction(thread));
+	};
 	if (!history) {
 		return "App Error: Could not find channel with id: "
 			+ QString::number(peerToChannel(toId).bare);
+	} else if (const auto forum = history->asForum()) {
+		forum->requestTopic(topicRootId, [=] {
+			if (const auto forum = history->asForum()) {
+				if (const auto topic = forum->topicFor(topicRootId)) {
+					sendTo(topic);
+				}
+			}
+		});
+	} else if (!topicRootId) {
+		sendTo(history);
 	}
-	window->showPeerHistory(history);
-	const auto premium = window->session().user()->isPremium();
-	history->session().api().sendFiles(
-		Storage::PrepareMediaList(
-			QStringList(filePath),
-			st::sendMediaPreviewSize,
-			premium),
-		SendMediaType::File,
-		{ caption },
-		nullptr,
-		Api::SendAction(history));
 	return QString();
 }
 

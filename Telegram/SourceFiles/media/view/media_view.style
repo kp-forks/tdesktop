@@ -109,6 +109,7 @@ mediaviewRight: icon {
 	{ "mediaview/next", mediaviewControlFg }
 };
 mediaviewSave: icon {{ "mediaview/download", mediaviewControlFg }};
+mediaviewSaveLocked: icon {{ "mediaview/download_locked", mediaviewControlFg }};
 mediaviewShare: icon {{ "mediaview/viewer_share", mediaviewControlFg }};
 mediaviewRotate: icon {{ "mediaview/rotate", mediaviewControlFg }};
 mediaviewMore: icon {{ "title_menu_dots", mediaviewControlFg }};
@@ -144,29 +145,30 @@ mediaviewFileIconSize: 80px;
 mediaviewFileLink: defaultLinkButton;
 
 mediaviewMenuSeparator: MenuSeparator(defaultMenuSeparator) {
-	fg: mediaviewMenuFg;
+	fg: groupCallMenuBgOver;
 }
 mediaviewMenu: Menu(menuWithIcons) {
-	itemBg: mediaviewMenuBg;
-	itemBgOver: mediaviewMenuBgOver;
-	itemFg: mediaviewMenuFg;
-	itemFgOver: mediaviewMenuFg;
-	itemFgDisabled: mediaviewMenuFg;
-	itemFgShortcut: mediaviewMenuFg;
-	itemFgShortcutOver: mediaviewMenuFg;
-	itemFgShortcutDisabled: mediaviewMenuFg;
+	itemBg: groupCallMenuBg;
+	itemBgOver: groupCallMenuBgOver;
+	itemFg: groupCallMembersFg;
+	itemFgOver: groupCallMembersFg;
+	itemFgDisabled: groupCallMemberNotJoinedStatus;
+	itemFgShortcut: groupCallMemberNotJoinedStatus;
+	itemFgShortcutOver: groupCallMemberNotJoinedStatus;
+	itemFgShortcutDisabled: groupCallMemberNotJoinedStatus;
 
 	separator: mediaviewMenuSeparator;
+	arrow: icon {{ "menu/submenu_arrow", groupCallMemberNotJoinedStatus }};
 
 	ripple: RippleAnimation(defaultRippleAnimation) {
-		color: mediaviewMenuBgRipple;
+		color: groupCallMenuBgRipple;
 	}
 }
 mediaviewMenuShadow: Shadow(defaultEmptyShadow) {
-	fallback: mediaviewMenuBg;
+	fallback: groupCallMenuBg;
 }
 mediaviewPanelAnimation: PanelAnimation(defaultPanelAnimation) {
-	fadeBg: mediaviewMenuBg;
+	fadeBg: groupCallMenuBg;
 	shadow: mediaviewMenuShadow;
 }
 mediaviewPopupMenu: PopupMenu(defaultPopupMenu) {
@@ -177,7 +179,7 @@ mediaviewPopupMenu: PopupMenu(defaultPopupMenu) {
 mediaviewDropdownMenu: DropdownMenu(defaultDropdownMenu) {
 	menu: mediaviewMenu;
 	wrap: InnerDropdown(defaultInnerDropdown) {
-		bg: mediaviewMenuBg;
+		bg: groupCallMenuBg;
 		animation: mediaviewPanelAnimation;
 		scrollPadding: margins(0px, 8px, 0px, 8px);
 		shadow: mediaviewMenuShadow;
@@ -192,8 +194,6 @@ mediaviewSaveMsgShown: 2000;
 mediaviewSaveMsgHiding: 2500;
 mediaviewSaveMsgStyle: TextStyle(defaultTextStyle) {
 	font: font(16px);
-	linkFont: font(16px);
-	linkFontOver: font(16px underline);
 }
 mediaviewTextPalette: TextPalette(defaultTextPalette) {
 	linkFg: mediaviewTextLinkFg;
@@ -316,17 +316,21 @@ mediaviewTitleMaximizeMacPadding: margins(0px, 4px, 8px, 4px);
 mediaviewShadowTop: icon{{ "mediaview/shadow_top", windowShadowFg }};
 mediaviewShadowBottom: icon{{ "mediaview/shadow_bottom", windowShadowFg }};
 
+mediaviewSpeedMenuInner: Menu(mediaviewMenu) {
+	separator: MenuSeparator(mediaviewMenuSeparator) {
+		fg: groupCallMenuBgOver;
+		padding: margins(0px, 4px, 0px, 4px);
+		width: 6px;
+	}
+	itemPadding: margins(54px, 7px, 54px, 9px);
+	itemFgDisabled: mediaviewTextLinkFg;
+}
 mediaviewSpeedMenu: MediaSpeedMenu(mediaPlayerSpeedMenu) {
 	dropdown: DropdownMenu(mediaviewDropdownMenu) {
-		menu: Menu(mediaviewMenu) {
-			separator: MenuSeparator(mediaviewMenuSeparator) {
-				fg: mediaviewMenuBgOver;
-				padding: margins(0px, 4px, 0px, 4px);
-				width: 6px;
-			}
-			itemPadding: margins(54px, 7px, 54px, 9px);
-			itemFgDisabled: mediaviewTextLinkFg;
-		}
+		menu: mediaviewSpeedMenuInner;
+	}
+	qualityMenu: Menu(mediaviewSpeedMenuInner) {
+		itemPadding: margins(17px, 7px, 54px, 9px);
 	}
 	activeCheck: icon {{ "player/player_check", mediaviewTextLinkFg }};
 	slider: MediaSlider(defaultContinuousSlider) {
@@ -356,10 +360,11 @@ mediaviewSpeedMenu: MediaSpeedMenu(mediaPlayerSpeedMenu) {
 mediaviewSpeedButton: MediaSpeedButton(mediaPlayerSpeedButton) {
 	size: size(32px, 32px);
 	padding: margins(0px, 0px, 0px, 0px);
+	font: font(8px bold);
 	fg: mediaviewPlaybackIconFg;
 	overFg: mediaviewPlaybackIconFgOver;
 	activeFg: mediaviewTextLinkFg;
-	icon: icon{{ "player/player_speed", mediaviewPlaybackIconFg }};
+	icon: icon{{ "player/player_settings", mediaviewPlaybackIconFg }};
 	ripple: RippleAnimation(defaultRippleAnimation) {
 		color: mediaviewPlaybackIconRipple;
 	}
@@ -380,11 +385,15 @@ themePreviewLoadingFont: font(16px);
 themePreviewLoadingFg: windowSubTextFg;
 themePreviewApplyButton: RoundButton(defaultActiveButton) {
 	height: 38px;
-	font: font(15px semibold);
+	style: TextStyle(semiboldTextStyle) {
+		font: font(15px semibold);
+	}
 }
 themePreviewCancelButton: RoundButton(defaultLightButton) {
 	height: 38px;
-	font: font(15px semibold);
+	style: TextStyle(semiboldTextStyle) {
+		font: font(15px semibold);
+	}
 }
 themePreviewButtonsSkip: 20px;
 themePreviewDialogsWidth: 312px;
@@ -422,8 +431,8 @@ storiesSiblingWidthMin: 200px; // Try making sibling not less than this.
 storiesMaxNameFontSize: 17px;
 storiesRadius: 8px;
 storiesControlSize: 64px;
-storiesLeft: icon {{ "mediaview/stories_next-flip_horizontal", mediaviewControlFg }};
-storiesRight: icon {{ "mediaview/stories_next", mediaviewControlFg }};
+storiesLeft: icon {{ "stories/next-flip_horizontal", mediaviewControlFg }};
+storiesRight: icon {{ "stories/next", mediaviewControlFg }};
 storiesSliderWidth: 2px;
 storiesSliderMargin: margins(8px, 7px, 8px, 6px);
 storiesSliderSkip: 4px;
@@ -442,10 +451,14 @@ storiesHeaderName: FlatLabel(defaultFlatLabel) {
 storiesHeaderNamePosition: point(50px, 0px);
 storiesHeaderDate: FlatLabel(defaultFlatLabel) {
 	textFg: mediaviewControlFg;
+	palette: TextPalette(defaultTextPalette) {
+		linkFg: mediaviewControlFg;
+	}
 	minWidth: 10px;
 	maxHeight: 20px;
 }
 storiesHeaderDatePosition: point(50px, 17px);
+storiesHeaderRepostWidthMin: 40px;
 storiesShadowTop: icon{{ "mediaview/shadow_bottom-flip_vertical", windowShadowFg }};
 storiesShadowBottom: mediaviewShadowBottom;
 storiesControlsMinWidth: 280px;
@@ -454,7 +467,8 @@ storiesSideSkip: 145px;
 storiesCaptionFull: FlatLabel(defaultFlatLabel) {
 	style: mediaviewCaptionStyle;
 	textFg: mediaviewCaptionFg;
-	minWidth: 360px;
+	palette: mediaviewTextPalette;
+	minWidth: 36px;
 }
 storiesComposeBg: groupCallMembersBg;
 storiesComposeBgOver: groupCallMembersBgOver;
@@ -474,16 +488,28 @@ storiesAttach: IconButton(historyAttach) {
 	iconOver: icon {{ "chat/input_attach", storiesComposeGrayIcon }};
 	ripple: storiesComposeRippleLight;
 }
+storiesLike: IconButton(storiesAttach) {
+	icon: icon {{ "chat/input_like", storiesComposeGrayIcon }};
+	iconOver: icon {{ "chat/input_like", storiesComposeGrayIcon }};
+}
 storiesRecordVoice: icon {{ "chat/input_record", storiesComposeGrayIcon }};
 storiesRecordVoiceOver: icon {{ "chat/input_record", storiesComposeGrayIcon }};
+storiesRecordRound: icon {{ "chat/input_video", storiesComposeGrayIcon }};
+storiesRecordRoundOver: icon {{ "chat/input_video", storiesComposeGrayIcon }};
 storiesRemoveSet: IconButton(stickerPanRemoveSet) {
 	icon: icon {{ "simple_close", storiesComposeGrayIcon }};
 	iconOver: icon {{ "simple_close", storiesComposeGrayIcon }};
 	ripple: storiesComposeRippleLight;
 }
-storiesMenuSeparator: MenuSeparator(defaultMenuSeparator) {
-	fg: groupCallMenuBgOver;
+storiesColorAll: IconButton(emojiPanColorAll) {
+	icon: icon {{ "emoji/emoji_skin", storiesComposeGrayIcon }};
+	iconOver: icon {{ "emoji/emoji_skin", storiesComposeGrayIcon }};
+	ripple: storiesComposeRippleLight;
 }
+storiesColorAllLabel: FlatLabel(emojiPanColorAllLabel) {
+	textFg: storiesComposeGrayText;
+}
+storiesMenuSeparator: mediaviewMenuSeparator;
 storiesMenu: Menu(defaultMenu) {
 	itemBg: groupCallMenuBg;
 	itemBgOver: groupCallMenuBgOver;
@@ -501,22 +527,14 @@ storiesMenu: Menu(defaultMenu) {
 		color: groupCallMenuBgRipple;
 	}
 }
-storiesMenuShadow: Shadow(defaultEmptyShadow) {
-	fallback: groupCallMenuBg;
-}
-storiesMenuAnimation: PanelAnimation(defaultPanelAnimation) {
-	fadeBg: groupCallMenuBg;
-	shadow: storiesMenuShadow;
-}
+storiesMenuShadow: mediaviewMenuShadow;
+storiesMenuAnimation: mediaviewPanelAnimation;
 storiesPopupMenu: PopupMenu(defaultPopupMenu) {
 	shadow: storiesMenuShadow;
 	menu: storiesMenu;
 	animation: storiesMenuAnimation;
 }
-storiesMenuWithIcons: Menu(storiesMenu) {
-	itemIconPosition: point(15px, 5px);
-	itemPadding: margins(54px, 8px, 17px, 8px);
-}
+storiesMenuWithIcons: mediaviewMenu;
 storiesPopupMenuWithIcons: PopupMenu(storiesPopupMenu) {
 	scrollPadding: margins(0px, 5px, 0px, 5px);
 	menu: storiesMenuWithIcons;
@@ -579,7 +597,6 @@ storiesEmojiPan: EmojiPan(defaultEmojiPan) {
 	trendingHeaderFg: storiesComposeWhiteText;
 	trendingSubheaderFg: storiesComposeGrayText;
 	trendingUnreadFg: storiesComposeBlue;
-	trendingInstalled: icon {{ "chat/input_save", storiesComposeBlue }};
 	overBg: storiesComposeBgOver;
 	pathBg: storiesComposeBgRipple;
 	pathFg: storiesComposeBgOver;
@@ -601,10 +618,16 @@ storiesEmojiPan: EmojiPan(defaultEmojiPan) {
 		rippleBgActive: storiesComposeBgOver;
 	}
 	search: storiesEmojiTabbedSearch;
+	colorAll: storiesColorAll;
+	colorAllLabel: storiesColorAllLabel;
 	removeSet: storiesRemoveSet;
 	boxLabel: storiesBoxLabel;
+	about: FlatLabel(defaultEmojiPanAbout) {
+		textFg: storiesComposeGrayText;
+	}
 	icons: ComposeIcons {
 		settings: icon {{ "emoji/emoji_settings", storiesComposeGrayIcon }};
+		collectibles: icon {{ "menu/unique", storiesComposeGrayIcon }};
 
 		recent: icon {{ "emoji/emoji_recent", storiesComposeGrayIcon }};
 		recentActive: icon {{ "emoji/emoji_recent", storiesComposeWhiteText }};
@@ -634,14 +657,13 @@ storiesEmojiPan: EmojiPan(defaultEmojiPan) {
 		menuWhenOnline: icon {{ "menu/send_when_online", storiesComposeWhiteText }};
 		menuSpoiler: icon {{ "menu/spoiler_on", storiesComposeWhiteText }};
 		menuSpoilerOff: icon {{ "menu/spoiler_off", storiesComposeWhiteText }};
+		menuBelow: icon {{ "menu/link_below", storiesComposeWhiteText }};
+		menuAbove: icon {{ "menu/link_above", storiesComposeWhiteText }};
+		menuPrice: icon {{ "menu/earn", storiesComposeWhiteText }};
 
 		stripBubble: icon{
 			{ "chat/reactions_bubble_shadow", windowShadowFg },
 			{ "chat/reactions_bubble", storiesComposeBg },
-		};
-		stripPremiumLocked: icon{
-			{ "chat/reactions_premium_bg", storiesComposeBgRipple },
-			{ "chat/reactions_premium_star", storiesComposeGrayIcon },
 		};
 		stripExpandPanel: icon{
 			{ "chat/reactions_round_big", storiesComposeBgRipple },
@@ -681,10 +703,14 @@ storiesComposeControls: ComposeControls(defaultComposeControls) {
 		}
 		record: storiesRecordVoice;
 		recordOver: storiesRecordVoiceOver;
+		round: storiesRecordRound;
+		roundOver: storiesRecordRoundOver;
 		sendDisabledFg: storiesComposeGrayText;
 	}
 	attach: storiesAttach;
 	emoji: storiesAttachEmoji;
+	like: storiesLike;
+	liked: icon{};
 	suggestions: EmojiSuggestions(defaultEmojiSuggestions) {
 		dropdown: InnerDropdown(emojiSuggestionsDropdown) {
 			animation: PanelAnimation(defaultPanelAnimation) {
@@ -761,13 +787,56 @@ storiesComposeControls: ComposeControls(defaultComposeControls) {
 		statusFg: storiesComposeGrayText;
 	}
 	premium: storiesComposePremium;
+	boxField: InputField(defaultInputField) {
+		textBg: transparent;
+		textFg: groupCallMembersFg;
+
+		placeholderFg: groupCallMemberNotJoinedStatus;
+		placeholderFgActive: groupCallMemberNotJoinedStatus;
+		placeholderFgError: groupCallMemberNotJoinedStatus;
+
+		borderFg: inputBorderFg;
+		borderFgActive: groupCallMemberInactiveStatus;
+		borderFgError: activeLineFgError;
+
+		menu: storiesPopupMenu;
+	}
+	restrictionLabel: FlatLabel(defaultFlatLabel) {
+		minWidth: 12px;
+		textFg: storiesComposeGrayText;
+		align: align(top);
+	}
+	premiumRequired: ComposePremiumRequired {
+		label: FlatLabel(defaultFlatLabel) {
+			minWidth: 12px;
+			textFg: storiesComposeGrayText;
+		}
+		button: RoundButton(defaultActiveButton) {
+			textFg: storiesComposeWhiteText;
+			textFgOver: storiesComposeWhiteText;
+			textBg: groupCallMembersBgRipple;
+			textBgOver: groupCallMembersBgRipple;
+			width: -12px;
+			height: 18px;
+			textTop: 0px;
+			style: TextStyle(defaultTextStyle) {
+				font: font(12px);
+			}
+			ripple: storiesComposeRipple;
+		}
+		buttonSkip: 6px;
+		buttonTop: 14px;
+		position: point(37px, 14px);
+		icon: icon{{ "emoji/premium_lock", storiesComposeGrayIcon, point(13px, 14px) }};
+	}
 }
 storiesViewsMenu: PopupMenu(storiesPopupMenuWithIcons) {
 	scrollPadding: margins(0px, 6px, 0px, 4px);
 	maxHeight: 320px;
 	menu: Menu(storiesMenuWithIcons) {
-		widthMin: 215px;
-		widthMax: 215px;
+		itemPadding: margins(54px, 8px, 17px, 8px);
+		widthMin: 240px;
+		widthMax: 240px;
 	}
 	radius: 7px;
 }
@@ -795,13 +864,12 @@ storiesReactionsPan: EmojiPan(storiesEmojiPan) {
 storiesReactionsWidth: 210px;
 storiesReactionsBottomSkip: 29px;
 storiesReactionsAddedTop: 200px;
+storiesLikeReactionsPosition: point(85px, 30px);
 
 storiesUnsupportedLabel: FlatLabel(defaultFlatLabel) {
 	textFg: mediaviewControlFg;
 	style: TextStyle(defaultTextStyle) {
 		font: font(14px);
-		linkFont: font(14px);
-		linkFontOver: font(14px underline);
 		lineHeight: 21px;
 	}
 	align: align(top);
@@ -839,11 +907,21 @@ storiesReportBox: ReportBox(defaultReportBox) {
 		textBgOver: storiesComposeBgOver;
 		ripple: storiesComposeRipple;
 	}
+	noIconButton: SettingsButton(reportReasonButton) {
+		textFg: storiesComposeWhiteText;
+		textFgOver: storiesComposeWhiteText;
+		textBg: storiesComposeBg;
+		textBgOver: storiesComposeBgOver;
+		padding: margins(22px, 7px, 8px, 7px);
+		ripple: storiesComposeRipple;
+	}
 	label: storiesBoxLabel;
 	field: InputField(storiesBoxInputField) {
 		textMargins: margins(1px, 26px, 1px, 4px);
 		heightMax: 116px;
 	}
+	dividerBg: groupCallBg;
+	dividerFg: groupCallVideoSubTextFg;
 	spam: icon {{ "menu/delete", storiesComposeWhiteText }};
 	fake: icon {{ "menu/fake", storiesComposeWhiteText }};
 	violence: icon {{ "menu/violence", storiesComposeWhiteText }};
@@ -899,4 +977,121 @@ storiesVolumeSlider: MediaSlider {
 	receivedTillFg: mediaviewPlaybackActive;
 	seekSize: size(12px, 12px);
 	duration: mediaviewOverDuration;
+}
+storiesInfoTooltipLabel: defaultImportantTooltipLabel;
+storiesInfoTooltip: defaultImportantTooltip;
+storiesInfoTooltipMaxWidth: 360px;
+storiesCaptionPullThreshold: 50px;
+storiesShowMorePadding: margins(6px, 4px, 6px, 4px);
+storiesShowMoreFont: semiboldFont;
+
+storiesStealthLogoIcon: icon{{ "stories/stealth_logo", storiesComposeWhiteText }};
+storiesStealthLogoAdd: 12px;
+storiesStealthLogoMargin: margins(0px, 28px, 0px, 7px);
+storiesStealthBox: Box(defaultBox) {
+	buttonPadding: margins(10px, 10px, 10px, 10px);
+	buttonHeight: 42px;
+	button: RoundButton(defaultBoxButton) {
+		height: 42px;
+		textTop: 12px;
+		style: semiboldTextStyle;
+
+		textFg: storiesComposeWhiteText;
+		textFgOver: storiesComposeWhiteText;
+		numbersTextFg: storiesComposeWhiteText;
+		numbersTextFgOver: storiesComposeWhiteText;
+		textBg: storiesComposeBlue;
+		textBgOver: storiesComposeBlue;
+
+		ripple: universalRippleAnimation;
+	}
+	margin: margins(0px, 56px, 0px, 10px);
+	bg: groupCallMembersBg;
+	title: FlatLabel(boxTitle) {
+		textFg: groupCallMembersFg;
+		align: align(top);
+	}
+	titleAdditionalFg: groupCallMemberNotJoinedStatus;
+}
+storiesStealthButtonLabel: FlatLabel(defaultFlatLabel) {
+	style: semiboldTextStyle;
+	textFg: storiesComposeWhiteText;
+	align: align(top);
+	minWidth: 20px;
+	maxHeight: 20px;
+}
+storiesStealthLockIcon: icon {{ "dialogs/dialogs_lock_on", storiesComposeWhiteText }};
+storiesStealthTitleMargin: margins(0px, 10px, 0px, 0px);
+storiesStealthBoxClose: IconButton(defaultIconButton) {
+	width: boxTitleHeight;
+	height: boxTitleHeight;
+
+	icon: icon {{ "box_button_close", storiesComposeGrayIcon }};
+	iconOver: icon {{ "box_button_close", storiesComposeGrayIcon }};
+
+	rippleAreaPosition: point(4px, 4px);
+	rippleAreaSize: 40px;
+	ripple: storiesComposeRippleLight;
+}
+storiesStealthAbout: FlatLabel(defaultFlatLabel) {
+	textFg: storiesComposeGrayText;
+	align: align(top);
+	minWidth: 20px;
+}
+storiesStealthAboutMargin: margins(0px, 5px, 0px, 15px);
+storiesStealthFeatureTitle: storiesHeaderName;
+storiesStealthFeatureAbout: FlatLabel(defaultFlatLabel) {
+	textFg: storiesComposeGrayText;
+	minWidth: 20px;
+}
+storiesStealthFeaturePastIcon: icon{{ "stories/stealth_5m", storiesComposeBlue }};
+storiesStealthFeatureNextIcon: icon{{ "stories/stealth_25m", storiesComposeBlue }};
+storiesStealthFeatureIconPosition: point(3px, 7px);
+storiesStealthFeatureMargin: margins(0px, 8px, 0px, 6px);
+storiesStealthFeatureLabelLeft: 46px;
+storiesStealthFeatureSkip: 2px;
+storiesStealthBoxBottom: 11px;
+storiesStealthToast: Toast(defaultMultilineToast) {
+	maxWidth: 340px;
+}
+
+storiesViewsPosition: point(4px, 29px);
+storiesViewsIcon: icon{{ "mediaview/views", storiesComposeGrayText }};
+storiesViewsText: FlatLabel(defaultFlatLabel) {
+	textFg: storiesComposeGrayText;
+}
+storiesViewsTextPosition: point(26px, 14px);
+
+storiesLikesPosition: point(0px, 29px);
+storiesLikesIcon: icon {{ "chat/input_like", storiesComposeWhiteText }};
+storiesLikesText: FlatLabel(defaultFlatLabel) {
+	textFg: storiesComposeWhiteText;
+	style: semiboldTextStyle;
+}
+storiesLikesTextPosition: point(41px, 14px);
+storiesLikesTextRightSkip: 8px;
+storiesLikesEmptyRightSkip: 2px;
+
+storiesLikeCountStyle: TextStyle(defaultTextStyle) {
+	font: font(32px semibold);
+}
+storiesChangelogFooterWidthMin: 240px;
+
+storiesRepostSimpleStyle: QuoteStyle(defaultQuoteStyle) {
+	padding: margins(8px, 2px, 8px, 2px);
+	verticalSkip: 4px;
+	outline: 0px;
+	radius: 10px;
+}
+storiesRepostIcon: icon {{ "mediaview/mini_repost", windowFg }};
+storiesRepostIconPadding: margins(0px, 4px, 2px, 0px);
+storiesRepostUserpicPadding: margins(0px, 1px, 4px, 0px);
+
+mediaviewSponsoredButton: RoundButton(defaultActiveButton) {
+	textFg: mediaviewPlaybackIconFg;
+	textFgOver: mediaviewPlaybackIconFg;
+	textBg: mediaviewSaveMsgBg;
+	textBgOver: mediaviewSaveMsgBg;
+
+	ripple: universalRippleAnimation;
 }

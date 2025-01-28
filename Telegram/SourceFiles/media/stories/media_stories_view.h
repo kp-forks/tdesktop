@@ -7,6 +7,12 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+class ClickHandlerHost;
+
+namespace ChatHelpers {
+class Show;
+} // namespace ChatHelpers
+
 namespace Data {
 class Story;
 struct StoriesContext;
@@ -17,6 +23,14 @@ namespace Media::Player {
 struct TrackState;
 } // namespace Media::Player
 
+namespace HistoryView::Reactions {
+enum class AttachSelectorResult;
+} // namespace HistoryView::Reactions
+
+namespace Ui {
+class PopupMenu;
+} // namespace Ui
+
 namespace Media::Stories {
 
 class Delegate;
@@ -25,6 +39,7 @@ class Controller;
 struct ContentLayout {
 	QRect geometry;
 	float64 fade = 0.;
+	float64 scale = 1.;
 	int radius = 0;
 	bool headerOutside = false;
 };
@@ -39,6 +54,7 @@ struct SiblingView {
 	QImage name;
 	QPoint namePosition;
 	float64 nameOpacity = 0.;
+	float64 scale = 1.;
 
 	[[nodiscard]] bool valid() const {
 		return !image.isNull();
@@ -47,6 +63,18 @@ struct SiblingView {
 		return valid();
 	}
 };
+
+struct RepostClickHandler {
+	ClickHandlerPtr link;
+	ClickHandlerHost *host = nullptr;
+
+	explicit operator bool() const {
+		return link && host;
+	}
+};
+
+inline constexpr auto kCollapsedCaptionLines = 2;
+inline constexpr auto kMaxShownCaptionLines = 4;
 
 class View final {
 public:
@@ -64,9 +92,17 @@ public:
 	[[nodiscard]] SiblingView sibling(SiblingType type) const;
 	[[nodiscard]] Data::FileOrigin fileOrigin() const;
 	[[nodiscard]] TextWithEntities captionText() const;
+	[[nodiscard]] bool skipCaption() const;
+	[[nodiscard]] bool repost() const;
 	void showFullCaption();
 
+	[[nodiscard]] QMargins repostCaptionPadding() const;
+	void drawRepostInfo(Painter &p, int x, int y, int availableWidth) const;
+	[[nodiscard]] RepostClickHandler lookupRepostHandler(
+		QPoint position) const;
+
 	void updatePlayback(const Player::TrackState &state);
+	[[nodiscard]] ClickHandlerPtr lookupAreaHandler(QPoint point) const;
 
 	[[nodiscard]] bool subjumpAvailable(int delta) const;
 	[[nodiscard]] bool subjumpFor(int delta) const;
@@ -80,10 +116,20 @@ public:
 	void shareRequested();
 	void deleteRequested();
 	void reportRequested();
-	void togglePinnedRequested(bool pinned);
+	void toggleInProfileRequested(bool inProfile);
 
 	[[nodiscard]] bool ignoreWindowMove(QPoint position) const;
 	void tryProcessKeyInput(not_null<QKeyEvent*> e);
+
+	[[nodiscard]] bool allowStealthMode() const;
+	void setupStealthMode();
+
+	using AttachStripResult = HistoryView::Reactions::AttachSelectorResult;
+	[[nodiscard]] AttachStripResult attachReactionsToMenu(
+		not_null<Ui::PopupMenu*> menu,
+		QPoint desiredPosition);
+
+	[[nodiscard]] std::shared_ptr<ChatHelpers::Show> uiShow() const;
 
 	[[nodiscard]] rpl::lifetime &lifetime();
 

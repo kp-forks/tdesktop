@@ -3,7 +3,7 @@ Author: 23rd.
 */
 #pragma once
 
-#include "settings/settings_common.h"
+#include "settings/settings_common_session.h"
 
 namespace Settings {
 

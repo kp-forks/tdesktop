@@ -91,6 +91,7 @@ public:
 
 	[[nodiscard]] not_null<Ui::RpWidget*> widget() const;
 	[[nodiscard]] not_null<GroupCall*> call() const;
+	[[nodiscard]] bool isVisible() const;
 	[[nodiscard]] bool isActive() const;
 
 	base::weak_ptr<Ui::Toast::Instance> showToast(
@@ -228,6 +229,7 @@ private:
 	const std::unique_ptr<Ui::LayerManager> _layerBg;
 	rpl::variable<PanelMode> _mode;
 	rpl::variable<bool> _fullScreenOrMaximized = false;
+	bool _unpinnedMaximized = false;
 
 #ifndef Q_OS_MAC
 	rpl::variable<int> _controlsTop = 0;

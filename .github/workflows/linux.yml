@@ -45,7 +45,7 @@ on:
 jobs:
 
   linux:
-    name: CentOS 7
+    name: Rocky Linux 8
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/telegramdesktop/tdesktop/centos_env
@@ -55,7 +55,7 @@ jobs:
 
     defaults:
       run:
-        shell: scl enable rh-python38 -- scl enable llvm-toolset-7.0 -- scl enable devtoolset-10 -- bash --noprofile --norc -eo pipefail {0}
+        shell: scl enable gcc-toolset-12 -- bash --noprofile --norc -eo pipefail {0}
 
     strategy:
       matrix:
@@ -63,7 +63,7 @@ jobs:
           - ""
 
     env:
-      UPLOAD_ARTIFACT: "false"
+      UPLOAD_ARTIFACT: "true"
 
     steps:
       - name: Get repository name.
@@ -77,15 +77,16 @@ jobs:
           rm -rfv $LibrariesPath/tg_owt/out/Debug
 
       - name: Clone.
-        uses: actions/checkout@v3.1.0
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           path: ${{ env.REPO_NAME }}
 
       - name: First set up.
         run: |
-          gcc --version
-          ln -s /usr/src/Libraries
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+          docker pull ghcr.io/$GITHUB_REPOSITORY/centos_env
+          docker tag ghcr.io/$GITHUB_REPOSITORY/centos_env tdesktop:centos_env
 
           yum -y install epel-release
           yum -y install wget p7zip
@@ -109,7 +110,7 @@ jobs:
 
       - name: Telegram Desktop build.
         run: |
-          cd $REPO_NAME/Telegram
+          cd $REPO_NAME
 
           DEFINE=""
           if [ -n "${{ matrix.defines }}" ]; then

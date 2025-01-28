@@ -10,16 +10,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/timer.h"
 #include "ui/rp_widget.h"
 #include "ui/gl/gl_surface.h"
-#include "ui/widgets/dropdown_menu.h"
 #include "ui/effects/animations.h"
 #include "ui/effects/radial_animation.h"
 #include "data/data_shared_media.h"
 #include "data/data_user_photos.h"
 #include "data/data_web_page.h"
 #include "data/data_cloud_themes.h" // Data::CloudTheme.
+#include "media/stories/media_stories_delegate.h"
 #include "media/view/media_view_playback_controls.h"
 #include "media/view/media_view_open_common.h"
-#include "media/stories/media_stories_delegate.h"
+#include "media/media_common.h"
 
 class History;
 
@@ -34,6 +34,7 @@ struct StoriesContext;
 } // namespace Data
 
 namespace Ui {
+class DropdownMenu;
 class PopupMenu;
 class LinkButton;
 class RoundButton;
@@ -47,6 +48,10 @@ struct ChosenRenderer;
 enum class Backend;
 } // namespace Ui::GL
 
+namespace Ui::Menu {
+struct MenuCallback;
+} // namespace Ui::Menu
+
 namespace Platform {
 class OverlayWidgetHelper;
 } // namespace Platform
@@ -54,10 +59,6 @@ class OverlayWidgetHelper;
 namespace Window::Theme {
 struct Preview;
 } // namespace Window::Theme
-
-namespace HistoryView::Reactions {
-class CachedIconFactory;
-} // namespace HistoryView::Reactions
 
 namespace Media::Player {
 struct TrackState;
@@ -141,6 +142,7 @@ private:
 	class Renderer;
 	class RendererSW;
 	class RendererGL;
+	class SponsoredButton;
 
 	// If changing, see paintControls()!
 	enum class Over {
@@ -149,6 +151,7 @@ private:
 		Right,
 		LeftStories,
 		RightStories,
+		SponsoredButton,
 		Header,
 		Name,
 		Date,
@@ -180,6 +183,7 @@ private:
 
 		// Stories.
 		qreal fade = 0.;
+		qreal scale = 1.;
 		int bottomShadowSkip = 0;
 		int roundRadius = 0;
 		bool topShadowShown = false;
@@ -233,6 +237,9 @@ private:
 	void playbackControlsVolumeChangeFinished() override;
 	void playbackControlsSpeedChanged(float64 speed) override;
 	float64 playbackControlsCurrentSpeed(bool lastNonDefault) override;
+	std::vector<int> playbackControlsQualities() override;
+	VideoQuality playbackControlsCurrentQuality() override;
+	void playbackControlsQualityChanged(int quality) override;
 	void playbackControlsToFullScreen() override;
 	void playbackControlsFromFullScreen() override;
 	void playbackControlsToPictureInPicture() override;
@@ -243,13 +250,13 @@ private:
 	void playbackResumeOnCall();
 	void playbackPauseMusic();
 	void switchToPip();
+	[[nodiscard]] int topNotchSkip() const;
+	[[nodiscard]] std::shared_ptr<ChatHelpers::Show> uiShow();
 
 	not_null<Ui::RpWidget*> storiesWrap() override;
 	std::shared_ptr<ChatHelpers::Show> storiesShow() override;
 	auto storiesStickerOrEmojiChosen()
 		-> rpl::producer<ChatHelpers::FileChosen> override;
-	auto storiesCachedReactionIconFactory()
-		-> HistoryView::Reactions::CachedIconFactory & override;
 	void storiesRedisplay(not_null<Data::Story*> story) override;
 	void storiesJumpTo(
 		not_null<Main::Session*> session,
@@ -264,6 +271,7 @@ private:
 	void storiesVolumeToggle() override;
 	void storiesVolumeChanged(float64 volume) override;
 	void storiesVolumeChangeFinished() override;
+	int storiesTopNotchSkip() override;
 
 	void hideControls(bool force = false);
 	void subscribeToScreenGeometry();
@@ -305,16 +313,17 @@ private:
 	bool moveToNext(int delta);
 	void preloadData(int delta);
 
-	void handleScreenChanged(QScreen *screen);
+	void handleScreenChanged(not_null<QScreen*> screen);
 
-	bool contentCanBeSaved() const;
+	[[nodiscard]] bool computeSaveButtonVisible() const;
 	void checkForSaveLoaded();
+	void showPremiumDownloadPromo();
 
-	Entity entityForUserPhotos(int index) const;
-	Entity entityForSharedMedia(int index) const;
-	Entity entityForCollage(int index) const;
-	Entity entityByIndex(int index) const;
-	Entity entityForItemId(const FullMsgId &itemId) const;
+	[[nodiscard]] Entity entityForUserPhotos(int index) const;
+	[[nodiscard]] Entity entityForSharedMedia(int index) const;
+	[[nodiscard]] Entity entityForCollage(int index) const;
+	[[nodiscard]] Entity entityByIndex(int index) const;
+	[[nodiscard]] Entity entityForItemId(const FullMsgId &itemId) const;
 	bool moveToEntity(const Entity &entity, int preloadDelta = 0);
 
 	void setContext(std::variant<
@@ -330,23 +339,23 @@ private:
 	struct SharedMedia;
 	using SharedMediaType = SharedMediaWithLastSlice::Type;
 	using SharedMediaKey = SharedMediaWithLastSlice::Key;
-	std::optional<SharedMediaType> sharedMediaType() const;
-	std::optional<SharedMediaKey> sharedMediaKey() const;
-	std::optional<SharedMediaType> computeOverviewType() const;
+	[[nodiscard]] std::optional<SharedMediaType> sharedMediaType() const;
+	[[nodiscard]] std::optional<SharedMediaKey> sharedMediaKey() const;
+	[[nodiscard]] std::optional<SharedMediaType> computeOverviewType() const;
 	bool validSharedMedia() const;
 	void validateSharedMedia();
 	void handleSharedMediaUpdate(SharedMediaWithLastSlice &&update);
 
 	struct UserPhotos;
 	using UserPhotosKey = UserPhotosSlice::Key;
-	std::optional<UserPhotosKey> userPhotosKey() const;
+	[[nodiscard]] std::optional<UserPhotosKey> userPhotosKey() const;
 	bool validUserPhotos() const;
 	void validateUserPhotos();
 	void handleUserPhotosUpdate(UserPhotosSlice &&update);
 
 	struct Collage;
 	using CollageKey = WebPageCollage::Item;
-	std::optional<CollageKey> collageKey() const;
+	[[nodiscard]] std::optional<CollageKey> collageKey() const;
 	bool validCollage() const;
 	void validateCollage();
 
@@ -365,11 +374,7 @@ private:
 	void updateControlsGeometry();
 	void updateNavigationControlsGeometry();
 
-	using MenuCallback = Fn<void(
-		const QString &,
-		Fn<void()>,
-		const style::icon *)>;
-	void fillContextMenuActions(const MenuCallback &addAction);
+	void fillContextMenuActions(const Ui::Menu::MenuCallback &addAction);
 
 	void resizeCenteredControls();
 	void resizeContentByScreenSize();
@@ -412,6 +417,10 @@ private:
 	void destroyThemePreview();
 	void updateThemePreviewGeometry();
 
+	void initSponsoredButton();
+	void refreshSponsoredButtonGeometry();
+	void refreshSponsoredButtonWidth();
+
 	void documentUpdated(not_null<DocumentData*> document);
 	void changingMsgId(FullMsgId newId, MsgId oldId);
 
@@ -419,16 +428,17 @@ private:
 	[[nodiscard]] QRect finalContentRect() const;
 	[[nodiscard]] ContentGeometry contentGeometry() const;
 	[[nodiscard]] ContentGeometry storiesContentGeometry(
-		const Stories::ContentLayout &layout) const;
+		const Stories::ContentLayout &layout,
+		float64 scale = 1.) const;
 	void updateContentRect();
 	void contentSizeChanged();
 
 	// Radial animation interface.
-	float64 radialProgress() const;
-	bool radialLoading() const;
-	QRect radialRect() const;
+	[[nodiscard]] float64 radialProgress() const;
+	[[nodiscard]] bool radialLoading() const;
+	[[nodiscard]] QRect radialRect() const;
 	void radialStart();
-	crl::time radialTimeShift() const;
+	[[nodiscard]] crl::time radialTimeShift() const;
 
 	void updateHeader();
 	void snapXY();
@@ -491,8 +501,10 @@ private:
 	void validatePhotoImage(Image *image, bool blurred);
 	void validatePhotoCurrentImage();
 
-	[[nodiscard]] bool hasCopyMediaRestriction() const;
-	[[nodiscard]] bool showCopyMediaRestriction();
+	[[nodiscard]] bool hasCopyMediaRestriction(
+		bool skipPremiumCheck = false) const;
+	[[nodiscard]] bool showCopyMediaRestriction(
+		bool skipPRemiumCheck = false);
 
 	[[nodiscard]] QSize flipSizeByRotation(QSize size) const;
 
@@ -514,7 +526,9 @@ private:
 	[[nodiscard]] bool contentShown() const;
 	[[nodiscard]] bool opaqueContentShown() const;
 	void clearStreaming(bool savePosition = true);
-	bool canInitStreaming() const;
+	[[nodiscard]] bool canInitStreaming() const;
+	[[nodiscard]] bool saveControlLocked() const;
+	void applyVideoQuality(VideoQuality value);
 
 	[[nodiscard]] bool topShadowOnTheRight() const;
 	void applyHideWindowWorkaround();
@@ -542,6 +556,8 @@ private:
 	rpl::lifetime _sessionLifetime;
 	PhotoData *_photo = nullptr;
 	DocumentData *_document = nullptr;
+	DocumentData *_chosenQuality = nullptr;
+	Media::VideoQuality _quality;
 	QString _documentLoadingTo;
 	std::shared_ptr<Data::PhotoMedia> _photoMedia;
 	std::shared_ptr<Data::DocumentMedia> _documentMedia;
@@ -585,14 +601,16 @@ private:
 	Ui::Text::String _caption;
 	QRect _captionRect;
 	ClickHandlerPtr _captionExpandLink;
-	bool _captionShownFull = false;
-	bool _captionFitsIfExpanded = false;
-	bool _captionExpanded = false;
+	int _captionShowMoreWidth = 0;
+	int _captionSkipBlockWidth = 0;
 
+	int _topNotchSize = 0;
 	int _width = 0;
 	int _height = 0;
 	int _skipTop = 0;
 	int _availableHeight = 0;
+	int _minUsedTop = 0; // Geometry without top notch on macOS.
+	int _maxUsedHeight = 0;
 	int _x = 0, _y = 0, _w = 0, _h = 0;
 	int _xStart = 0, _yStart = 0;
 	int _zoom = 0; // < 0 - out, 0 - none, > 0 - in
@@ -600,6 +618,7 @@ private:
 	float64 _zoomToDefault = 0.;
 	QPoint _mStart;
 	bool _pressed = false;
+	bool _cursorOverriden = false;
 	int32 _dragging = 0;
 	QImage _staticContent;
 	bool _staticContentTransparent = false;
@@ -613,12 +632,15 @@ private:
 
 	std::unique_ptr<Streamed> _streamed;
 	std::unique_ptr<PipWrap> _pip;
+	QImage _streamedQualityChangeFrame;
+	crl::time _streamedPosition = 0;
 	int _streamedCreated = 0;
+	bool _streamedQualityChangeFinished = false;
 	bool _showAsPip = false;
 
+	Qt::Orientations _flip;
+
 	std::unique_ptr<Stories::View> _stories;
-	using ReactionIconFactory = HistoryView::Reactions::CachedIconFactory;
-	std::unique_ptr<ReactionIconFactory> _cachedReactionIconFactory;
 	std::shared_ptr<Show> _cachedShow;
 	rpl::event_stream<> _storiesChanged;
 	Main::Session *_storiesSession = nullptr;
@@ -688,6 +710,8 @@ private:
 	base::unique_qptr<Ui::PopupMenu> _menu;
 	object_ptr<Ui::DropdownMenu> _dropdown;
 	base::Timer _dropdownShowTimer;
+
+	base::unique_qptr<SponsoredButton> _sponsoredButton;
 
 	bool _receiveMouse = true;
 	bool _processingKeyPress = false;

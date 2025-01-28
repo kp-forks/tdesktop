@@ -102,14 +102,31 @@ public:
 	}
 	[[nodiscard]] bool primaryUnmutedMessages() const;
 	void setPrimaryUnmutedMessages(bool newValue);
+	[[nodiscard]] bool addToMenuRememberMedia() const;
+	void setAddToMenuRememberMedia(bool newValue);
+
+	[[nodiscard]] bool hideAllChatsTab() const;
+	void setHideAllChatsTab(bool newValue);
+
+	[[nodiscard]] bool globalSearchDisabled() const;
+	void setGlobalSearchDisabled(bool newValue);
+
+	[[nodiscard]] bool thirdButtonTopBar() const;
+	void setThirdButtonTopBar(bool newValue);
+
+	[[nodiscard]] bool skipShareFromBot() const;
+	void setSkipShareFromBot(bool newValue);
+
+	[[nodiscard]] bool copyLoginCode() const;
+	void setCopyLoginCode(bool);
 
 private:
 	bool _squareUserpics = false;
 	bool _audioFade = true;
 	bool _askUriScheme = false;
 	bool _lastSeenInDialogs = false;
-	QString _uriScheme = qsl("");
-	QString _searchEngineUrl = qsl("https://dgg.gg/%q");
+	QString _uriScheme;
+	QString _searchEngineUrl = u"https://dgg.gg/%q"_q;
 	bool _searchEngine = false;
 	bool _allRecentStickers = true;
 	int _customStickerSize = 256;
@@ -119,6 +136,12 @@ private:
 	bool _emojiPopupOnClick = false;
 	bool _mentionByNameDisabled = false;
 	bool _primaryUnmutedMessages = false;
+	bool _addToMenuRememberMedia = false;
+	bool _hideAllChatsTab = false;
+	bool _globalSearchDisabled = false;
+	bool _thirdButtonTopBar = false;
+	bool _skipShareFromBot = false;
+	bool _copyLoginCode = false;
 
 };
 

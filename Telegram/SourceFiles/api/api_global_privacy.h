@@ -28,7 +28,8 @@ public:
 	explicit GlobalPrivacy(not_null<ApiWrap*> api);
 
 	void reload(Fn<void()> callback = nullptr);
-	void update(bool archiveAndMute);
+	void updateArchiveAndMute(bool value);
+	void updateUnarchiveOnNewMessage(UnarchiveOnNewMessage value);
 
 	[[nodiscard]] bool archiveAndMuteCurrent() const;
 	[[nodiscard]] rpl::producer<bool> archiveAndMute() const;
@@ -40,8 +41,27 @@ public:
 	[[nodiscard]] rpl::producer<> suggestArchiveAndMute() const;
 	void dismissArchiveAndMuteSuggestion();
 
+	void updateHideReadTime(bool hide);
+	[[nodiscard]] bool hideReadTimeCurrent() const;
+	[[nodiscard]] rpl::producer<bool> hideReadTime() const;
+
+	void updateNewRequirePremium(bool value);
+	[[nodiscard]] bool newRequirePremiumCurrent() const;
+	[[nodiscard]] rpl::producer<bool> newRequirePremium() const;
+
+	void loadPaidReactionAnonymous();
+	void updatePaidReactionAnonymous(bool value);
+	[[nodiscard]] bool paidReactionAnonymousCurrent() const;
+	[[nodiscard]] rpl::producer<bool> paidReactionAnonymous() const;
+
 private:
 	void apply(const MTPGlobalPrivacySettings &data);
+
+	void update(
+		bool archiveAndMute,
+		UnarchiveOnNewMessage unarchiveOnNewMessage,
+		bool hideReadTime,
+		bool newRequirePremium);
 
 	const not_null<Main::Session*> _session;
 	MTP::Sender _api;
@@ -50,7 +70,11 @@ private:
 	rpl::variable<UnarchiveOnNewMessage> _unarchiveOnNewMessage
 		= UnarchiveOnNewMessage::None;
 	rpl::variable<bool> _showArchiveAndMute = false;
+	rpl::variable<bool> _hideReadTime = false;
+	rpl::variable<bool> _newRequirePremium = false;
+	rpl::variable<bool> _paidReactionAnonymous = false;
 	std::vector<Fn<void()>> _callbacks;
+	bool _paidReactionAnonymousLoaded = false;
 
 };
 

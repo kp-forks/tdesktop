@@ -18,11 +18,14 @@ Author: 23rd.
 #include "styles/style_layers.h"
 #include "styles/style_settings.h"
 #include "ui/boxes/confirm_box.h"
+#include "ui/text/text_utilities.h"
+#include "ui/vertical_list.h"
 #include "ui/widgets/checkbox.h"
-#include "ui/widgets/input_fields.h"
+#include "ui/widgets/fields/input_field.h"
 #include "ui/wrap/slide_wrap.h"
 #include "ui/wrap/vertical_layout.h"
 #include "window/window_session_controller.h"
+#include "styles/style_menu_icons.h"
 
 namespace Settings {
 namespace {
@@ -89,16 +92,17 @@ void SettingBox::prepare() {
 		}
 		const auto weak = base::make_weak(this);
 		getOrSetGlobal(linkUrl);
-		Core::App().saveSettingsDelayed();
+		Core::App().saveSettings();
 		_callback(!isInvalid);
 		if (weak) {
 			closeBox();
 		}
 	};
 
-	connect(url, &Ui::InputField::submitted, [=] {
+	url->submits(
+	) | rpl::start_with_next([=] {
 		submit();
-	});
+	}, lifetime());
 
 	setTitle(_title());
 
@@ -225,9 +229,10 @@ void SetupForkContent(
 			checkbox(label, checked),
 			st::settingsCheckboxPadding
 		)->checkedChanges(
-		) | rpl::start_with_next(
-			std::move(handle),
-			inner->lifetime());
+		) | rpl::start_with_next([handle = std::move(handle)](bool v) {
+			handle(v);
+			Core::App().saveSettings();
+		}, inner->lifetime());
 	};
 
 	const auto restartBox = [=](Fn<void()> ok, Fn<void()> cancel) {
@@ -236,7 +241,7 @@ void SetupForkContent(
 				.text = tr::lng_settings_need_restart(tr::now),
 				.confirmed = [=] {
 					ok();
-					Core::App().saveSettingsDelayed(0);
+					Core::App().saveSettings();
 					Core::Restart();
 				},
 				.cancelled = [=](Fn<void()> &&close) {
@@ -279,7 +284,7 @@ void SetupForkContent(
 		Core::App().settings().fork().audioFade(),
 		[=](bool checked) {
 			Core::App().settings().fork().setAudioFade(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		});
 
 	//
@@ -295,7 +300,7 @@ void SetupForkContent(
 			auto callback = [=](bool isSuccess) {
 				uriScheme->setChecked(isSuccess);
 				Core::App().settings().fork().setAskUriScheme(checked);
-				Core::App().saveSettingsDelayed();
+				Core::App().saveSettings();
 			};
 			controller->show(Box<URISchemeBox>(
 				std::move(callback),
@@ -304,7 +309,7 @@ void SetupForkContent(
 			Ui::LayerOption::KeepOther);
 		} else {
 			Core::App().settings().fork().setAskUriScheme(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		}
 	}, uriScheme->lifetime());
 
@@ -314,7 +319,7 @@ void SetupForkContent(
 		Core::App().settings().fork().lastSeenInDialogs(),
 		[=](bool checked) {
 			Core::App().settings().fork().setLastSeenInDialogs(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		});
 
 	//
@@ -332,7 +337,7 @@ void SetupForkContent(
 			auto callback = [=](bool isSuccess) {
 				searchEngine->setChecked(isSuccess);
 				Core::App().settings().fork().setSearchEngine(checked);
-				Core::App().saveSettingsDelayed();
+				Core::App().saveSettings();
 			};
 			controller->show(Box<SearchEngineBox>(
 				std::move(callback),
@@ -341,7 +346,7 @@ void SetupForkContent(
 			Ui::LayerOption::KeepOther);
 		} else {
 			Core::App().settings().fork().setSearchEngine(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		}
 	}, searchEngine->lifetime());
 	//
@@ -350,22 +355,26 @@ void SetupForkContent(
 		Core::App().settings().fork().mentionByNameDisabled(),
 		[=](bool checked) {
 			Core::App().settings().fork().setMentionByNameDisabled(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		});
 
 #ifndef Q_OS_LINUX
 #ifdef Q_OS_WIN
-	AddDivider(inner);
+	Ui::AddSkip(inner);
+	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
 	add(
 		tr::lng_settings_use_black_tray_icon(tr::now),
 		Core::App().settings().fork().useBlackTrayIcon(),
 		[](bool checked) {
 			Core::App().settings().fork().setUseBlackTrayIcon(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 			Core::App().domain().notifyUnreadBadgeChanged();
 		});
 #else // !Q_OS_WIN
-	AddDivider(inner);
+	Ui::AddSkip(inner);
+	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
 	addRestart(
 		tr::lng_settings_use_black_tray_icon(tr::now),
 		[] { return Core::App().settings().fork().useBlackTrayIcon(); },
@@ -381,14 +390,16 @@ void SetupForkContent(
 			Core::App().settings().fork().setUseOriginalTrayIcon(checked);
 		});
 #endif // !Q_OS_LINUX
-	AddDivider(inner);
+	Ui::AddSkip(inner);
+	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
 
-	AddButton(
+	inner->add(CreateButtonWithIcon(
 		inner,
 		tr::lng_settings_custom_sticker_size(),
 		st::settingsButton,
-		{ &st::settingsIconStickers, kIconLightOrange }
-	)->addClickHandler([=] {
+		{ &st::menuIconStickers }
+	))->addClickHandler([=] {
 		controller->show(Box<StickerSizeBox>([=](bool isSuccess) {
 			if (isSuccess) {
 				restartBox([] {}, [] {});
@@ -402,16 +413,16 @@ void SetupForkContent(
 	add(
 		tr::lng_settings_auto_submit_passcode(tr::now),
 		Core::App().settings().fork().autoSubmitPasscode(),
-		[=](bool checked) {
+		[](bool checked) {
 			Core::App().settings().fork().setAutoSubmitPasscode(checked);
-			Core::App().saveSettingsDelayed();
+			Core::App().saveSettings();
 		});
 
 	//
 	addRestart(
 		tr::lng_settings_emoji_on_click(tr::now),
 		[] { return Core::App().settings().fork().emojiPopupOnClick(); },
-		[=](bool checked) {
+		[](bool checked) {
 			Core::App().settings().fork().setEmojiPopupOnClick(checked);
 		});
 
@@ -419,18 +430,73 @@ void SetupForkContent(
 	addRestart(
 		tr::lng_settings_primary_unmuted(tr::now),
 		[] { return Core::App().settings().fork().primaryUnmutedMessages(); },
-		[=](bool checked) {
+		[](bool checked) {
 			Core::App().settings().fork().setPrimaryUnmutedMessages(checked);
 		});
 
-	AddDivider(inner);
+	//
+	add(
+		u"Add 'Remember' to menu for media"_q,
+		Core::App().settings().fork().addToMenuRememberMedia(),
+		[](bool checked) {
+			Core::App().settings().fork().setAddToMenuRememberMedia(checked);
+		});
+
+	//
+	addRestart(
+		u"Hide 'All Chats' tab"_q,
+		[] { return Core::App().settings().fork().hideAllChatsTab(); },
+		[](bool checked) {
+			Core::App().settings().fork().setHideAllChatsTab(checked);
+		});
+
+	//
+	add(
+		u"Disable global search"_q,
+		Core::App().settings().fork().globalSearchDisabled(),
+		[](bool checked) {
+			Core::App().settings().fork().setGlobalSearchDisabled(checked);
+		});
+
+	//
+	add(
+		u"Button to forward and remove"_q,
+		Core::App().settings().fork().thirdButtonTopBar(),
+		[](bool checked) {
+			Core::App().settings().fork().setThirdButtonTopBar(checked);
+		});
+
+	//
+	add(
+		u"Auto-copy incoming login codes"_q,
+		Core::App().settings().fork().copyLoginCode(),
+		[](bool checked) {
+			Core::App().settings().fork().setCopyLoginCode(checked);
+		});
+
+	Ui::AddSkip(inner);
+	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
+
+	Ui::AddSubsectionTitle(inner, tr::lng_filters_type_bots());
+	//
+	add(
+		u"Skip share box from app bots"_q,
+		Core::App().settings().fork().skipShareFromBot(),
+		[](bool checked) {
+			Core::App().settings().fork().setSkipShareFromBot(checked);
+		});
+
+	Ui::AddSkip(inner);
+	Ui::AddDivider(inner);
+	Ui::AddSkip(inner);
 
 }
 
 void SetupFork(
 	not_null<Ui::VerticalLayout*> container,
 	SessionController controller) {
-	AddSkip(container, st::settingsCheckboxesSkip);
+	Ui::AddSkip(container, st::settingsCheckboxesSkip);
 
 	auto wrap = object_ptr<Ui::VerticalLayout>(container);
 	SetupForkContent(wrap.data(), controller);
@@ -439,7 +505,7 @@ void SetupFork(
 		container,
 		std::move(wrap)));
 
-	AddSkip(container, st::settingsCheckboxesSkip);
+	Ui::AddSkip(container, st::settingsCheckboxesSkip);
 }
 
 } // namespace

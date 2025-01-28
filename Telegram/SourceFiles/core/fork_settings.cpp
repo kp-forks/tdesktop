@@ -27,7 +27,8 @@ QByteArray ForkSettings::serialize() const {
 	auto size = sizeof(qint32) * 4
 		+ Serialize::stringSize(_uriScheme)
 		+ Serialize::stringSize(_searchEngineUrl)
-		+ sizeof(qint32) * 9;
+		+ sizeof(qint32) * 12
+		+ sizeof(qint32) * 1;
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -50,6 +51,12 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_emojiPopupOnClick ? 1 : 0)
 			<< qint32(_mentionByNameDisabled ? 1 : 0)
 			<< qint32(_primaryUnmutedMessages ? 1 : 0)
+			<< qint32(_addToMenuRememberMedia ? 1 : 0)
+			<< qint32(_hideAllChatsTab ? 1 : 0)
+			<< qint32(_globalSearchDisabled ? 1 : 0)
+			<< qint32(_thirdButtonTopBar ? 1 : 0)
+			<< qint32(_skipShareFromBot ? 1 : 0)
+			<< qint32(_copyLoginCode ? 1 : 0)
 			;
 	}
 	return result;
@@ -78,6 +85,12 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 emojiPopupOnClick = _emojiPopupOnClick;
 	qint32 mentionByNameDisabled = _mentionByNameDisabled;
 	qint32 primaryUnmutedMessages = _primaryUnmutedMessages;
+	qint32 addToMenuRememberMedia = _addToMenuRememberMedia;
+	qint32 hideAllChatsTab = _hideAllChatsTab;
+	qint32 globalSearchDisabled = _globalSearchDisabled;
+	qint32 thirdButtonTopBar = _thirdButtonTopBar;
+	qint32 skipShareFromBot = _skipShareFromBot;
+	qint32 copyLoginCode = _copyLoginCode;
 
 	if (!stream.atEnd()) {
 		stream
@@ -97,6 +110,24 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 			>> mentionByNameDisabled
 			>> primaryUnmutedMessages
 			;
+	}
+	if (!stream.atEnd()) {
+		stream >> addToMenuRememberMedia;
+	}
+	if (!stream.atEnd()) {
+		stream >> hideAllChatsTab;
+	}
+	if (!stream.atEnd()) {
+		stream >> globalSearchDisabled;
+	}
+	if (!stream.atEnd()) {
+		stream >> thirdButtonTopBar;
+	}
+	if (!stream.atEnd()) {
+		stream >> skipShareFromBot;
+	}
+	if (!stream.atEnd()) {
+		stream >> copyLoginCode;
 	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
@@ -120,13 +151,19 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_emojiPopupOnClick = (emojiPopupOnClick == 1);
 	_mentionByNameDisabled = (mentionByNameDisabled == 1);
 	setPrimaryUnmutedMessages(primaryUnmutedMessages == 1);
+	_addToMenuRememberMedia = (addToMenuRememberMedia == 1);
+	_hideAllChatsTab = (hideAllChatsTab == 1);
+	_globalSearchDisabled = (globalSearchDisabled == 1);
+	_thirdButtonTopBar = (thirdButtonTopBar == 1);
+	_skipShareFromBot = (skipShareFromBot == 1);
+	_copyLoginCode = (copyLoginCode == 1);
 }
 
 void ForkSettings::resetOnLastLogout() {
 	_squareUserpics = false;
 	_audioFade = true;
 	_askUriScheme = false;
-	_uriScheme = qsl("");
+	_uriScheme = QString();
 	_lastSeenInDialogs = false;
 	_searchEngineUrl = qsl("https://dgg.gg/%q");
 	_searchEngine = false;
@@ -137,6 +174,12 @@ void ForkSettings::resetOnLastLogout() {
 	_emojiPopupOnClick = false;
 	_mentionByNameDisabled = false;
 	setPrimaryUnmutedMessages(false);
+	_addToMenuRememberMedia = false;
+	_hideAllChatsTab = false;
+	_globalSearchDisabled = false;
+	_thirdButtonTopBar = false;
+	_skipShareFromBot = false;
+	_copyLoginCode = false;
 }
 
 [[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
@@ -145,6 +188,48 @@ void ForkSettings::resetOnLastLogout() {
 void ForkSettings::setPrimaryUnmutedMessages(bool newValue) {
 	StaticPrimaryUnmutedMessages = newValue;
 	_primaryUnmutedMessages = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::addToMenuRememberMedia() const {
+	return _addToMenuRememberMedia;
+}
+void ForkSettings::setAddToMenuRememberMedia(bool newValue) {
+	_addToMenuRememberMedia = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::hideAllChatsTab() const {
+	return _hideAllChatsTab;
+}
+void ForkSettings::setHideAllChatsTab(bool newValue) {
+	_hideAllChatsTab = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::globalSearchDisabled() const {
+	return _globalSearchDisabled;
+}
+void ForkSettings::setGlobalSearchDisabled(bool newValue) {
+	_globalSearchDisabled = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::thirdButtonTopBar() const {
+	return _thirdButtonTopBar;
+}
+void ForkSettings::setThirdButtonTopBar(bool newValue) {
+	_thirdButtonTopBar = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::skipShareFromBot() const {
+	return _skipShareFromBot;
+}
+void ForkSettings::setSkipShareFromBot(bool newValue) {
+	_skipShareFromBot = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::copyLoginCode() const {
+	return _copyLoginCode;
+}
+void ForkSettings::setCopyLoginCode(bool newValue) {
+	_copyLoginCode = newValue;
 }
 
 } // namespace Core

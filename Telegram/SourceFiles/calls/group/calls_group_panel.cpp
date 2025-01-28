@@ -23,7 +23,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/widgets/call_button.h"
 #include "ui/widgets/checkbox.h"
 #include "ui/widgets/dropdown_menu.h"
-#include "ui/widgets/input_fields.h"
+#include "ui/widgets/fields/input_field.h"
 #include "ui/widgets/tooltip.h"
 #include "ui/widgets/rp_window.h"
 #include "ui/chat/group_call_bar.h"
@@ -33,6 +33,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/text/text_utilities.h"
 #include "ui/toast/toast.h"
 #include "ui/image/image_prepare.h"
+#include "ui/integration.h"
 #include "ui/painter.h"
 #include "ui/round_rect.h"
 #include "info/profile/info_profile_values.h" // Info::Profile::Value.
@@ -54,8 +55,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/power_save_blocker.h"
 #include "apiwrap.h" // api().kick.
 #include "api/api_chat_participants.h" // api().kick.
+#include "webrtc/webrtc_environment.h"
 #include "webrtc/webrtc_video_track.h"
-#include "webrtc/webrtc_media_devices.h" // UniqueDesktopCaptureSource.
 #include "webrtc/webrtc_audio_input_tester.h"
 #include "styles/style_calls.h"
 #include "styles/style_layers.h"
@@ -145,6 +146,23 @@ Main::Session &Show::session() const {
 	Assert(panel != nullptr);
 	return panel->call()->peer()->session();
 }
+
+#ifdef Q_OS_WIN
+void UnpinMaximized(not_null<QWidget*> widget) {
+	SetWindowPos(
+		reinterpret_cast<HWND>(widget->window()->windowHandle()->winId()),
+		HWND_NOTOPMOST,
+		0,
+		0,
+		0,
+		0,
+		(SWP_NOMOVE
+			| SWP_NOSIZE
+			| SWP_NOOWNERZORDER
+			| SWP_FRAMECHANGED
+			| SWP_NOACTIVATE));
+}
+#endif // Q_OS_WIN
 
 } // namespace
 
@@ -241,10 +259,13 @@ not_null<GroupCall*> Panel::call() const {
 	return _call;
 }
 
-bool Panel::isActive() const {
-	return window()->isActiveWindow()
-		&& window()->isVisible()
+bool Panel::isVisible() const {
+	return window()->isVisible()
 		&& !(window()->windowState() & Qt::WindowMinimized);
+}
+
+bool Panel::isActive() const {
+	return window()->isActiveWindow() && isVisible();
 }
 
 base::weak_ptr<Ui::Toast::Instance> Panel::showToast(
@@ -363,19 +384,13 @@ void Panel::initWindow() {
 				&& _fullScreenOrMaximized.current()) {
 				toggleFullScreen();
 			}
+		} else if (e->type() == QEvent::WindowStateChange && _call->rtmp()) {
+			const auto state = window()->windowState();
+			_fullScreenOrMaximized = (state & Qt::WindowFullScreen)
+				|| (state & Qt::WindowMaximized);
 		}
 		return base::EventFilterResult::Continue;
 	});
-
-	if (_call->rtmp()) {
-		QObject::connect(
-			window()->windowHandle(),
-			&QWindow::windowStateChanged,
-			[=](Qt::WindowState state) {
-				_fullScreenOrMaximized = (state == Qt::WindowFullScreen)
-					|| (state == Qt::WindowMaximized);
-			});
-	}
 
 	window()->setBodyTitleArea([=](QPoint widgetPoint) {
 		using Flag = Ui::WindowTitleHitTestFlag;
@@ -396,7 +411,7 @@ void Panel::initWindow() {
 		}
 		const auto shown = _layerBg->topShownLayer();
 		return (!shown || !shown->geometry().contains(widgetPoint))
-			? (Flag::Move | Flag::Maximize)
+			? (Flag::Move | Flag::Menu | Flag::Maximize)
 			: Flag::None;
 	});
 
@@ -1040,11 +1055,13 @@ void Panel::setupVideo(not_null<Viewport*> viewport) {
 			_call->videoEndpointLargeValue(),
 			_call->videoEndpointPinnedValue()
 		) | rpl::map(_1 == endpoint && _2);
+		const auto self = (endpoint.peer == _call->joinAs());
 		viewport->add(
 			endpoint,
 			VideoTileTrack{ GroupCall::TrackPointer(track), row },
 			GroupCall::TrackSizeValue(track),
-			std::move(pinned));
+			std::move(pinned),
+			self);
 	};
 	for (const auto &[endpoint, track] : _call->activeVideoTracks()) {
 		setupTile(endpoint, track);
@@ -1257,7 +1274,12 @@ void Panel::createPinOnTop() {
 
 		_pinOnTop->setVisible(!fullScreenOrMaximized);
 		if (fullScreenOrMaximized) {
+#ifdef Q_OS_WIN
+			UnpinMaximized(window());
+			_unpinnedMaximized = true;
+#else // Q_OS_WIN
 			pin(false);
+#endif // Q_OS_WIN
 
 			_viewport->rp()->events(
 			) | rpl::filter([](not_null<QEvent*> event) {
@@ -1269,6 +1291,9 @@ void Panel::createPinOnTop() {
 
 			_hideControlsTimer.callOnce(kHideControlsTimeout);
 		} else {
+			if (_unpinnedMaximized) {
+				pin(false);
+			}
 			_hideControlsTimerLifetime.destroy();
 			_hideControlsTimer.cancel();
 			refreshTitleGeometry();
@@ -1344,9 +1369,10 @@ void Panel::chooseShareScreenSource() {
 		return;
 	}
 	const auto choose = [=] {
-		if (!Webrtc::DesktopCaptureAllowed()) {
+		const auto env = &Core::App().mediaDevices();
+		if (!env->desktopCaptureAllowed()) {
 			screenSharingPrivacyRequest();
-		} else if (const auto source = Webrtc::UniqueDesktopCaptureSource()) {
+		} else if (const auto source = env->uniqueDesktopCaptureSource()) {
 			if (_call->isSharingScreen()) {
 				_call->toggleScreenSharing(std::nullopt);
 			} else {
@@ -1586,7 +1612,7 @@ void Panel::initLayout() {
 #ifndef Q_OS_MAC
 	_controls->wrap.raise();
 
-	Ui::Platform::TitleControlsLayoutChanged(
+	_controls->controls.layout().changes(
 	) | rpl::start_with_next([=] {
 		// _menuToggle geometry depends on _controls arrangement.
 		crl::on_main(widget(), [=] { updateControlsGeometry(); });
@@ -1840,7 +1866,7 @@ void Panel::setupControlsBackgroundNarrow() {
 	_controlsBackgroundNarrow->blocker.show();
 	auto &lifetime = _controlsBackgroundNarrow->shadow.lifetime();
 
-	const auto factor = cIntRetinaFactor();
+	const auto factor = style::DevicePixelRatio();
 	const auto height = std::max(
 		st::groupCallMembersShadowHeight,
 		st::groupCallMembersFadeSkip + st::groupCallMembersFadeHeight);
@@ -1898,7 +1924,7 @@ void Panel::setupControlsBackgroundNarrow() {
 			_members->y() - _controlsBackgroundNarrow->shadow.y());
 		const auto faded = clip.intersected(inner);
 		if (!faded.isEmpty()) {
-			const auto factor = cIntRetinaFactor();
+			const auto factor = style::DevicePixelRatio();
 			p.drawImage(
 				faded,
 				*full,
@@ -1973,7 +1999,8 @@ void Panel::trackControlOver(not_null<Ui::RpWidget*> control, bool over) {
 }
 
 void Panel::showStickedTooltip() {
-	static const auto kHasCamera = !Webrtc::GetVideoInputList().empty();
+	static const auto kHasCamera = !Core::App().mediaDevices().defaultId(
+		Webrtc::DeviceType::Camera).isEmpty();
 	const auto callReady = (_call->state() == State::Joined
 		|| _call->state() == State::Connecting);
 	if (!(_stickedTooltipsShown & StickedTooltip::Camera)
@@ -2060,6 +2087,7 @@ void Panel::showNiceTooltip(
 			(normal ? widget().get() : container),
 			std::move(text),
 			st::groupCallNiceTooltipLabel);
+		label->resizeToWidth(label->textMaxWidth());
 		if (normal) {
 			return label;
 		}
@@ -2521,8 +2549,8 @@ void Panel::refreshTitleGeometry() {
 			fullRect.height())
 		: fullRect;
 	const auto sep = st::groupCallTitleSeparator;
-	const auto best = _title->naturalWidth() + (_viewers
-		? (_titleSeparator->width() + sep * 2 + _viewers->naturalWidth())
+	const auto best = _title->textMaxWidth() + (_viewers
+		? (_titleSeparator->width() + sep * 2 + _viewers->textMaxWidth())
 		: 0);
 	const auto from = (widget()->width() - best) / 2;
 	const auto shownTop = (mode() == PanelMode::Default)
@@ -2540,8 +2568,8 @@ void Panel::refreshTitleGeometry() {
 	const auto left = titleRect.x();
 
 	const auto notEnough = std::max(0, best - titleRect.width());
-	const auto titleMaxWidth = _title->naturalWidth();
-	const auto viewersMaxWidth = _viewers ? _viewers->naturalWidth() : 0;
+	const auto titleMaxWidth = _title->textMaxWidth();
+	const auto viewersMaxWidth = _viewers ? _viewers->textMaxWidth() : 0;
 	const auto viewersNotEnough = std::clamp(
 		viewersMaxWidth - titleMaxWidth,
 		0,
@@ -2550,9 +2578,9 @@ void Panel::refreshTitleGeometry() {
 		(notEnough - std::abs(viewersMaxWidth - titleMaxWidth)) / 2,
 		0);
 	_title->resizeToWidth(
-		_title->naturalWidth() - (notEnough - viewersNotEnough));
+		_title->textMaxWidth() - (notEnough - viewersNotEnough));
 	if (_viewers) {
-		_viewers->resizeToWidth(_viewers->naturalWidth() - viewersNotEnough);
+		_viewers->resizeToWidth(_viewers->textMaxWidth() - viewersNotEnough);
 	}
 	const auto layout = [&](int position) {
 		_title->moveToLeft(position, top);

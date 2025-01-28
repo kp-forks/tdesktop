@@ -12,8 +12,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unique_qptr.h"
 
 namespace Ui {
-class SettingsSlider;
 class VerticalLayout;
+class MultiSlideTracker;
 } // namespace Ui
 
 namespace Info {
@@ -66,7 +66,14 @@ private:
 
 	void setupTop();
 	void createButtons();
+	void createProfileTop();
 	void createAboutArchive();
+
+	void startTop();
+	void addArchiveButton(Ui::MultiSlideTracker &tracker);
+	void addRecentButton(Ui::MultiSlideTracker &tracker);
+	void addGiftsButton(Ui::MultiSlideTracker &tracker);
+	void finalizeTop();
 
 	object_ptr<Media::ListWidget> setupList();
 

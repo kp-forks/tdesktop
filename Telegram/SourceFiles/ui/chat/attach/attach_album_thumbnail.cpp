@@ -259,8 +259,7 @@ void AlbumThumbnail::paintInAlbum(
 
 	_lastRectOfButtons = paintButtons(
 		p,
-		geometry.topLeft(),
-		geometry.width(),
+		geometry,
 		shrinkProgress);
 	_lastRectOfModify = geometry;
 }
@@ -325,7 +324,7 @@ void AlbumThumbnail::drawSimpleFrame(QPainter &p, QRect to, QSize size) const {
 	const auto Round = [](float64 value) {
 		return int(base::SafeRound(value));
 	};
-	const auto [from, fillBlack] = [&] {
+	const auto &[from, fillBlack] = [&] {
 		if (previewWidth < width && previewHeight < height) {
 			const auto toWidth = Round(previewWidth * scaleWidth);
 			const auto toHeight = Round(previewHeight * scaleHeight);
@@ -460,8 +459,7 @@ void AlbumThumbnail::paintPhoto(Painter &p, int left, int top, int outerWidth) {
 
 	_lastRectOfButtons = paintButtons(
 		p,
-		topLeft,
-		st::sendMediaPreviewSize,
+		QRect(left, top, st::sendMediaPreviewSize, size.height()),
 		0);
 
 	_lastRectOfModify = QRect(topLeft, size);
@@ -505,6 +503,10 @@ void AlbumThumbnail::paintFile(
 		_fileThumb.size() / style::DevicePixelRatio());
 }
 
+QRect AlbumThumbnail::geometry() const {
+	return _layout.geometry;
+}
+
 bool AlbumThumbnail::containsPoint(QPoint position) const {
 	return _layout.geometry.contains(position);
 }
@@ -521,7 +523,9 @@ AttachButtonType AlbumThumbnail::buttonTypeFromPoint(QPoint position) const {
 	}
 	return (!_lastRectOfButtons.contains(position) && !_isCompressedSticker)
 		? AttachButtonType::Modify
-		: (position.x() < _lastRectOfButtons.center().x())
+		: (_buttons.vertical()
+			? (position.y() < _lastRectOfButtons.center().y())
+			: (position.x() < _lastRectOfButtons.center().x()))
 		? AttachButtonType::Edit
 		: AttachButtonType::Delete;
 }
@@ -585,24 +589,31 @@ void AlbumThumbnail::finishAnimations() {
 
 QRect AlbumThumbnail::paintButtons(
 		QPainter &p,
-		QPoint point,
-		int outerWidth,
+		QRect geometry,
 		float64 shrinkProgress) {
 	const auto &skipRight = st::sendBoxAlbumGroupSkipRight;
 	const auto &skipTop = st::sendBoxAlbumGroupSkipTop;
-	const auto groupWidth = _buttons.width();
-
-	// If the width is tiny, it would be better to not display the buttons.
-	if (groupWidth > outerWidth) {
+	const auto outerWidth = geometry.width();
+	const auto outerHeight = geometry.height();
+	if (st::sendBoxAlbumGroupSize.width() <= outerWidth) {
+		_buttons.setVertical(false);
+	} else if (st::sendBoxAlbumGroupSize.height() <= outerHeight) {
+		_buttons.setVertical(true);
+	} else {
+		// If the size is tiny, skip the buttons.
 		return QRect();
 	}
+	const auto groupWidth = _buttons.width();
+	const auto groupHeight = _buttons.height();
 
 	// If the width is too small,
 	// it would be better to display the buttons in the center.
-	const auto groupX = point.x() + ((groupWidth + skipRight * 2 > outerWidth)
+	const auto groupX = geometry.x() + ((groupWidth + skipRight * 2 > outerWidth)
 		? (outerWidth - groupWidth) / 2
 		: outerWidth - skipRight - groupWidth);
-	const auto groupY = point.y() + skipTop;
+	const auto groupY = geometry.y() + ((groupHeight + skipTop * 2 > outerHeight)
+		? (outerHeight - groupHeight) / 2
+		: skipTop);
 
 	const auto opacity = p.opacity();
 	p.setOpacity(1.0 - shrinkProgress);
