@@ -703,7 +703,7 @@ bool Panel::showWebview(Args &&args, const Webview::ThemeParams &params) {
 		_downloadsUpdated.fire({});
 	}, lifetime());
 
-	{
+	if (args.forkAdditionalButtons) {
 		const auto refreshButton = Ui::CreateChild<Ui::LinkButton>(
 			_widget.get(),
 			u"refresh"_q);

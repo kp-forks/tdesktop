@@ -117,6 +117,9 @@ public:
 	[[nodiscard]] bool skipShareFromBot() const;
 	void setSkipShareFromBot(bool newValue);
 
+	[[nodiscard]] bool additionalButtonsWebBot() const;
+	void setAdditionalButtonsWebBot(bool newValue);
+
 	[[nodiscard]] bool copyLoginCode() const;
 	void setCopyLoginCode(bool);
 
@@ -142,6 +145,7 @@ private:
 	bool _thirdButtonTopBar = false;
 	bool _skipShareFromBot = false;
 	bool _copyLoginCode = false;
+	bool _additionalButtonsWebBot = false;
 
 };
 

@@ -1377,9 +1377,10 @@ void WebViewInstance::show(ShowArgs &&args) {
 		.menuButtons = buttons,
 		.fullscreen = args.fullscreen,
 		.allowClipboardRead = allowClipboardRead,
+		.forkAdditionalButtons = Core::App().settings().fork().additionalButtonsWebBot(),
 		.downloadsProgress = downloads->progress(_bot),
 	});
-	{
+	if (Core::App().settings().fork().additionalButtonsWebBot()) {
 		const auto platforms = std::vector<QString>{
 			u"tdesktop"_q,
 			u"android"_q,

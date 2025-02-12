@@ -113,6 +113,7 @@ struct Args {
 	MenuButtons menuButtons;
 	bool fullscreen = false;
 	bool allowClipboardRead = false;
+	bool forkAdditionalButtons = false;
 	rpl::producer<DownloadsProgress> downloadsProgress;
 };
 

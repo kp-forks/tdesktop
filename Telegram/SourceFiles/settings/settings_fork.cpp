@@ -486,6 +486,12 @@ void SetupForkContent(
 		[](bool checked) {
 			Core::App().settings().fork().setSkipShareFromBot(checked);
 		});
+	add(
+		u"Display additional buttons for app bots"_q,
+		Core::App().settings().fork().additionalButtonsWebBot(),
+		[](bool checked) {
+			Core::App().settings().fork().setAdditionalButtonsWebBot(checked);
+		});
 
 	Ui::AddSkip(inner);
 	Ui::AddDivider(inner);

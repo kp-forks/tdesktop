@@ -28,7 +28,7 @@ QByteArray ForkSettings::serialize() const {
 		+ Serialize::stringSize(_uriScheme)
 		+ Serialize::stringSize(_searchEngineUrl)
 		+ sizeof(qint32) * 12
-		+ sizeof(qint32) * 1;
+		+ sizeof(qint32) * 2;
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -57,6 +57,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_thirdButtonTopBar ? 1 : 0)
 			<< qint32(_skipShareFromBot ? 1 : 0)
 			<< qint32(_copyLoginCode ? 1 : 0)
+			<< qint32(_additionalButtonsWebBot ? 1 : 0)
 			;
 	}
 	return result;
@@ -91,6 +92,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 thirdButtonTopBar = _thirdButtonTopBar;
 	qint32 skipShareFromBot = _skipShareFromBot;
 	qint32 copyLoginCode = _copyLoginCode;
+	qint32 additionalButtonsWebBot = _additionalButtonsWebBot;
 
 	if (!stream.atEnd()) {
 		stream
@@ -129,6 +131,9 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> copyLoginCode;
 	}
+	if (!stream.atEnd()) {
+		stream >> additionalButtonsWebBot;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::ForkSettings::constructFromSerialized()"));
@@ -157,6 +162,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_thirdButtonTopBar = (thirdButtonTopBar == 1);
 	_skipShareFromBot = (skipShareFromBot == 1);
 	_copyLoginCode = (copyLoginCode == 1);
+	_additionalButtonsWebBot = (additionalButtonsWebBot == 1);
 }
 
 void ForkSettings::resetOnLastLogout() {
@@ -180,6 +186,7 @@ void ForkSettings::resetOnLastLogout() {
 	_thirdButtonTopBar = false;
 	_skipShareFromBot = false;
 	_copyLoginCode = false;
+	_additionalButtonsWebBot = false;
 }
 
 [[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
@@ -230,6 +237,13 @@ void ForkSettings::setSkipShareFromBot(bool newValue) {
 }
 void ForkSettings::setCopyLoginCode(bool newValue) {
 	_copyLoginCode = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::additionalButtonsWebBot() const {
+	return _additionalButtonsWebBot;
+}
+void ForkSettings::setAdditionalButtonsWebBot(bool newValue) {
+	_additionalButtonsWebBot = newValue;
 }
 
 } // namespace Core
