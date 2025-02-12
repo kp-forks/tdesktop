@@ -703,6 +703,29 @@ bool Panel::showWebview(Args &&args, const Webview::ThemeParams &params) {
 		_downloadsUpdated.fire({});
 	}, lifetime());
 
+	{
+		const auto refreshButton = Ui::CreateChild<Ui::LinkButton>(
+			_widget.get(),
+			u"refresh"_q);
+		refreshButton->setClickedCallback([=] {
+			if (_webview && _webview->window.widget()) {
+				_webview->window.reload();
+			} else if (const auto params = _delegate->botThemeParams()
+				; createWebview(params)) {
+				showWebviewProgress();
+				updateThemeParams(params);
+				_webview->window.navigate(url);
+			}
+		});
+		_widget->sizeValue() | rpl::start_with_next([=](const QSize &s) {
+			refreshButton->move(
+				s.width() - refreshButton->width() - 20,
+				s.height() - 40);
+			refreshButton->show();
+			refreshButton->raise();
+		}, refreshButton->lifetime());
+	}
+
 	_widget->setMenuAllowed([=](
 			const Ui::Menu::MenuCallback &callback) {
 		auto list = _delegate->botDownloads(true);
