@@ -28,7 +28,8 @@ QByteArray ForkSettings::serialize() const {
 		+ Serialize::stringSize(_uriScheme)
 		+ Serialize::stringSize(_searchEngineUrl)
 		+ sizeof(qint32) * 12
-		+ sizeof(qint32) * 2;
+		+ sizeof(qint32) * 2
+		+ Serialize::stringSize(_botsPlatforms);
 
 	auto result = QByteArray();
 	result.reserve(size);
@@ -58,6 +59,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_skipShareFromBot ? 1 : 0)
 			<< qint32(_copyLoginCode ? 1 : 0)
 			<< qint32(_additionalButtonsWebBot ? 1 : 0)
+			<< _botsPlatforms
 			;
 	}
 	return result;
@@ -93,6 +95,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 skipShareFromBot = _skipShareFromBot;
 	qint32 copyLoginCode = _copyLoginCode;
 	qint32 additionalButtonsWebBot = _additionalButtonsWebBot;
+	QString botsPlatforms = _botsPlatforms;
 
 	if (!stream.atEnd()) {
 		stream
@@ -134,6 +137,9 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> additionalButtonsWebBot;
 	}
+	if (!stream.atEnd()) {
+		stream >> botsPlatforms;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::ForkSettings::constructFromSerialized()"));
@@ -143,8 +149,8 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_audioFade = (audioFade == 1);
 	_askUriScheme = (askUriScheme == 1);
 	_lastSeenInDialogs = (lastSeenInDialogs == 1);
-	_uriScheme = uriScheme;
-	_searchEngineUrl = searchEngineUrl;
+	_uriScheme = std::move(uriScheme);
+	_searchEngineUrl = std::move(searchEngineUrl);
 	_searchEngine = (searchEngine == 1);
 	_allRecentStickers = (allRecentStickers == 1);
 	_customStickerSize = customStickerSize
@@ -163,6 +169,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_skipShareFromBot = (skipShareFromBot == 1);
 	_copyLoginCode = (copyLoginCode == 1);
 	_additionalButtonsWebBot = (additionalButtonsWebBot == 1);
+	_botsPlatforms = std::move(botsPlatforms);
 }
 
 void ForkSettings::resetOnLastLogout() {
@@ -187,6 +194,7 @@ void ForkSettings::resetOnLastLogout() {
 	_skipShareFromBot = false;
 	_copyLoginCode = false;
 	_additionalButtonsWebBot = false;
+	_botsPlatforms = QString();
 }
 
 [[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
@@ -244,6 +252,13 @@ void ForkSettings::setCopyLoginCode(bool newValue) {
 }
 void ForkSettings::setAdditionalButtonsWebBot(bool newValue) {
 	_additionalButtonsWebBot = newValue;
+}
+
+[[nodiscard]] QString ForkSettings::botsPlatforms() const {
+	return _botsPlatforms;
+}
+void ForkSettings::setBotsPlatforms(QString newValue) {
+	_botsPlatforms = std::move(newValue);
 }
 
 } // namespace Core

@@ -123,6 +123,10 @@ public:
 	[[nodiscard]] bool copyLoginCode() const;
 	void setCopyLoginCode(bool);
 
+	// "bot_id1:platform1|bot_id2:platform2"
+	[[nodiscard]] QString botsPlatforms() const;
+	void setBotsPlatforms(QString);
+
 private:
 	bool _squareUserpics = false;
 	bool _audioFade = true;
@@ -146,6 +150,7 @@ private:
 	bool _skipShareFromBot = false;
 	bool _copyLoginCode = false;
 	bool _additionalButtonsWebBot = false;
+	QString _botsPlatforms;
 
 };
 

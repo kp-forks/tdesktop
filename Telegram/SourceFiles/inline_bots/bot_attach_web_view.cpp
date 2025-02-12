@@ -106,6 +106,29 @@ void SetPlatformForBot(PeerId botId, QString platform) {
 	PlatformForBotData[botId] = platform;
 }
 
+QString SerializePlatformForBots() {
+	auto serializedList = QStringList();
+	for (const auto &pair : PlatformForBotData) {
+		serializedList.append(QString::number(pair.first.value)
+			+ ":"
+			+ pair.second);
+	}
+	return serializedList.join("|");
+}
+
+void DeserializePlatformForBots(const QString &data) {
+	PlatformForBotData.clear();
+	auto botEntries = data.split("|");
+	for (const auto &entry : botEntries) {
+		const auto keyValue = entry.split(":");
+		if (keyValue.size() == 2) {
+			const auto botId = PeerId(keyValue[0].toULongLong());
+			QString platform = keyValue[1];
+			SetPlatformForBot(botId, platform);
+		}
+	}
+}
+
 constexpr auto kProlongTimeout = 60 * crl::time(1000);
 constexpr auto kRefreshBotsTimeout = 60 * 60 * crl::time(1000);
 constexpr auto kPopularAppBotsLimit = 100;
@@ -877,6 +900,7 @@ WebViewInstance::WebViewInstance(WebViewDescriptor &&descriptor)
 , _context(ResolveContext(_bot, std::move(descriptor.context)))
 , _button(std::move(descriptor.button))
 , _source(std::move(descriptor.source)) {
+	DeserializePlatformForBots(Core::App().settings().fork().botsPlatforms());
 	resolve();
 }
 
@@ -1381,6 +1405,7 @@ void WebViewInstance::show(ShowArgs &&args) {
 		.downloadsProgress = downloads->progress(_bot),
 	});
 	if (Core::App().settings().fork().additionalButtonsWebBot()) {
+		DeserializePlatformForBots(Core::App().settings().fork().botsPlatforms());
 		const auto platforms = std::vector<QString>{
 			u"tdesktop"_q,
 			u"android"_q,
@@ -1395,6 +1420,9 @@ void WebViewInstance::show(ShowArgs &&args) {
 			const auto p = platforms[*index];
 			SetPlatformForBot(_bot->id, p);
 			platformButton->setText(p);
+			Core::App().settings().fork().setBotsPlatforms(
+				SerializePlatformForBots());
+			Core::App().saveSettingsDelayed();
 		};
 		platformButton->setText(PlatformForBot(_bot->id));
 		platformButton->setClickedCallback([=] {
