@@ -24,6 +24,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/moderate_messages_box.h"
 #include "boxes/premium_limits_box.h"
 #include "boxes/premium_preview_box.h"
+#include "boxes/star_gift_box.h"
 #include "boxes/peers/edit_peer_permissions_box.h" // ShowAboutGigagroup.
 #include "boxes/peers/edit_peer_requests_box.h"
 #include "core/file_utilities.h"
@@ -382,6 +383,7 @@ HistoryWidget::HistoryWidget(
 	_botStart->addClickHandler([=] { sendBotStartCommand(); });
 	_joinChannel->addClickHandler([=] { joinChannel(); });
 	_muteUnmute->addClickHandler([=] { toggleMuteUnmute(); });
+	setupGiftToChannelButton();
 	_reportMessages->addClickHandler([=] { reportSelectedMessages(); });
 	_field->submits(
 	) | rpl::start_with_next([=](Qt::KeyboardModifiers modifiers) {
@@ -2046,6 +2048,7 @@ void HistoryWidget::setupShortcuts() {
 			return true;
 		});
 		request->check(Command::ShowChatMenu, 1) && request->handle([=] {
+			Window::ActivateWindow(controller());
 			_topBar->showPeerMenu();
 			return true;
 		});
@@ -2066,6 +2069,20 @@ void HistoryWidget::setupShortcuts() {
 			});
 		}
 	}, lifetime());
+}
+
+void HistoryWidget::setupGiftToChannelButton() {
+	_giftToChannel = Ui::CreateChild<Ui::IconButton>(
+		_muteUnmute.data(),
+		st::historyGiftToChannel);
+	_muteUnmute->widthValue() | rpl::start_with_next([=](int width) {
+		_giftToChannel->moveToRight(0, 0);
+	}, _giftToChannel->lifetime());
+	_giftToChannel->setClickedCallback([=] {
+		if (_peer) {
+			Ui::ShowStarGiftBox(controller(), _peer);
+		}
+	});
 }
 
 void HistoryWidget::pushReplyReturn(not_null<HistoryItem*> item) {
@@ -2450,6 +2467,8 @@ void HistoryWidget::showHistory(
 			) | rpl::start_with_next([=] {
 				updateControlsGeometry();
 			}, _businessBotStatus->bar().lifetime());
+		} else if (const auto channel = _peer->asChannel()) {
+			_giftToChannel->setVisible(channel->stargiftsAvailable());
 		}
 		orderWidgets();
 		controller()->tabbedSelector()->setCurrentPeer(_peer);
@@ -2928,14 +2947,12 @@ void HistoryWidget::refreshSilentToggle() {
 }
 
 void HistoryWidget::setupFastButtonMode() {
-	if (!session().supportMode()) {
-		return;
-	}
 	const auto field = _field->rawTextEdit();
 	base::install_event_filter(field, [=](not_null<QEvent*> e) {
 		if (e->type() != QEvent::KeyPress
 			|| !_history
-			|| !session().supportHelper().fastButtonMode(_history->peer)
+			|| !FastButtonsMode()
+			|| !session().fastButtonsBots().enabled(_history->peer)
 			|| !_field->getLastText().isEmpty()) {
 			return base::EventFilterResult::Continue;
 		}
@@ -4059,7 +4076,10 @@ void HistoryWidget::preloadHistoryIfNeeded() {
 		preloadHistoryByScroll();
 		checkReplyReturns();
 	}
-	if (clearMaybeSendStart() && !_history->isDisplayedEmpty()) {
+	const auto hasNonEmpty = _history->findFirstNonEmpty();
+	const auto readyForBotStart = hasNonEmpty
+		|| (_history->loadedAtTop() && _history->loadedAtBottom());
+	if (readyForBotStart && clearMaybeSendStart() && hasNonEmpty) {
 		sendBotStartCommand();
 	}
 }
@@ -6649,7 +6669,7 @@ void HistoryWidget::startMessageSendingAnimation(
 void HistoryWidget::updateListSize() {
 	Expects(_list != nullptr);
 
-	_list->recountHistoryGeometry();
+	_list->recountHistoryGeometry(!_historyInited);
 	auto washidden = _scroll->isHidden();
 	if (washidden) {
 		_scroll->show();
@@ -8415,8 +8435,15 @@ void HistoryWidget::fullInfoUpdated() {
 		handlePeerUpdate();
 		checkSuggestToGigagroup();
 
-		if (clearMaybeSendStart() && !_history->isDisplayedEmpty()) {
+		const auto hasNonEmpty = _history->findFirstNonEmpty();
+		const auto readyForBotStart = hasNonEmpty
+			|| (_history->loadedAtTop() && _history->loadedAtBottom());
+		if (readyForBotStart && clearMaybeSendStart() && hasNonEmpty) {
 			sendBotStartCommand();
+		}
+
+		if (const auto channel = _peer->asChannel()) {
+			_giftToChannel->setVisible(channel->stargiftsAvailable());
 		}
 	}
 	if (updateCmdStartShown()) {

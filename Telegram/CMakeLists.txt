@@ -969,6 +969,7 @@ PRIVATE
     info/global_media/info_global_media_inner_widget.h
     info/global_media/info_global_media_provider.cpp
     info/global_media/info_global_media_provider.h
+    info/media/info_media_buttons.cpp
     info/media/info_media_buttons.h
     info/media/info_media_common.cpp
     info/media/info_media_common.h
@@ -1485,6 +1486,8 @@ PRIVATE
     settings/settings_privacy_security.h
     settings/settings_scale_preview.cpp
     settings/settings_scale_preview.h
+    settings/settings_shortcuts.cpp
+    settings/settings_shortcuts.h
     settings/settings_type.h
     settings/settings_websites.cpp
     settings/settings_websites.h
