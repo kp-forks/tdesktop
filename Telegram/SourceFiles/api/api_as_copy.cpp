@@ -147,6 +147,7 @@ void SendAlbumFromItems(
 			MTP_int(toSend.scheduled),
 			MTP_inputPeerEmpty(),
 			MTPInputQuickReplyShortcut(),
+			MTP_long(0),
 			MTP_long(0)
 		)).done([=](const MTPUpdates &result) {
 			history->owner().session().api().applyUpdates(result);
