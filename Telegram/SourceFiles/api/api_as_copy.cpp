@@ -79,17 +79,17 @@ MTPinputMedia InputMediaFromItem(not_null<HistoryItem*> i) {
 FullReplyTo ReplyToIdFromDraft(not_null<PeerData*> peer) {
 	const auto history = peer->owner().history(peer);
 	const auto replyTo = [&]() -> FullReplyTo {
-		if (const auto localDraft = history->localDraft(0)) {
+		if (const auto localDraft = history->localDraft(0, 0)) {
 			return localDraft->reply;
-		} else if (const auto cloudDraft = history->cloudDraft(0)) {
+		} else if (const auto cloudDraft = history->cloudDraft(0, 0)) {
 			return cloudDraft->reply;
 		} else {
 			return {};
 		}
 	}();
 	if (replyTo) {
-		history->clearCloudDraft(0);
-		history->clearLocalDraft(0);
+		history->clearCloudDraft(0, 0);
+		history->clearLocalDraft(0, 0);
 		peer->session().api().request(
 			MTPmessages_SaveDraft(
 				MTP_flags(MTPmessages_SaveDraft::Flags(0)),

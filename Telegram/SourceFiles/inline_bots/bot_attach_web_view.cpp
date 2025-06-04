@@ -1561,7 +1561,8 @@ bool WebViewInstance::botHandleLocalUri(QString uri, bool keepOpen) {
 	if (Core::InternalPassportLink(local)) {
 		return true;
 	} else if (!local.startsWith(u"tg://"_q, Qt::CaseInsensitive)
-		&& !local.startsWith(u"tonsite://"_q, Qt::CaseInsensitive)) {
+		&& !local.startsWith(u"tonsite://"_q, Qt::CaseInsensitive)
+		&& !local.startsWith(u"ton://"_q, Qt::CaseInsensitive)) {
 		return false;
 	}
 	if (_copyBotUrls) {

@@ -21,10 +21,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "dialogs/dialogs_key.h"
 #include "history/history.h"
 #include "history/history_item.h"
-#include "history/view/history_view_top_bar_widget.h"
+#include "history/view/history_view_chat_section.h"
 #include "history/view/history_view_contact_status.h"
-#include "history/view/history_view_requests_bar.h"
 #include "history/view/history_view_group_call_bar.h"
+#include "history/view/history_view_requests_bar.h"
+#include "history/view/history_view_top_bar_widget.h"
 #include "boxes/peers/edit_peer_requests_box.h"
 #include "ui/text/text_utilities.h"
 #include "ui/widgets/buttons.h"
@@ -859,7 +860,10 @@ void Widget::chosenRow(const ChosenRow &row) {
 
 	const auto history = row.key.history();
 	const auto topicJump = history
-		? history->peer->forumTopicFor(row.message.fullId.msg)
+		? history->peer->forumTopicFor(row.topicJumpRootId)
+		: nullptr;
+	const auto sublistJump = history
+		? history->peer->monoforumSublistFor(row.sublistJumpPeerId)
 		: nullptr;
 
 	if (topicJump) {
@@ -875,6 +879,16 @@ void Widget::chosenRow(const ChosenRow &row) {
 			}
 			controller()->showThread(
 				topicJump,
+				ShowAtUnreadMsgId,
+				Window::SectionShow::Way::ClearStack);
+		}
+		return;
+	} else if (sublistJump) {
+		if (row.newWindow) {
+			controller()->showInNewWindow(Window::SeparateId(sublistJump));
+		} else {
+			controller()->showThread(
+				sublistJump,
 				ShowAtUnreadMsgId,
 				Window::SectionShow::Way::ClearStack);
 		}
@@ -910,13 +924,16 @@ void Widget::chosenRow(const ChosenRow &row) {
 		if (controller()->shownForum().current() == forum) {
 			controller()->closeForum();
 		} else if (row.newWindow) {
-			controller()->showInNewWindow(
-				Window::SeparateId(Window::SeparateType::Forum, history));
+			const auto type = forum->channel()->useSubsectionTabs()
+				? Window::SeparateType::Chat
+				: Window::SeparateType::Forum;
+			controller()->showInNewWindow(Window::SeparateId(type, history));
 		} else {
 			controller()->showForum(
 				forum,
 				Window::SectionShow().withChildColumn());
-			if (forum->channel()->viewForumAsMessages()) {
+			if (controller()->shownForum().current() == forum
+				&& forum->channel()->viewForumAsMessages()) {
 				controller()->showThread(
 					history,
 					ShowAtUnreadMsgId,
@@ -1102,7 +1119,7 @@ void Widget::updateFrozenAccountBar() {
 
 void Widget::updateTopBarSuggestions() {
 	if (_topBarSuggestion) {
-		_openedFolderOrForumChanges.fire(_openedForum || _openedFolder);
+		_openedFolderOrForumChanges.fire(_openedFolder || _openedForum);
 	}
 }
 
@@ -1978,7 +1995,7 @@ void Widget::refreshTopBars() {
 					? Dialogs::Key(history)
 					: Dialogs::Key(_openedFolder)),
 				.section = Dialogs::EntryState::Section::ChatsList,
-			}, history ? history->sendActionPainter().get() : nullptr);
+			}, history ? history->sendActionPainter() : nullptr);
 		if (_forumSearchRequested) {
 			showSearchInTopBar(anim::type::instant);
 		}
@@ -2134,6 +2151,10 @@ void Widget::setInnerFocus(bool unfocusSearch) {
 
 bool Widget::searchHasFocus() const {
 	return _searchHasFocus;
+}
+
+Data::Forum *Widget::openedForum() const {
+	return _openedForum;
 }
 
 void Widget::jumpToTop(bool belowPinned) {
@@ -2604,7 +2625,7 @@ bool Widget::search(bool inCache, SearchRequestDelay delay) {
 				: _searchState.inChat.sublist();
 			const auto fromPeer = sublist ? nullptr : _searchQueryFrom;
 			const auto savedPeer = sublist
-				? sublist->peer().get()
+				? sublist->sublistPeer().get()
 				: nullptr;
 			_historiesRequest = histories.sendRequest(history, type, [=](
 					Fn<void()> finish) {
@@ -2780,7 +2801,7 @@ void Widget::searchMore() {
 				: _searchState.inChat.sublist();
 			const auto fromPeer = sublist ? nullptr : _searchQueryFrom;
 			const auto savedPeer = sublist
-				? sublist->peer().get()
+				? sublist->sublistPeer().get()
 				: nullptr;
 			_historiesRequest = histories.sendRequest(history, type, [=](
 					Fn<void()> finish) {
@@ -4185,7 +4206,7 @@ PeerData *Widget::searchInPeer() const {
 		: _openedForum
 		? _openedForum->channel().get()
 		: _searchState.inChat.sublist()
-		? session().user().get()
+		? _searchState.inChat.sublist()->owningHistory()->peer.get()
 		: _searchState.inChat.peer();
 }
 
