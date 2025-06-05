@@ -586,7 +586,8 @@ void SessionNavigation::showPeerByLinkResolved(
 		if (const auto forum = peer->forum()) {
 			if (controller->windowId().hasChatsList()
 				&& !controller->adaptive().isOneColumn()
-				&& controller->shownForum().current() != forum) {
+				&& controller->shownForum().current() != forum
+				&& !forum->channel()->useSubsectionTabs()) {
 				controller->showForum(forum);
 			}
 		}
@@ -1875,10 +1876,15 @@ bool SessionController::showForumInDifferentWindow(
 void SessionController::showForum(
 		not_null<Data::Forum*> forum,
 		const SectionShow &params) {
+	const auto forced = params.forceTopicsList;
 	if (showForumInDifferentWindow(forum, params)) {
 		return;
-	} else if (forum->channel()->useSubsectionTabs()) {
-		showPeerHistory(forum->channel(), params);
+	} else if (!forced && forum->channel()->useSubsectionTabs()) {
+		if (const auto active = forum->activeSubsectionThread()) {
+			showThread(active, ShowAtUnreadMsgId, params);
+		} else {
+			showPeerHistory(forum->channel(), params);
+		}
 		return;
 	}
 	_shownForumLifetime.destroy();
@@ -1909,20 +1915,26 @@ void SessionController::showForum(
 			});
 		}
 	};
+	content()->showForum(forum, params);
+	if (_shownForum.current() != forum) {
+		return;
+	}
+
 	forum->destroyed(
 	) | rpl::start_with_next([=] {
 		closeAndShowHistory(false);
 	}, _shownForumLifetime);
-	using FlagChange = Data::Flags<ChannelDataFlags>::Change;
-	forum->channel()->flagsValue(
-	) | rpl::start_with_next([=](FlagChange change) {
-		if (change.diff & ChannelDataFlag::ForumTabs) {
-			if (HistoryView::SubsectionTabs::UsedFor(history)) {
-				closeAndShowHistory(true);
+	if (!forced) {
+		using FlagChange = Data::Flags<ChannelDataFlags>::Change;
+		forum->channel()->flagsValue(
+		) | rpl::start_with_next([=](FlagChange change) {
+			if (change.diff & ChannelDataFlag::ForumTabs) {
+				if (HistoryView::SubsectionTabs::UsedFor(history)) {
+					closeAndShowHistory(true);
+				}
 			}
-		}
-	}, _shownForumLifetime);
-	content()->showForum(forum, params);
+		}, _shownForumLifetime);
+	}
 }
 
 void SessionController::closeForum() {
@@ -1992,9 +2004,9 @@ void SessionController::setActiveChatEntry(Dialogs::RowDescriptor row) {
 			Data::PeerFlagValue(
 				channel,
 				ChannelData::Flag::Forum
-			) | rpl::filter(
-				rpl::mappers::_1
-			) | rpl::start_with_next([=] {
+			) | rpl::filter([=](bool forum) {
+				return forum && !channel->useSubsectionTabs();
+			}) | rpl::start_with_next([=] {
 				clearSectionStack(
 					{ anim::type::normal, anim::activation::background });
 				showForum(channel->forum(),

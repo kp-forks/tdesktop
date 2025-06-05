@@ -2348,6 +2348,9 @@ History *History::migrateSibling() const {
 Dialogs::UnreadState History::chatListUnreadState() const {
 	if (const auto forum = peer->forum()) {
 		return AdjustedForumUnreadState(forum->topicsList()->unreadState());
+	} else if (const auto monoforum = peer->monoforum()) {
+		return AdjustedForumUnreadState(
+			monoforum->chatsList()->unreadState());
 	}
 	return computeUnreadState();
 }
@@ -3454,9 +3457,10 @@ Data::HistoryMessages *History::maybeMessages() {
 HistoryItem *History::insertJoinedMessage() {
 	const auto channel = peer->asChannel();
 	if (!channel
+		|| channel->isMonoforum()
 		|| _joinedMessage
 		|| !channel->amIn()
-		|| (peer->isMegagroup()
+		|| (channel->isMegagroup()
 			&& channel->mgInfo->joinedMessageFound)) {
 		return _joinedMessage;
 	}
