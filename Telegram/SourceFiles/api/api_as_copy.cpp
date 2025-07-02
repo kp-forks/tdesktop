@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "api/api_as_copy.h"
 
+#include "api/api_common.h"
 #include "api/api_sending.h"
 #include "api/api_text_entities.h"
 #include "apiwrap.h"
@@ -98,7 +99,8 @@ FullReplyTo ReplyToIdFromDraft(not_null<PeerData*> peer) {
 				MTPstring(),
 				MTPVector<MTPMessageEntity>(),
 				MTP_inputMediaEmpty(),
-				MTP_long(0)
+				MTP_long(0),
+				SuggestToMTP({})
 		)).send();
 	}
 	return replyTo;
