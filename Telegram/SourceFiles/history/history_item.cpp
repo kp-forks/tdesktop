@@ -143,11 +143,10 @@ template <typename T>
 }
 
 [[nodiscard]] TextWithEntities AmountAndStarCurrency(
-		not_null<Main::Session*> session,
 		int64 amount,
 		const QString &currency) {
 	if (currency == Ui::kCreditsCurrency) {
-		return Ui::CreditsEmojiSmall(session).append(
+		return Ui::CreditsEmojiSmall().append(
 			Lang::FormatCountDecimal(std::abs(amount)));
 	}
 	return { Ui::FillAmountAndCurrency(amount, currency) };
@@ -4619,10 +4618,7 @@ void HistoryItem::createServiceFromMtp(const MTPDmessageService &message) {
 		payment->recurringInit = data.is_recurring_init();
 		payment->recurringUsed = data.is_recurring_used();
 		payment->isCreditsCurrency = (currency == Ui::kCreditsCurrency);
-		payment->amount = AmountAndStarCurrency(
-			&_history->session(),
-			amount,
-			currency);
+		payment->amount = AmountAndStarCurrency(amount, currency);
 		payment->invoiceLink = std::make_shared<LambdaClickHandler>([=](
 				ClickContext context) {
 			using namespace Payments;
@@ -5054,10 +5050,7 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 			: tr::lng_action_payment_bot_done)(
 				tr::now,
 				lt_amount,
-				AmountAndStarCurrency(
-					&_history->session(),
-					data.vtotal_amount().v,
-					qs(data.vcurrency())),
+				AmountAndStarCurrency(data.vtotal_amount().v, qs(data.vcurrency())),
 				Ui::Text::WithEntities);
 		return result;
 	};
@@ -5435,7 +5428,7 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 		session->giftBoxStickersPacks().load();
 		const auto amount = action.vamount().v;
 		const auto currency = qs(action.vcurrency());
-		const auto cost = AmountAndStarCurrency(session, amount, currency);
+		const auto cost = AmountAndStarCurrency(amount, currency);
 		const auto anonymous = _from->isServiceUser();
 		if (anonymous) {
 			result.text = tr::lng_action_gift_received_anonymous(
@@ -5662,7 +5655,6 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 			const auto isSelf = (_from->id == _from->session().userPeerId());
 			const auto peer = isSelf ? _history->peer : _from;
 			const auto cost = AmountAndStarCurrency(
-				&_history->session(),
 				action.vamount().value_or_empty(),
 				qs(action.vcurrency().value_or_empty()));
 			result.links.push_back(peer->createOpenLink());
@@ -5772,7 +5764,7 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 			lt_peer,
 			Ui::Text::Link(refund->peer->name(), 1), // Link 1.
 			lt_amount,
-			AmountAndStarCurrency(&_history->session(), amount, currency),
+			AmountAndStarCurrency(amount, currency),
 			Ui::Text::WithEntities);
 		return result;
 	};
@@ -5785,10 +5777,7 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 		_history->session().giftBoxStickersPacks().load();
 		const auto amount = action.vamount().v;
 		const auto currency = qs(action.vcurrency());
-		const auto cost = AmountAndStarCurrency(
-			&_history->session(),
-			amount,
-			currency);
+		const auto cost = AmountAndStarCurrency(amount, currency);
 		const auto anonymous = _from->isServiceUser();
 		if (anonymous) {
 			result.text = tr::lng_action_gift_received_anonymous(
@@ -5822,10 +5811,7 @@ void HistoryItem::setServiceMessageByAction(const MTPmessageAction &action) {
 		_history->session().giftBoxStickersPacks().tonLoad();
 		const auto amount = action.vamount().v;
 		const auto currency = qs(action.vcurrency());
-		const auto cost = AmountAndStarCurrency(
-			&_history->session(),
-			amount,
-			currency);
+		const auto cost = AmountAndStarCurrency(amount, currency);
 		const auto anonymous = _from->isServiceUser();
 		if (anonymous) {
 			result.text = tr::lng_action_gift_received_anonymous(
@@ -6326,12 +6312,9 @@ void HistoryItem::applyAction(const MTPMessageAction &action) {
 			Data::GiftCode{
 				.slug = qs(data.vslug()),
 				.message = (data.vmessage()
-					? TextWithEntities{
-						.text = qs(data.vmessage()->data().vtext()),
-						.entities = Api::EntitiesFromMTP(
-							&history()->session(),
-							data.vmessage()->data().ventities().v),
-					}
+					? Api::ParseTextWithEntities(
+						&history()->session(),
+						*data.vmessage())
 					: TextWithEntities()),
 				.channel = (boostedId
 					? history()->owner().channel(boostedId).get()
@@ -6378,12 +6361,9 @@ void HistoryItem::applyAction(const MTPMessageAction &action) {
 		using Fields = Data::GiftCode;
 		auto fields = Fields{
 			.message = (data.vmessage()
-				? TextWithEntities{
-					.text = qs(data.vmessage()->data().vtext()),
-					.entities = Api::EntitiesFromMTP(
-						&history()->session(),
-						data.vmessage()->data().ventities().v),
-				}
+				? Api::ParseTextWithEntities(
+					&history()->session(),
+					*data.vmessage())
 				: TextWithEntities()),
 			.channel = ((service && peerIsChannel(to))
 				? history()->owner().channel(peerToChannel(to)).get()

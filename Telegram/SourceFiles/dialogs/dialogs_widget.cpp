@@ -2757,6 +2757,11 @@ void Widget::showMainMenu() {
 }
 
 void Widget::searchMessages(SearchState state) {
+	if (const auto peer = state.inChat.peer()) {
+		if (_openedForum && peer->forum() != _openedForum) {
+			controller()->closeForum();
+		}
+	}
 	applySearchState(std::move(state));
 	session().local().saveRecentSearchHashtags(_searchState.query);
 }
