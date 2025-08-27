@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Releases | GitHub Pages</title>
+    <style>
+        :root {
+            --primary-color: #2ea44f;
+            --secondary-color: #f6f8fa;
+            --border-color: #e1e4e8;
+            --text-color: #24292e;
+            --bg-color: #ffffff;
+            --accent-color: #0366d6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            max-width: 1012px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 32px;
+            margin-bottom: 32px;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-top: 32px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .description {
+            font-size: 18px;
+            color: #586069;
+        }
+
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 16px;
+            background-color: var(--bg-color);
+        }
+
+        .release-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        .release-table th, .release-table td {
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            text-align: left;
+        }
+
+        .release-table th {
+            background-color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .download-btn {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 6px;
+            display: inline-block;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .download-btn:hover {
+            background-color: #2c974b;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 2em;
+            background-color: #f1f8ff;
+            color: var(--accent-color);
+            margin-left: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #586069;
+        }
+
+        .error {
+            color: #cb2431;
+            padding: 16px;
+            border: 1px solid #f97583;
+            border-radius: 6px;
+            background-color: #ffebeb;
+        }
+
+        footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: #586069;
+            font-size: 14px;
+        }
+
+        #readme-content h1, #readme-content h2, #readme-content h3 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+
+        #readme-content h1 {
+            font-size: 2em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3em;
+        }
+
+        #readme-content h2 {
+            font-size: 1.5em;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.3em;
+        }
+
+        #readme-content h3 {
+            font-size: 1.25em;
+        }
+
+        #readme-content p {
+            margin-bottom: 16px;
+        }
+
+        #readme-content a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+
+        #readme-content a:hover {
+            text-decoration: underline;
+        }
+
+        #readme-content ul, #readme-content ol {
+            padding-left: 2em;
+            margin-bottom: 16px;
+        }
+
+        #readme-content code {
+            padding: 0.2em 0.4em;
+            margin: 0;
+            font-size: 85%;
+            background-color: var(--secondary-color);
+            border-radius: 6px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        #readme-content pre {
+            padding: 16px;
+            overflow: auto;
+            font-size: 85%;
+            line-height: 1.45;
+            background-color: var(--secondary-color);
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        #readme-content pre code {
+            padding: 0;
+            background-color: transparent;
+        }
+
+        #readme-content blockquote {
+            padding: 0 1em;
+            color: #6a737d;
+            border-left: 0.25em solid #dfe2e5;
+            margin: 0 0 16px 0;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 16px;
+            }
+
+            .release-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <section id="releases">
+            <h2>Latest Releases</h2>
+            <div class="card">
+                <div id="release-table">
+                    <div class="loading">Loading release information...</div>
+                </div>
+            </div>
+        </section>
+
+        <section id="readme">
+            <h2>Overview</h2>
+            <div class="card">
+                <div id="readme-content">
+                    <div class="loading">Loading README content...</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Generated with ❤️ for GitHub Pages</p>
+    </footer>
+
+    <script>
+        // Replace these with your GitHub username and repository name
+        const username = 'forkgram';
+        const repo = 'tdesktop';
+
+        // Function to fetch the latest release
+        async function fetchLatestRelease() {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${username}/${repo}/releases/latest`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const release = await response.json();
+
+                if (release.assets && release.assets.length > 0) {
+                    const table = `
+                        <table class="release-table">
+                            <thead>
+                                <tr>
+                                    <th>File</th>
+                                    <th>Size</th>
+                                    <th>Downloads</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${release.assets.map(asset => `
+                                    <tr>
+                                        <td>${asset.name}</td>
+                                        <td>${formatFileSize(asset.size)}</td>
+                                        <td>${asset.download_count}</td>
+                                        <td>
+                                            <a href="${asset.browser_download_url}" class="download-btn">
+                                                Download
+                                            </a>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                        <p><strong>Version:</strong> ${release.tag_name} <span class="tag">Latest</span></p>
+                        <p><strong>Release Date:</strong> ${new Date(release.published_at).toLocaleDateString()}</p>
+                        ${release.body ? `<p><strong>Release Notes:</strong><br>${release.body}</p>` : ''}
+                    `;
+                    document.getElementById('release-table').innerHTML = table;
+                } else {
+                    document.getElementById('release-table').innerHTML = '<p>No release assets available.</p>';
+                }
+            } catch (error) {
+                console.error('Error fetching release:', error);
+                document.getElementById('release-table').innerHTML = `
+                    <div class="error">
+                        <p>Error loading releases: ${error.message}</p>
+                        <p>Make sure you've set the correct username and repository name in the script.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Function to fetch README and extract content before "## Features:"
+        async function fetchReadme() {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${username}/${repo}/readme`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const readme = await response.json();
+
+                const binaryString = atob(readme.content);
+                const bytes = new Uint8Array(binaryString.length);
+                for (let i = 0; i < binaryString.length; i++) {
+                    bytes[i] = binaryString.charCodeAt(i);
+                }
+                const content = new TextDecoder('utf-8').decode(bytes);
+
+                // Extract content before "## Features:" (case insensitive)
+                const featuresIndex = content.toLowerCase().indexOf('## features:');
+                let extractedContent = content;
+
+                if (featuresIndex !== -1) {
+                    extractedContent = content.substring(0, featuresIndex);
+                }
+
+                extractedContent = extractedContent
+                    .replace(/â/g, '—')
+                    .replace(/â/g, '’')
+                    .replace(/â/g, '“')
+                    .replace(/â/g, '”');
+
+                // Convert Markdown to HTML
+                const htmlContent = convertMarkdownToHtml(extractedContent);
+                document.getElementById('readme-content').innerHTML = htmlContent;
+            } catch (error) {
+                console.error('Error fetching README:', error);
+                document.getElementById('readme-content').innerHTML = `
+                    <div class="error">
+                        <p>Error loading README: ${error.message}</p>
+                        <p>Make sure you've set the correct username and repository name in the script.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Enhanced Markdown to HTML conversion
+        function convertMarkdownToHtml(markdown) {
+            return markdown
+                // Headers
+                .replace(/^###### (.*$)/gim, '<h6>$1</h6>')
+                .replace(/^##### (.*$)/gim, '<h5>$1</h5>')
+                .replace(/^#### (.*$)/gim, '<h4>$1</h4>')
+                .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+                .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+                .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+
+                // Bold and Italic
+                .replace(/\*\*\*(.*?)\*\*\*/gim, '<strong><em>$1</em></strong>')
+                .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/gim, '<em>$1</em>')
+                .replace(/_(.*?)_/gim, '<em>$1</em>')
+
+                // Links
+                .replace(/!\[(.*?)\]\((.*?)\)/gim, "<img alt='$1' src='$2' />")
+                .replace(/\[(.*?)\]\((.*?)\)/gim, "<a href='$2'>$1</a>")
+
+                // Code blocks
+                .replace(/```(\w+)?\n([\s\S]*?)```/gim, '<pre><code>$2</code></pre>')
+                .replace(/`(.*?)`/gim, '<code>$1</code>')
+
+                // Blockquotes
+                .replace(/^>\s(.*$)/gim, '<blockquote>$1</blockquote>')
+
+                // Horizontal rule
+                .replace(/^\*\*\*\*$/gim, '<hr>')
+
+                // Lists
+                .replace(/^\s*[\*\-]\s(.*$)/gim, '<ul><li>$1</li></ul>')
+                .replace(/^\s*\d\.\s(.*$)/gim, '<ol><li>$1</li></ol>')
+                .replace(/<\/ul>\s*<ul>/gim, '')
+                .replace(/<\/ol>\s*<ol>/gim, '')
+
+                // Paragraphs and line breaks
+                .replace(/\n\n/gim, '</p><p>')
+                .replace(/\n/gim, '<br>')
+                .replace(/<p>(.*?)<\/p>/gim, '<p>$1</p>')
+
+                // Final cleanup
+                .replace(/<p><\/p>/gim, '')
+                .replace(/<p><\/(ul|ol)>/gim, '</$1>')
+                .replace(/<(ul|ol)><\/$1>/gim, '')
+                .replace(/<p><(ul|ol)>/gim, '<$1>')
+                .replace(/<\/(ul|ol)><p>/gim, '</$1>');
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Load data when page is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Update page title and header with repo info
+            if (username !== 'your-username' && repo !== 'your-repository') {
+                document.title = `Forkgram | Releases`;
+                // document.querySelector('h1').textContent = repo;
+            }
+
+            fetchLatestRelease();
+            fetchReadme();
+        });
+    </script>
+</body>
+</html>

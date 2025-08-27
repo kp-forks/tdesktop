@@ -1,0 +1,9 @@
+title: Forkgram Desktop
+description: Forkgram is the cutting-edge Telegram fork with small Quality-of-Life enhancements.
+baseurl: ""
+url: "https://forkgram.github.io/tdesktop"
+
+include:
+  - "*.html"
+  - "*.js"
+  - "*.css"
