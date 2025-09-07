@@ -454,7 +454,11 @@ void EmptyUserpic::PaintRepliesMessages(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	if (style::SquareUserpics()) {
+		p.drawRect(x, y, size, size);
+	} else {
+		p.drawEllipse(x, y, size, size);
+	}
 
 	PaintRepliesMessagesInner(p, x, y, size, fg);
 }
@@ -493,7 +497,11 @@ void EmptyUserpic::PaintHiddenAuthor(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	if (style::SquareUserpics()) {
+		p.drawRect(x, y, size, size);
+	} else {
+		p.drawEllipse(x, y, size, size);
+	}
 
 	PaintHiddenAuthorInner(p, x, y, size, fg);
 }
@@ -532,7 +540,11 @@ void EmptyUserpic::PaintMyNotes(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	if (style::SquareUserpics()) {
+		p.drawRect(x, y, size, size);
+	} else {
+		p.drawEllipse(x, y, size, size);
+	}
 
 	PaintMyNotesInner(p, x, y, size, fg);
 }
@@ -571,7 +583,11 @@ void EmptyUserpic::PaintCurrency(
 	PainterHighQualityEnabler hq(p);
 	p.setBrush(bg);
 	p.setPen(Qt::NoPen);
-	p.drawEllipse(x, y, size, size);
+	if (style::SquareUserpics()) {
+		p.drawRect(x, y, size, size);
+	} else {
+		p.drawEllipse(x, y, size, size);
+	}
 
 	PaintCurrencyInner(p, x, y, size, fg);
 }
@@ -671,7 +687,11 @@ void EmptyUserpic::fillString(const QString &name) {
 EmptyUserpic::~EmptyUserpic() = default;
 
 void PaintMonoforumShape(QPainter &p, QRect rect) {
-	p.drawEllipse(rect);
+	if (style::SquareUserpics()) {
+		p.drawRect(rect);
+	} else {
+		p.drawEllipse(rect);
+	}
 
 	auto path = QPainterPath();
 	path.moveTo(
