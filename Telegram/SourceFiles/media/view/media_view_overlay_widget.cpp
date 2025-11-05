@@ -1451,6 +1451,21 @@ void OverlayWidget::updateControls() {
 		return dNow;
 	}();
 	_dateText = d.isValid() ? Ui::FormatDateTime(d) : QString();
+	//
+	_sizeText = [&] {
+		if (_document) {
+			return Ui::FormatSizeText(_document->size);
+		} else if (_photo) {
+			const auto size = _photoMedia->size(Data::PhotoSize::Large);
+			if (!size.isEmpty()) {
+				return QString::number(size.width())
+					+ QChar(0x00D7)
+					+ QString::number(size.height());
+			}
+		}
+		return QString();
+	}();
+	//
 	if (!_fromName.isEmpty()) {
 		_fromNameLabel.setText(
 			st::mediaviewTextStyle,
@@ -1474,6 +1489,17 @@ void OverlayWidget::updateControls() {
 			st::mediaviewFont->width(_dateText),
 			st::mediaviewFont->height);
 	}
+	//
+	if (!_sizeText.isEmpty()) {
+		_sizeNav = QRect(
+			_dateNav.left() + _dateNav.width() + st::mediaviewTextSkip,
+			height() - st::mediaviewTextTop,
+			st::mediaviewFont->width(_sizeText),
+			st::mediaviewFont->height);
+	} else {
+		_sizeNav = QRect();
+	}
+	//
 	updateHeader();
 	refreshNavVisibility();
 	resizeCenteredControls();
@@ -1483,9 +1509,12 @@ void OverlayWidget::updateControls() {
 }
 
 void OverlayWidget::resizeCenteredControls() {
-	const auto bottomSkip = std::max(
+	const auto bottomSkip = std::max({
 		_dateNav.left() + _dateNav.width(),
-		_headerNav.left() + _headerNav.width())
+		//
+		_sizeNav.left() + _sizeNav.width(),
+		//
+		_headerNav.left() + _headerNav.width() })
 		+ st::mediaviewCaptionMargin.width();
 	_groupThumbsAvailableWidth = std::max(
 		width() - 2 * bottomSkip,
@@ -1947,6 +1976,9 @@ bool OverlayWidget::updateControlsAnimation(crl::time now) {
 		+ _headerNav
 		+ _nameNav
 		+ _dateNav
+		//
+		+ _sizeNav
+		//
 		+ _captionRect.marginsAdded(st::mediaviewCaptionPadding)
 		+ _groupThumbsRect
 		+ content.intersected(_bottomShadowRect)
@@ -5436,10 +5468,20 @@ void OverlayWidget::paintFooterContent(
 			p.drawLine(date.left(), date.top() + st::mediaviewFont->ascent + 1, date.right(), date.top() + st::mediaviewFont->ascent + 1);
 		}
 	}
+
+	// Size.
+	if (_sizeNav.isValid()) {
+		const auto size = _sizeNav.translated(shift);
+		if (size.intersects(clip)) {
+			p.setOpacity(controlOpacity(0) * opacity);
+			p.drawText(size.left(), size.top() + st::mediaviewFont->ascent, _sizeText);
+		}
+	}
+	//
 }
 
 QRect OverlayWidget::footerGeometry() const {
-	return _headerNav.united(_nameNav).united(_dateNav);
+	return _headerNav.united(_nameNav).united(_dateNav).united(_sizeNav);
 }
 
 void OverlayWidget::paintCaptionContent(

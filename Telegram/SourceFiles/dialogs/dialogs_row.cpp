@@ -321,10 +321,6 @@ const style::DialogRow &Row::ComputeSt(
 		not_null<const Entry*> entry,
 		FilterId filterId) {
 	if (const auto history = entry->asHistory()) {
-		if (history->isTopPromoted()) {
-			_height = 1;
-			return;
-		}
 		const auto hasTags = entry->hasChatsFilterTags(filterId);
 		const auto wideRow = history->isForum()
 			|| history->amMonoforumAdmin();
@@ -341,6 +337,10 @@ const style::DialogRow &Row::ComputeSt(
 
 void Row::recountHeight(float64 narrowRatio, FilterId filterId) {
 	const auto &st = ComputeSt(_id.entry(), filterId);
+	if (_id.history() && _id.history()->isTopPromoted()) {
+		_height = 1;
+		return;
+	}
 	_height = ((&st == &st::defaultDialogRow) || !_id.history())
 		? st::defaultDialogRow.height
 		: anim::interpolate(
