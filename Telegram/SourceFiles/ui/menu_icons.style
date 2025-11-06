@@ -192,6 +192,8 @@ menuIconRatingRefund: icon {{ "menu/rating_refund-24x24", menuIconColor }};
 menuIconTon: icon{{ "payments/ton_emoji-18x18", menuIconColor, point(3px, 2px) }};
 menuIconReorder: icon{{ "menu/reorder-24x24", menuIconColor }};
 
+menuIconForkSettings: icon {{ "settings/settings_fork-22x22", menuIconColor }};
+
 menuIconTTLAny: icon {{ "menu/auto_delete_plain", menuIconColor }};
 menuIconTTLAnyTextPosition: point(11px, 22px);
 menuIconTTL: icon {{ "menu/auto_delete", menuIconColor }};
