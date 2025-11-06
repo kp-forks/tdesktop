@@ -357,6 +357,14 @@ void SetupForkContent(
 			Core::App().settings().fork().setMentionByNameDisabled(checked);
 			Core::App().saveSettings();
 		});
+	//
+	add(
+		tr::lng_settings_show_all_recent_stickers(tr::now),
+		Core::App().settings().fork().allRecentStickers(),
+		[=](bool checked) {
+			Core::App().settings().fork().setAllRecentStickers(checked);
+			Core::App().saveSettings();
+		});
 
 #ifndef Q_OS_LINUX
 #ifdef Q_OS_WIN
