@@ -7,8 +7,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_inner_widget.h"
 
+#include "ui/widgets/menu/menu_action.h"
 #include "api/api_sending.h"
 #include "forkgram/uri_menu.h"
+#include "ui/widgets/menu/menu.h"
 
 #include "chat_helpers/stickers_emoji_pack.h"
 #include "core/file_utilities.h"
@@ -2840,12 +2842,19 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			const auto selectedText = getSelectedText();
 			if (!hasCopyRestrictionForSelected()
 				&& !selectedText.empty()) {
-				_menu->addAction(
-					(isUponSelected > 1
-						? tr::lng_context_copy_selected_items(tr::now)
-						: tr::lng_context_copy_selected(tr::now)),
-					[=] { copySelectedText(); },
+				auto owned = base::make_unique_q<Ui::Menu::Action>(
+					_menu->menu(),
+					_menu->st().menu,
+					Ui::Menu::CreateAction(
+						_menu,
+						(isUponSelected > 1
+							? tr::lng_context_copy_selected_items(tr::now)
+							: tr::lng_context_copy_selected(tr::now)),
+						[=] { copySelectedText(); }),
+					&st::menuIconCopy,
 					&st::menuIconCopy);
+				addDepersonalized(owned.get());
+				_menu->addAction(std::move(owned));
 			}
 			if (item && !Ui::SkipTranslate(selectedText.rich)) {
 				const auto peer = item->history()->peer;
@@ -2983,12 +2992,19 @@ void HistoryInner::showContextMenu(QContextMenuEvent *e, bool showFromTouch) {
 			addReplyAction(item);
 			const auto selectedText = getSelectedText();
 			if (!hasCopyRestrictionForSelected() && !selectedText.empty()) {
-				_menu->addAction(
-					((isUponSelected > 1)
-						? tr::lng_context_copy_selected_items(tr::now)
-						: tr::lng_context_copy_selected(tr::now)),
-					[=] { copySelectedText(); },
+				auto owned = base::make_unique_q<Ui::Menu::Action>(
+					_menu->menu(),
+					_menu->st().menu,
+					Ui::Menu::CreateAction(
+						_menu,
+						((isUponSelected > 1)
+							? tr::lng_context_copy_selected_items(tr::now)
+							: tr::lng_context_copy_selected(tr::now)),
+						[=] { copySelectedText(); }),
+					&st::menuIconCopy,
 					&st::menuIconCopy);
+				addDepersonalized(owned.get());
+				_menu->addAction(std::move(owned));
 			}
 			if (item && !Ui::SkipTranslate(selectedText.rich)) {
 				const auto peer = item->history()->peer;
@@ -3458,7 +3474,7 @@ void HistoryInner::resizeEvent(QResizeEvent *e) {
 	mouseActionUpdate();
 }
 
-TextForMimeData HistoryInner::getSelectedText() const {
+TextForMimeData HistoryInner::getSelectedText(bool depersonalized) const {
 	auto selected = _selected;
 
 	if (_mouseAction == MouseAction::Selecting && _dragSelFrom && _dragSelTo) {
@@ -3485,12 +3501,27 @@ TextForMimeData HistoryInner::getSelectedText() const {
 	auto groups = base::flat_set<not_null<const Data::Group*>>();
 	auto fullSize = 0;
 	auto texts = base::flat_map<Data::MessagePosition, Part>();
+	auto personMap = base::flat_map<not_null<PeerData*>, int>();
+	auto personCounter = 1;
 
 	const auto wrapItem = [&](
 			not_null<HistoryItem*> item,
 			TextForMimeData &&unwrapped) {
+		auto name = QString();
+		if (depersonalized) {
+			const auto author = item->author();
+			const auto it = personMap.find(author);
+			if (it != personMap.end()) {
+				name = QString("Person %1").arg(it->second);
+			} else {
+				name = QString("Person %1").arg(personCounter);
+				personMap.emplace(author, personCounter++);
+			}
+		} else {
+			name = item->author()->name();
+		}
 		const auto i = texts.emplace(item->position(), Part{
-			.name = item->author()->name(),
+			.name = name,
 			.time = QString(", [%1]\n").arg(
 				QLocale().toString(ItemDateTime(item), QLocale::ShortFormat)),
 			.unwrapped = std::move(unwrapped),
@@ -5204,6 +5235,28 @@ auto HistoryInner::sendIntroSticker() const
 auto HistoryInner::DelegateMixin()
 -> std::unique_ptr<HistoryMainElementDelegateMixin> {
 	return std::make_unique<HistoryMainElementDelegate>();
+}
+
+void HistoryInner::addDepersonalized(not_null<Ui::RpWidget*> parent) {
+	const auto button = Ui::CreateChild<Ui::IconButton>(
+		parent,
+		st::botDownloadCancel);
+	button->setIconOverride(&st::menuIconStealth, &st::menuIconStealth);
+	parent->sizeValue() | rpl::start_with_next([=](QSize s) {
+		button->move(
+			s.width() - button->width() * 1.5,
+			(s.height() - button->height()) / 2);
+	}, button->lifetime());
+	button->show();
+
+	button->setClickedCallback([=] {
+		if (!showCopyRestrictionForSelected()) {
+			TextUtilities::SetClipboardText(getSelectedText(true));
+			if (_menu) {
+				_menu->hide();
+			}
+		}
+	});
 }
 
 bool CanSendReply(not_null<const HistoryItem*> item) {

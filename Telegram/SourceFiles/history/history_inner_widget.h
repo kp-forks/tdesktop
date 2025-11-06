@@ -116,7 +116,7 @@ public:
 		not_null<PeerData*> peer,
 		const QVector<MTPMessage> &messages);
 
-	[[nodiscard]] TextForMimeData getSelectedText() const;
+	[[nodiscard]] TextForMimeData getSelectedText(bool depersonalized = false) const;
 
 	void touchScrollUpdated(const QPoint &screenPos);
 
@@ -456,6 +456,8 @@ private:
 
 	// Does any of the shown histories has this flag set.
 	bool hasPendingResizedItems() const;
+
+	void addDepersonalized(not_null<Ui::RpWidget*> parent);
 
 	const not_null<HistoryWidget*> _widget;
 	const not_null<Ui::ScrollArea*> _scroll;
