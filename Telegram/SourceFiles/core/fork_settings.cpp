@@ -27,7 +27,7 @@ QByteArray ForkSettings::serialize() const {
 	auto size = sizeof(qint32) * 4
 		+ Serialize::stringSize(_uriScheme)
 		+ Serialize::stringSize(_searchEngineUrl)
-		+ sizeof(qint32) * 12
+		+ sizeof(qint32) * 13
 		+ sizeof(qint32) * 2
 		+ Serialize::stringSize(_botsPlatforms);
 
@@ -60,6 +60,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_copyLoginCode ? 1 : 0)
 			<< qint32(_additionalButtonsWebBot ? 1 : 0)
 			<< _botsPlatforms
+			<< qint32(_archivedStoriesAreHidden ? 1 : 0)
 			;
 	}
 	return result;
@@ -95,6 +96,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 skipShareFromBot = _skipShareFromBot;
 	qint32 copyLoginCode = _copyLoginCode;
 	qint32 additionalButtonsWebBot = _additionalButtonsWebBot;
+	qint32 archivedStoriesAreHidden = _archivedStoriesAreHidden;
 	QString botsPlatforms = _botsPlatforms;
 
 	if (!stream.atEnd()) {
@@ -140,6 +142,9 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> botsPlatforms;
 	}
+	if (!stream.atEnd()) {
+		stream >> archivedStoriesAreHidden;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::ForkSettings::constructFromSerialized()"));
@@ -169,6 +174,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_skipShareFromBot = (skipShareFromBot == 1);
 	_copyLoginCode = (copyLoginCode == 1);
 	_additionalButtonsWebBot = (additionalButtonsWebBot == 1);
+	_archivedStoriesAreHidden = (archivedStoriesAreHidden == 1);
 	_botsPlatforms = std::move(botsPlatforms);
 }
 
@@ -194,6 +200,7 @@ void ForkSettings::resetOnLastLogout() {
 	_skipShareFromBot = false;
 	_copyLoginCode = false;
 	_additionalButtonsWebBot = false;
+	_archivedStoriesAreHidden = false;
 	_botsPlatforms = QString();
 }
 
@@ -259,6 +266,13 @@ void ForkSettings::setAdditionalButtonsWebBot(bool newValue) {
 }
 void ForkSettings::setBotsPlatforms(QString newValue) {
 	_botsPlatforms = std::move(newValue);
+}
+
+[[nodiscard]] bool ForkSettings::archivedStoriesAreHidden() const {
+	return _archivedStoriesAreHidden;
+}
+void ForkSettings::setArchivedStoriesAreHidden(bool newValue) {
+	_archivedStoriesAreHidden = newValue;
 }
 
 } // namespace Core

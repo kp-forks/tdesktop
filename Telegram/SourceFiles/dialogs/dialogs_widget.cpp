@@ -7,6 +7,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "dialogs/dialogs_widget.h"
 
+#include "core/application.h"
+#include "core/fork_settings.h"
+
 #include "base/call_delayed.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "base/options.h"
@@ -2342,7 +2345,10 @@ void Widget::updateStoriesVisibility() {
 		|| _searchSuggestionsLocked
 		|| !_searchState.query.isEmpty()
 		|| _searchState.inChat
-		|| _stories->empty();
+		|| _stories->empty()
+		|| (Core::App().settings().fork().archivedStoriesAreHidden()
+			? _openedFolder
+			: false);
 	if (_stories->isHidden() != hidden) {
 		_stories->setVisible(!hidden);
 		using Type = Ui::ElasticScroll::OverscrollType;

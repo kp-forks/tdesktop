@@ -127,6 +127,9 @@ public:
 	[[nodiscard]] QString botsPlatforms() const;
 	void setBotsPlatforms(QString);
 
+	[[nodiscard]] bool archivedStoriesAreHidden() const;
+	void setArchivedStoriesAreHidden(bool newValue);
+
 private:
 	bool _squareUserpics = false;
 	bool _audioFade = true;
@@ -151,6 +154,7 @@ private:
 	bool _copyLoginCode = false;
 	bool _additionalButtonsWebBot = false;
 	QString _botsPlatforms;
+	bool _archivedStoriesAreHidden = false;
 
 };
 

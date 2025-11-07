@@ -482,6 +482,14 @@ void SetupForkContent(
 			Core::App().settings().fork().setCopyLoginCode(checked);
 		});
 
+	//
+	add(
+		u"Hide archived stories"_q,
+		Core::App().settings().fork().archivedStoriesAreHidden(),
+		[](bool checked) {
+			Core::App().settings().fork().setArchivedStoriesAreHidden(checked);
+		});
+
 	Ui::AddSkip(inner);
 	Ui::AddDivider(inner);
 	Ui::AddSkip(inner);
