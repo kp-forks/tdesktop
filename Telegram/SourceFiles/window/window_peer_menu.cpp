@@ -286,7 +286,7 @@ private:
 	void addSupportInfo();
 	void addInfo();
 	void addStoryArchive();
-	void addNewWindow();
+	void addNewWindow(bool addSeparator = true);
 	void addToggleFolder();
 	void addToggleUnreadMark();
 	void addToggleArchive();
@@ -682,7 +682,7 @@ void Filler::addToggleUnreadMark() {
 	}, (unread ? &st::menuIconMarkRead : &st::menuIconMarkUnread));
 }
 
-void Filler::addNewWindow() {
+void Filler::addNewWindow(bool addSeparator) {
 	const auto controller = _controller;
 	if (_folder) {
 		_addAction(tr::lng_context_new_window(tr::now), [=] {
@@ -691,7 +691,9 @@ void Filler::addNewWindow() {
 				SeparateType::Archive,
 				&controller->session()));
 		}, &st::menuIconNewWindow);
-		AddSeparatorAndShiftUp(_addAction);
+		if (addSeparator) {
+			AddSeparatorAndShiftUp(_addAction);
+		}
 		return;
 	} else if (const auto weak = base::make_weak(_sublist)) {
 		_addAction(tr::lng_context_new_window(tr::now), [=] {
@@ -702,7 +704,9 @@ void Filler::addNewWindow() {
 					sublist));
 			}
 		}, &st::menuIconNewWindow);
-		AddSeparatorAndShiftUp(_addAction);
+		if (addSeparator) {
+			AddSeparatorAndShiftUp(_addAction);
+		}
 		return;
 	}
 	const auto history = _request.key.history();
@@ -728,7 +732,9 @@ void Filler::addNewWindow() {
 				strong));
 		}
 	}, &st::menuIconNewWindow);
-	AddSeparatorAndShiftUp(_addAction);
+	if (addSeparator) {
+		AddSeparatorAndShiftUp(_addAction);
+	}
 }
 
 void Filler::addToggleArchive() {
@@ -1705,7 +1711,7 @@ void Filler::fillArchiveActions() {
 }
 
 void Filler::fillSavedSublistActions() {
-	addNewWindow();
+	addNewWindow(false);
 	addTogglePin();
 }
 
