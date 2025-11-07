@@ -2361,7 +2361,7 @@ void Widget::updateStoriesVisibility() {
 		|| _searchState.inChat
 		|| _stories->empty()
 		|| (Core::App().settings().fork().archivedStoriesAreHidden()
-			? _openedFolder
+			? !!_openedFolder
 			: false);
 	if (_stories->isHidden() != hidden) {
 		_stories->setVisible(!hidden);
