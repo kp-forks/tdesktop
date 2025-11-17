@@ -17,6 +17,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/painter.h"
 #include "data/data_peer.h"
 #include "styles/style_calls.h"
+#include "styles/style_media_view.h"
 
 #include <QOpenGLShader>
 
@@ -400,10 +401,12 @@ void Viewport::RendererGL::deinit(QOpenGLFunctions *f) {
 	_noiseFramebuffer.destroy(f);
 	for (auto &data : _tileData) {
 		data.textures.destroy(f);
+		data.framebuffers.destroy(f);
 	}
 	_tileData.clear();
 	_tileDataIndices.clear();
 	_buttons.destroy(f);
+	_names.destroy(f);
 }
 
 void Viewport::RendererGL::setDefaultViewport(QOpenGLFunctions &f) {
@@ -443,7 +446,7 @@ void Viewport::RendererGL::paint(
 }
 
 std::optional<QColor> Viewport::RendererGL::clearColor() {
-	return st::groupCallBg->c;
+	return _owner->videoStream() ? st::mediaviewBg->c : st::groupCallBg->c;
 }
 
 void Viewport::RendererGL::validateUserpicFrame(
@@ -485,7 +488,8 @@ void Viewport::RendererGL::paintTile(
 
 	_rgbaFrame = (data.format == Webrtc::FrameFormat::ARGB32)
 		|| _userpicFrame;
-	const auto geometry = tile->geometry();
+	const auto geometry = tile->geometry().translated(
+		_owner->borrowedOrigin());
 	const auto x = geometry.x();
 	const auto y = geometry.y();
 	const auto width = geometry.width();
@@ -784,12 +788,15 @@ void Viewport::RendererGL::paintTile(
 	program->setUniformValue("viewport", uniformViewport);
 	program->setUniformValue(
 		"frameBg",
-		fullscreen ? QColor(0, 0, 0) : st::groupCallBg->c);
+		fullscreen ? QColor(0, 0, 0) : *clearColor());
+	const auto radius = _owner->videoStream()
+		? st::storiesRadius
+		: st::roundRadiusLarge;
 	program->setUniformValue("radiusOutline", QVector2D(
-		GLfloat(st::roundRadiusLarge * _factor * (fullscreen ? 0. : 1.)),
+		GLfloat(radius * _factor * (fullscreen ? 0. : 1.)),
 		(outline > 0) ? (st::groupCallOutline * _factor) : 0.f));
 	program->setUniformValue("roundRect", Uniform(rect));
-	program->setUniformValue("roundBg", st::groupCallBg->c);
+	program->setUniformValue("roundBg", *clearColor());
 	program->setUniformValue("outlineFg", QVector4D(
 		st::groupCallMemberActiveIcon->c.redF(),
 		st::groupCallMemberActiveIcon->c.greenF(),
