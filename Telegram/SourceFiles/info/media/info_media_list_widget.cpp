@@ -75,6 +75,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_chat.h"
 #include "styles/style_credits.h" // giftBoxHiddenMark
+#include "styles/style_chat_helpers.h"
 
 #include "history/view/history_view_context_menu_fork.h"
 
@@ -307,7 +308,8 @@ void ListWidget::setupStoriesTrackIds() {
 				}
 			}
 			if (_storiesInAlbum.size() > ids.size()) {
-				for (auto i = begin(_storiesInAlbum); i != end(_storiesInAlbum);) {
+				const auto endIt = end(_storiesInAlbum);
+				for (auto i = begin(_storiesInAlbum); i != endIt;) {
 					if (ids.contains(*i)) {
 						++i;
 					} else {
@@ -399,6 +401,8 @@ void ListWidget::restart() {
 	_heavyLayouts.clear();
 
 	_provider->restart();
+
+	_reorderState = {};
 }
 
 void ListWidget::itemRemoved(not_null<const HistoryItem*> item) {
@@ -410,8 +414,12 @@ void ListWidget::itemRemoved(not_null<const HistoryItem*> item) {
 		_contextItem = nullptr;
 	}
 
+	if (_reorderState.item && _reorderState.item->getItem() == item) {
+		_reorderState = {};
+	}
+
 	auto needHeightRefresh = false;
-	auto sectionIt = findSectionByItem(item);
+	const auto sectionIt = findSectionByItem(item);
 	if (sectionIt != _sections.end()) {
 		if (sectionIt->removeItem(item)) {
 			if (sectionIt->empty()) {
@@ -445,7 +453,7 @@ void ListWidget::itemRemoved(not_null<const HistoryItem*> item) {
 }
 
 auto ListWidget::collectSelectedItems() const -> SelectedItems {
-	auto convert = [&](
+	const auto convert = [&](
 			not_null<const HistoryItem*> item,
 			const SelectionData &selection) {
 		auto result = SelectedItem(item->globalId());
@@ -456,7 +464,7 @@ auto ListWidget::collectSelectedItems() const -> SelectedItems {
 		result.storyInProfile = selection.storyInProfile;
 		return result;
 	};
-	auto transformation = [&](const auto &item) {
+	const auto transformation = [&](const auto &item) {
 		return convert(item.first, item.second);
 	};
 	auto items = SelectedItems(_provider->type());
@@ -677,6 +685,7 @@ void ListWidget::markStoryMsgsSelected() {
 void ListWidget::refreshRows() {
 	saveScrollState();
 
+	_reorderState = {};
 	_sections.clear();
 	_sections = _provider->fillSections(this);
 
@@ -718,23 +727,38 @@ void ListWidget::restoreState(not_null<Memento*> memento) {
 int ListWidget::resizeGetHeight(int newWidth) {
 	if (newWidth > 0) {
 		for (auto &section : _sections) {
+			section.setCanReorder(canReorder());
 			section.resizeToWidth(newWidth);
 		}
 	}
 	return recountHeight();
 }
 
-auto ListWidget::findItemByPoint(QPoint point) const -> FoundItem {
+auto ListWidget::findSectionAndItem(QPoint point) const
+		-> std::pair<std::vector<Section>::const_iterator, FoundItem> {
 	Expects(!_sections.empty());
 
 	auto sectionIt = findSectionAfterTop(point.y());
 	if (sectionIt == _sections.end()) {
 		--sectionIt;
 	}
-	auto shift = QPoint(0, sectionIt->top());
-	return foundItemInSection(
-		sectionIt->findItemByPoint(point - shift),
-		*sectionIt);
+	const auto shift = QPoint(0, sectionIt->top());
+	return {
+		sectionIt,
+		foundItemInSection(
+			sectionIt->findItemByPoint(point - shift),
+			*sectionIt)
+	};
+}
+
+auto ListWidget::findItemByPoint(QPoint point) const -> FoundItem {
+	return findSectionAndItem(point).second;
+}
+
+auto ListWidget::findItemByPointWithSection(QPoint point) const
+		-> ListFoundItemWithSection {
+	const auto [sectionIt, item] = findSectionAndItem(point);
+	return { item, &(*sectionIt) };
 }
 
 auto ListWidget::findItemByItem(const HistoryItem *item)
@@ -742,7 +766,7 @@ auto ListWidget::findItemByItem(const HistoryItem *item)
 	if (!item || !_provider->isPossiblyMyItem(item)) {
 		return std::nullopt;
 	}
-	auto sectionIt = findSectionByItem(item);
+	const auto sectionIt = findSectionByItem(item);
 	if (sectionIt != _sections.end()) {
 		if (const auto found = sectionIt->findItemByItem(item)) {
 			return foundItemInSection(*found, *sectionIt);
@@ -832,7 +856,7 @@ void ListWidget::toggleScrollDateShown() {
 }
 
 void ListWidget::checkMoveToOtherViewer() {
-	auto visibleHeight = (_visibleBottom - _visibleTop);
+	const auto visibleHeight = (_visibleBottom - _visibleTop);
 	if (width() <= 0
 		|| visibleHeight <= 0
 		|| _sections.empty()
@@ -840,12 +864,12 @@ void ListWidget::checkMoveToOtherViewer() {
 		return;
 	}
 
-	auto topItem = findItemByPoint({ st::infoMediaSkip, _visibleTop });
-	auto bottomItem = findItemByPoint({ st::infoMediaSkip, _visibleBottom });
+	const auto topItem = findItemByPoint({ st::infoMediaSkip, _visibleTop });
+	const auto bottomItem = findItemByPoint({ st::infoMediaSkip, _visibleBottom });
 
-	auto preloadBefore = kPreloadIfLessThanScreens * visibleHeight;
-	auto preloadTop = (_visibleTop < preloadBefore);
-	auto preloadBottom = (height() - _visibleBottom < preloadBefore);
+	const auto preloadBefore = kPreloadIfLessThanScreens * visibleHeight;
+	const auto preloadTop = (_visibleTop < preloadBefore);
+	const auto preloadBottom = (height() - _visibleBottom < preloadBefore);
 
 	_provider->checkPreload(
 		{ width(), visibleHeight },
@@ -916,8 +940,8 @@ void ListWidget::restoreScrollState() {
 	if (!found) {
 		return;
 	}
-	auto item = foundItemInSection(*found, *sectionIt);
-	auto newVisibleTop = item.geometry.y() + _scrollTopState.shift;
+	const auto item = foundItemInSection(*found, *sectionIt);
+	const auto newVisibleTop = item.geometry.y() + _scrollTopState.shift;
 	if (_visibleTop != newVisibleTop) {
 		_scrollToRequests.fire_copy(newVisibleTop);
 	}
@@ -941,18 +965,18 @@ QMargins ListWidget::padding() const {
 void ListWidget::paintEvent(QPaintEvent *e) {
 	Painter p(this);
 
-	auto outerWidth = width();
-	auto clip = e->rect();
-	auto ms = crl::now();
-	auto fromSectionIt = findSectionAfterTop(clip.y());
-	auto tillSectionIt = findSectionAfterBottom(
+	const auto outerWidth = width();
+	const auto clip = e->rect();
+	const auto ms = crl::now();
+	const auto fromSectionIt = findSectionAfterTop(clip.y());
+	const auto tillSectionIt = findSectionAfterBottom(
 		fromSectionIt,
 		clip.y() + clip.height());
 	const auto window = _controller->parentController();
 	const auto paused = window->isGifPausedAtLeastFor(
 		Window::GifPauseReason::Layer);
 	const auto selecting = hasSelectedItems() || _storiesAddToAlbumId;
-	auto paintContext = Overview::Layout::PaintContext(ms, selecting, paused);
+	const auto paintContext = Overview::Layout::PaintContext(ms, selecting, paused);
 	auto context = ListContext{
 		paintContext,
 		&_selected,
@@ -963,7 +987,7 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 		context.draggedItem = _reorderState.item;
 	}
 	for (auto it = fromSectionIt; it != tillSectionIt; ++it) {
-		auto top = it->top();
+		const auto top = it->top();
 		p.translate(0, top);
 		it->paint(p, context, clip.translated(0, -top), outerWidth);
 		p.translate(0, -top);
@@ -973,8 +997,10 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 	}
 
 	if (_mouseAction == MouseAction::Reordering && _reorderState.item) {
-		auto o = ScopedPainterOpacity(p, 0.8);
+		const auto o = ScopedPainterOpacity(p, 0.8);
 		p.translate(_reorderState.currentPos);
+		const auto isOneColumn = _reorderState.section
+			&& _reorderState.section->isOneColumn();
 		_reorderState.item->paint(
 			p,
 			QRect(
@@ -982,8 +1008,18 @@ void ListWidget::paintEvent(QPaintEvent *e) {
 				0,
 				_reorderState.item->maxWidth(),
 				_reorderState.item->minHeight()),
-			FullSelection,
+			isOneColumn ? TextSelection{} : FullSelection,
 			&context.layoutContext);
+
+		if (isOneColumn) {
+			st::stickersReorderIcon.paint(
+				p,
+				width()
+					- _reorderState.section->oneColumnRightPadding() * 2,
+				(_reorderState.item->minHeight()
+					- st::stickersReorderIcon.height()) / 2,
+				outerWidth);
+		}
 		p.translate(-_reorderState.currentPos);
 	}
 
@@ -1020,7 +1056,7 @@ void ListWidget::mousePressEvent(QMouseEvent *e) {
 }
 
 void ListWidget::mouseMoveEvent(QMouseEvent *e) {
-	auto buttonsPressed = (e->buttons() & (Qt::LeftButton | Qt::MiddleButton));
+	const auto buttonsPressed = (e->buttons() & (Qt::LeftButton | Qt::MiddleButton));
 	if (!buttonsPressed && _mouseAction != MouseAction::None) {
 		mouseReleaseEvent(e);
 	}
@@ -1111,7 +1147,7 @@ void ListWidget::showContextMenu(
 		});
 	};
 
-	auto link = ClickHandler::getActive();
+	const auto link = ClickHandler::getActive();
 
 	_contextMenu = base::make_unique_q<Ui::PopupMenu>(
 		this,
@@ -1150,7 +1186,7 @@ void ListWidget::showContextMenu(
 					item,
 					lnkDocument);
 				if (!filepath.isEmpty()) {
-					auto handler = base::fn_delayed(
+					const auto handler = base::fn_delayed(
 						st::defaultDropdownMenu.menu.ripple.hideDuration,
 						this,
 						[filepath] {
@@ -1163,7 +1199,7 @@ void ListWidget::showContextMenu(
 						std::move(handler),
 						&st::menuIconShowInFolder);
 				}
-				auto handler = base::fn_delayed(
+				const auto handler = base::fn_delayed(
 					st::defaultDropdownMenu.menu.ripple.hideDuration,
 					this,
 					[=] {
@@ -1381,7 +1417,7 @@ void ListWidget::forwardItems(MessageIdsList &&items) {
 					{ id.peer, StoryIdFromMsgId(id.msg) }));
 		}
 	} else {
-		auto callback = [weak = base::make_weak(this)] {
+		const auto callback = [weak = base::make_weak(this)] {
 			if (const auto strong = weak.get()) {
 				strong->clearSelected();
 			}
@@ -1603,11 +1639,11 @@ void ListWidget::setActionBoxWeak(base::weak_qptr<Ui::BoxContent> box) {
 }
 
 void ListWidget::trySwitchToWordSelection() {
-	auto selectingSome = (_mouseAction == MouseAction::Selecting)
+	const auto selectingSome = (_mouseAction == MouseAction::Selecting)
 		&& hasSelectedText();
-	auto willSelectSome = (_mouseAction == MouseAction::None)
+	const auto willSelectSome = (_mouseAction == MouseAction::None)
 		&& !hasSelectedItems();
-	auto checkSwitchToWordSelection = _overLayout
+	const auto checkSwitchToWordSelection = _overLayout
 		&& (_mouseSelectType == TextSelectType::Letters)
 		&& (selectingSome || willSelectSome);
 	if (checkSwitchToWordSelection) {
@@ -1629,7 +1665,7 @@ void ListWidget::switchToWordSelection() {
 	if (_mouseAction == MouseAction::None) {
 		_mouseAction = MouseAction::Selecting;
 		clearSelected();
-		auto selStatus = TextSelection {
+		const auto selStatus = TextSelection {
 			dragState.symbol,
 			dragState.symbol
 		};
@@ -1656,7 +1692,7 @@ void ListWidget::applyItemSelection(
 }
 
 void ListWidget::toggleItemSelection(not_null<HistoryItem*> item) {
-	auto it = _selected.find(item);
+	const auto it = _selected.find(item);
 	if (it == _selected.cend()) {
 		applyItemSelection(item, FullSelection);
 	} else {
@@ -1698,9 +1734,9 @@ bool ListWidget::isPressInSelectedText(TextState state) const {
 		|| !isItemUnderPressSelected()) {
 		return false;
 	}
-	auto pressedSelection = itemUnderPressSelection();
-	auto from = pressedSelection->second.text.from;
-	auto to = pressedSelection->second.text.to;
+	const auto pressedSelection = itemUnderPressSelection();
+	const auto from = pressedSelection->second.text.from;
+	const auto to = pressedSelection->second.text.to;
 	return (state.symbol >= from && state.symbol < to);
 }
 
@@ -1720,7 +1756,7 @@ void ListWidget::clearSelected() {
 
 void ListWidget::validateTrippleClickStartTime() {
 	if (_trippleClickStartTime) {
-		auto elapsed = (crl::now() - _trippleClickStartTime);
+		const auto elapsed = (crl::now() - _trippleClickStartTime);
 		if (elapsed >= QApplication::doubleClickInterval()) {
 			_trippleClickStartTime = 0;
 		}
@@ -1764,10 +1800,14 @@ void ListWidget::mouseActionUpdate(const QPoint &globalPosition) {
 
 	_mousePosition = globalPosition;
 
-	auto local = mapFromGlobal(_mousePosition);
-	auto point = clampMousePosition(local);
-	auto [layout, geometry, inside] = findItemByPoint(point);
-	auto state = MouseState{
+	const auto local = mapFromGlobal(_mousePosition);
+	const auto point = clampMousePosition(local);
+	const auto [foundItem, section] = findItemByPointWithSection(point);
+	const auto [layout, geometry, inside] = std::tie(
+		foundItem.layout,
+		foundItem.geometry,
+		foundItem.exact);
+	const auto state = MouseState{
 		layout->getItem(),
 		geometry.size(),
 		point - geometry.topLeft(),
@@ -1780,17 +1820,30 @@ void ListWidget::mouseActionUpdate(const QPoint &globalPosition) {
 	}
 	_overState = state;
 
-	TextState dragState;
-	ClickHandlerHost *lnkhost = nullptr;
+	const auto inDragArea = canReorder()
+		&& section
+		&& section->isOneColumn()
+		&& point.y() >= geometry.y()
+		&& point.y() < geometry.bottom()
+		&& ((point.x() - geometry.x())
+			>= (geometry.width()
+				- section->oneColumnRightPadding()
+				- st::stickersReorderSkip));
+	if (_inDragArea != inDragArea) {
+		_inDragArea = inDragArea;
+	}
+
+	auto dragState = TextState();
+	auto lnkhost = (ClickHandlerHost*)(nullptr);
 	auto inTextSelection = _overState.inside
 		&& (_overState.item == _pressState.item)
 		&& hasSelectedText();
 	if (_overLayout) {
-		auto cursorDeltaLength = [&] {
-			auto cursorDelta = (_overState.cursor - _pressState.cursor);
+		const auto cursorDeltaLength = [&] {
+			const auto cursorDelta = (_overState.cursor - _pressState.cursor);
 			return cursorDelta.manhattanLength();
 		};
-		auto dragStartLength = [] {
+		const auto dragStartLength = [] {
 			return QApplication::startDragDistance();
 		};
 		if (_overState.item != _pressState.item
@@ -1826,7 +1879,7 @@ void ListWidget::mouseActionUpdate(const QPoint &globalPosition) {
 
 	if (_mouseAction == MouseAction::None) {
 		_mouseCursorState = dragState.cursor;
-		auto cursor = computeMouseCursor();
+		const auto cursor = computeMouseCursor();
 		if (_cursor != cursor) {
 			setCursor(_cursor = cursor);
 		}
@@ -1844,7 +1897,7 @@ void ListWidget::mouseActionUpdate(const QPoint &globalPosition) {
 				selState = _overLayout->adjustSelection(selState, _mouseSelectType);
 			}
 			applyItemSelection(_overState.item, selState);
-			auto hasSelection = (selState == FullSelection)
+			const auto hasSelection = (selState == FullSelection)
 				|| (selState.from != selState.to);
 			if (!_wasSelectedText && hasSelection) {
 				_wasSelectedText = true;
@@ -1867,7 +1920,9 @@ void ListWidget::mouseActionUpdate(const QPoint &globalPosition) {
 }
 
 style::cursor ListWidget::computeMouseCursor() const {
-	if (ClickHandler::getPressed() || ClickHandler::getActive()) {
+	if (_inDragArea && canReorder()) {
+		return style::cur_sizeall;
+	} else if (ClickHandler::getPressed() || ClickHandler::getActive()) {
 		return style::cur_pointer;
 	} else if (!hasSelectedItems()
 		&& (_mouseCursorState == CursorState::Text)) {
@@ -1879,7 +1934,7 @@ style::cursor ListWidget::computeMouseCursor() const {
 void ListWidget::updateDragSelection() {
 	auto fromState = _pressState;
 	auto tillState = _overState;
-	auto swapStates = isAfter(fromState, tillState);
+	const auto swapStates = isAfter(fromState, tillState);
 	if (swapStates) {
 		std::swap(fromState, tillState);
 	}
@@ -1899,7 +1954,7 @@ void ListWidget::updateDragSelection() {
 		if (_dragSelected.empty()) {
 			return DragSelectAction::None;
 		}
-		auto &[firstDragItem, data] = swapStates
+		const auto &[firstDragItem, data] = swapStates
 			? _dragSelected.front()
 			: _dragSelected.back();
 		if (isSelectedItem(_selected.find(firstDragItem))) {
@@ -1941,7 +1996,7 @@ void ListWidget::mouseActionStart(
 		_pressState = _overState;
 		repaintItem(_overLayout);
 	}
-	auto pressLayout = _overLayout;
+	const auto pressLayout = _overLayout;
 
 	_mouseAction = MouseAction::None;
 	_pressWasInactive = Ui::WasInactivePress(
@@ -1950,6 +2005,13 @@ void ListWidget::mouseActionStart(
 		Ui::MarkInactivePress(
 			_controller->parentController()->widget(),
 			false);
+	}
+
+	if (_inDragArea && canReorder() && !hasSelected()) {
+		startReorder(globalPosition);
+		if (_mouseAction == MouseAction::PrepareReorder) {
+			return;
+		}
 	}
 
 	if (ClickHandler::getPressed() && !hasSelected()) {
@@ -1968,17 +2030,25 @@ void ListWidget::mouseActionStart(
 	if (_mouseAction == MouseAction::None && pressLayout) {
 		validateTrippleClickStartTime();
 		TextState dragState;
-		auto startDistance = (globalPosition - _trippleClickPoint).manhattanLength();
-		auto validStartPoint = startDistance < QApplication::startDragDistance();
+		const auto startDistance = (globalPosition
+			- _trippleClickPoint).manhattanLength();
+		const auto validStartPoint = startDistance
+			< QApplication::startDragDistance();
 		if (_trippleClickStartTime != 0 && validStartPoint) {
 			StateRequest request;
 			request.flags = Ui::Text::StateRequest::Flag::LookupSymbol;
 			dragState = pressLayout->getState(_pressState.cursor, request);
 			if (dragState.cursor == CursorState::Text) {
-				TextSelection selStatus = { dragState.symbol, dragState.symbol };
-				if (selStatus != FullSelection && !hasSelectedItems()) {
+				const auto selStatus = TextSelection{
+					dragState.symbol,
+					dragState.symbol,
+				};
+				if (selStatus != FullSelection
+					&& !hasSelectedItems()) {
 					clearSelected();
-					applyItemSelection(_pressState.item, selStatus);
+					applyItemSelection(
+						_pressState.item,
+						selStatus);
 					_mouseTextSymbol = dragState.symbol;
 					_mouseAction = MouseAction::Selecting;
 					_mouseSelectType = TextSelectType::Paragraphs;
@@ -1989,7 +2059,9 @@ void ListWidget::mouseActionStart(
 		} else {
 			StateRequest request;
 			request.flags = Ui::Text::StateRequest::Flag::LookupSymbol;
-			dragState = pressLayout->getState(_pressState.cursor, request);
+			dragState = pressLayout->getState(
+				_pressState.cursor,
+				request);
 		}
 		if (_mouseSelectType != TextSelectType::Paragraphs) {
 			if (_pressState.inside) {
@@ -2000,14 +2072,19 @@ void ListWidget::mouseActionStart(
 					if (requiredToStartDragging(pressLayout)) {
 						_mouseAction = MouseAction::PrepareDrag;
 					} else {
-						if (dragState.afterSymbol) ++_mouseTextSymbol;
-						TextSelection selStatus = {
+						if (dragState.afterSymbol) {
+							++_mouseTextSymbol;
+						}
+						const auto selStatus = TextSelection{
 							_mouseTextSymbol,
 							_mouseTextSymbol,
 						};
-						if (selStatus != FullSelection && !hasSelectedItems()) {
+						if (selStatus != FullSelection
+							&& !hasSelectedItems()) {
 							clearSelected();
-							applyItemSelection(_pressState.item, selStatus);
+							applyItemSelection(
+								_pressState.item,
+								selStatus);
 							_mouseAction = MouseAction::Selecting;
 							repaintItem(pressLayout);
 						} else if (!_provider->hasSelectRestriction()) {
@@ -2127,11 +2204,11 @@ void ListWidget::mouseActionFinish(
 		Qt::MouseButton button) {
 	mouseActionUpdate(globalPosition);
 
-	auto pressState = base::take(_pressState);
+	const auto pressState = base::take(_pressState);
 	repaintItem(pressState.item);
 
 	const auto selectionMode = hasSelectedItems() || _storiesAddToAlbumId;
-	auto simpleSelectionChange = pressState.item
+	const auto simpleSelectionChange = pressState.item
 		&& pressState.inside
 		&& !_pressWasInactive
 		&& (button != Qt::RightButton)
@@ -2142,8 +2219,9 @@ void ListWidget::mouseActionFinish(
 		finishReorder();
 		return;
 	}
-	auto needSelectionToggle = simpleSelectionChange && selectionMode;
-	auto needSelectionClear = simpleSelectionChange && hasSelectedText();
+	const auto needSelectionToggle = simpleSelectionChange && selectionMode;
+	const auto needSelectionClear = simpleSelectionChange
+		&& hasSelectedText();
 
 	auto activated = ClickHandler::unpressed();
 	if (_mouseAction == MouseAction::Dragging
@@ -2179,7 +2257,7 @@ void ListWidget::mouseActionFinish(
 		if (!_dragSelected.empty()) {
 			applyDragSelection();
 		} else if (!_selected.empty() && !_pressWasInactive) {
-			auto selection = _selected.cbegin()->second;
+			const auto selection = _selected.cbegin()->second;
 			if (selection.text != FullSelection
 				&& selection.text.from == selection.text.to) {
 				clearSelected();
@@ -2234,7 +2312,7 @@ int ListWidget::recountHeight() {
 			}
 		}
 	}
-	auto cachedPadding = padding();
+	const auto cachedPadding = padding();
 	auto result = cachedPadding.top();
 	for (auto &section : _sections) {
 		section.setTop(result);
@@ -2294,16 +2372,23 @@ void ListWidget::startReorder(const QPoint &globalPos) {
 		return;
 	}
 	const auto mapped = mapFromGlobal(globalPos);
-	const auto index = itemIndexFromPoint(mapped);
+	const auto foundWithSection = findItemByPointWithSection(mapped);
+	if (!foundWithSection.section) {
+		return;
+	}
+	if (foundWithSection.section->isOneColumn()
+		? !_inDragArea
+		: !foundWithSection.item.exact) {
+		return;
+	}
+	const auto index = itemIndexFromPoint(mapped
+		- QPoint(foundWithSection.section->oneColumnRightPadding(), 0));
 	if (index < 0) {
 		return;
 	}
-	const auto found = findItemByPoint(mapped);
-	if (!found.exact) {
-		return;
-	}
+
 	if (_reorderDescriptor.filter) {
-		const auto item = found.layout->getItem();
+		const auto item = foundWithSection.item.layout->getItem();
 		if (!_reorderDescriptor.filter(item)) {
 			return;
 		}
@@ -2312,8 +2397,10 @@ void ListWidget::startReorder(const QPoint &globalPos) {
 	_reorderState.index = index;
 	_reorderState.targetIndex = index;
 	_reorderState.startPos = globalPos;
-	_reorderState.dragPoint = mapped - found.geometry.topLeft();
-	_reorderState.item = found.layout;
+	_reorderState.dragPoint = mapped
+		- foundWithSection.item.geometry.topLeft();
+	_reorderState.item = foundWithSection.item.layout;
+	_reorderState.section = foundWithSection.section;
 	_mouseAction = MouseAction::PrepareReorder;
 }
 
@@ -2387,7 +2474,7 @@ void ListWidget::finishReorder() {
 			const auto startPos = _reorderState.currentPos;
 			const auto endPos = targetGeometry.topLeft()
 				+ rect::m::pos::tl(padding());
-			auto callback = [=](float64 progress) {
+			const auto callback = [=](float64 progress) {
 				const auto currentPos = QPoint(
 					startPos.x() + (endPos.x() - startPos.x()) * progress,
 					startPos.y() + (endPos.y() - startPos.y()) * progress);

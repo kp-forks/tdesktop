@@ -48,6 +48,7 @@ class AbstractController;
 namespace Media {
 
 struct ListFoundItem;
+struct ListFoundItemWithSection;
 struct ListContext;
 class ListSection;
 class ListProvider;
@@ -131,6 +132,7 @@ private:
 		QPoint dragPoint;
 		QPoint currentPos;
 		BaseLayout *item = nullptr;
+		const Section *section = nullptr;
 	};
 	struct ShiftAnimation {
 		Ui::Animations::Simple xAnimation;
@@ -257,7 +259,10 @@ private:
 	[[nodiscard]] auto findSectionAfterBottom(
 		std::vector<Section>::const_iterator from,
 		int bottom) const -> std::vector<Section>::const_iterator;
+	[[nodiscard]] auto findSectionAndItem(QPoint point) const
+		-> std::pair<std::vector<Section>::const_iterator, FoundItem>;
 	[[nodiscard]] FoundItem findItemByPoint(QPoint point) const;
+	[[nodiscard]] ListFoundItemWithSection findItemByPointWithSection(QPoint point) const;
 	[[nodiscard]] std::optional<FoundItem> findItemByItem(
 		const HistoryItem *item);
 	[[nodiscard]] FoundItem findItemDetails(not_null<BaseLayout*> item);
@@ -369,6 +374,7 @@ private:
 	int _activeShiftAnimations = 0;
 	Ui::Animations::Simple _returnAnimation;
 	ReorderDescriptor _reorderDescriptor;
+	bool _inDragArea = false;
 
 };
 
