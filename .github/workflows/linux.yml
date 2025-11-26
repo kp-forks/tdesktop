@@ -81,7 +81,7 @@ jobs:
           rm -rfv $LibrariesPath/tg_owt/out/Debug
 
       - name: Clone.
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           submodules: recursive
 
