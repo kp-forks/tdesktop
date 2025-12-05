@@ -748,7 +748,7 @@ void TopBar::setupActions(not_null<Window::SessionController*> controller) {
 			tr::lng_profile_action_short_join(tr::now),
 			st::infoProfileTopBarActionJoin);
 		join->setClickedCallback([=] {
-			channel->owner().session().api().joinChannel(channel);
+			channel->session().api().joinChannel(channel);
 		});
 		buttons.push_back(join);
 		_actions->add(join);
@@ -1856,7 +1856,7 @@ void TopBar::setupButtons(
 		_back->QWidget::show();
 		_back->setDuration(0);
 		_back->toggleOn(isLayer || isSide
-			? _backToggles.value()
+			? (_backToggles.value() | rpl::type_erased())
 			: rpl::single(wrap == Wrap::Narrow));
 		_back->entity()->clicks() | rpl::to_empty | rpl::start_to_stream(
 			_backClicks,
