@@ -100,7 +100,7 @@ void SettingBox::prepare() {
 	};
 
 	url->submits(
-	) | rpl::start_with_next([=] {
+	) | rpl::on_next([=] {
 		submit();
 	}, lifetime());
 
@@ -229,7 +229,7 @@ void SetupForkContent(
 			checkbox(label, checked),
 			st::settingsCheckboxPadding
 		)->checkedChanges(
-		) | rpl::start_with_next([handle = std::move(handle)](bool v) {
+		) | rpl::on_next([handle = std::move(handle)](bool v) {
 			handle(v);
 			Core::App().saveSettings();
 		}, inner->lifetime());
@@ -263,7 +263,7 @@ void SetupForkContent(
 		checkRow->checkedChanges(
 		) | rpl::filter([=](bool checked) {
 			return (checked != checkedCallback());
-		}) | rpl::start_with_next([=](bool checked) {
+		}) | rpl::on_next([=](bool checked) {
 			restartBox(
 				[=] { ok(checked); },
 				[=] { checkRow->setChecked(!checked); });
@@ -295,7 +295,7 @@ void SetupForkContent(
 		st::settingsCheckboxPadding
 	);
 	uriScheme->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		if (checked) {
 			auto callback = [=](bool isSuccess) {
 				uriScheme->setChecked(isSuccess);
@@ -332,7 +332,7 @@ void SetupForkContent(
 
 	//
 	searchEngine->checkedChanges(
-	) | rpl::start_with_next([=](bool checked) {
+	) | rpl::on_next([=](bool checked) {
 		if (checked) {
 			auto callback = [=](bool isSuccess) {
 				searchEngine->setChecked(isSuccess);

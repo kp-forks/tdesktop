@@ -103,7 +103,7 @@ void AddReplaceMedia(
 			st::historyHasCustomEmoji,
 			st::historyHasCustomEmojiPosition,
 			TextWithEntities{ std::move(s) });
-		item->clicks() | rpl::start_with_next(callback, menu->lifetime());
+		item->clicks() | rpl::on_next(callback, menu->lifetime());
 		menu->addAction(std::move(item));
 	};
 	if (photo) {
@@ -147,7 +147,7 @@ void AddSwapMedia(
 			st::historyHasCustomEmoji,
 			st::historyHasCustomEmojiPosition,
 			TextWithEntities{ std::move(s) });
-		item->clicks() | rpl::start_with_next(callback, menu->lifetime());
+		item->clicks() | rpl::on_next(callback, menu->lifetime());
 		menu->addAction(std::move(item));
 	};
 	if ((photo1 || document1) && (photo2 || document2)) {
@@ -237,7 +237,7 @@ void AddGroupSelected(
 			item.get(),
 			st::startGiveawayBoxTitleClose);
 		item->sizeValue(
-		) | rpl::take(1) | rpl::start_with_next([=](const QSize &s) {
+		) | rpl::take(1) | rpl::on_next([=](const QSize &s) {
 			rightButton->moveToLeft(
 				s.width() - rightButton->width(),
 				(s.height() - rightButton->height()) / 2);

@@ -245,15 +245,7 @@ bool AutostartSkip() {
 }
 
 void NewVersionLaunched(int oldVersion) {
-	if (const auto window = Core::App().activeWindow()) {
-		if (const auto controller = window->sessionController()) {
-			const auto userId = controller->session().userId().bare;
-			const auto hash = std::hash<uint64>{}(userId);
-			if ((hash % 100) < 15 || (userId % 100) == 91) {
-				base::options::lookup<bool>("text-recognition-mac").set(true);
-			}
-		}
-	}
+	base::options::lookup<bool>("text-recognition-mac").set(true);
 }
 
 QImage DefaultApplicationIcon() {
