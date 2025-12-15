@@ -182,7 +182,7 @@ constexpr auto kPreviewPostsLimit = 3;
 	} else {
 		text.append(tr::lng_search_tab_no_results(
 			tr::now,
-			Ui::Text::Bold));
+			tr::bold));
 		if (!trimmed.isEmpty()) {
 			const auto preview = (trimmed.size() > kQueryPreviewLimit + 3)
 				? (trimmed.mid(0, kQueryPreviewLimit) + Ui::kQEllipsis)
@@ -194,7 +194,7 @@ constexpr auto kPreviewPostsLimit = 3;
 					trimmed.mid(0, kQueryPreviewLimit)));
 			if (suggestAllChats) {
 				text.append("\n\n").append(
-					Ui::Text::Link(tr::lng_search_tab_try_in_all(tr::now)));
+					tr::link(tr::lng_search_tab_try_in_all(tr::now)));
 			} else if (hashtag) {
 				text.append("\n").append(
 					tr::lng_search_tab_no_results_retry(tr::now));
@@ -1185,7 +1185,7 @@ void InnerWidget::paintEvent(QPaintEvent *e) {
 							result->sponsored->button,
 							tr::lng_search_sponsored_button(
 								tr::now,
-								Ui::Text::WithEntities),
+								tr::marked),
 							st::dialogsSponsoredButton);
 					}
 
@@ -1401,7 +1401,7 @@ void InnerWidget::fillRightButton(
 				rightButton,
 				tr::lng_profile_open_app_short(
 					tr::now,
-					Ui::Text::WithEntities),
+					tr::marked),
 				st::dialogRowOpenBot);
 			return &(_rightButtons.emplace(
 				user->id,
@@ -4159,9 +4159,9 @@ void InnerWidget::refreshEmpty() {
 		std::move(phrase),
 		std::move(link)
 	) | rpl::map([](const QString &phrase, const QString &link) {
-		auto result = Ui::Text::WithEntities(phrase);
+		auto result = tr::marked(phrase);
 		if (!link.isEmpty()) {
-			result.append("\n\n").append(Ui::Text::Link(link));
+			result.append("\n\n").append(tr::link(link));
 		}
 		return result;
 	});

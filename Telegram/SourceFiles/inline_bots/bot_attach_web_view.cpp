@@ -196,10 +196,9 @@ constexpr auto kPopularAppBotsLimit = 100;
 				.requestWriteAccess = data.is_request_write_access(),
 			} : std::optional<AttachWebViewBot>();
 	});
-	if (result && result->icon) {
-		result->icon->forceToCache(true);
-	}
-	if (const auto icon = result->icon) {
+	if (const auto icon = result ? result->icon : nullptr) {
+		icon->forceToCache(true);
+
 		result->media = icon->createMediaView();
 		icon->save(Data::FileOrigin(), {});
 	}
@@ -326,7 +325,7 @@ void FillDisclaimerBox(
 	Ui::ConfirmBox(box, {
 		.text = tr::lng_mini_apps_disclaimer_text(
 			tr::now,
-			Ui::Text::RichLangValue),
+			tr::rich),
 		.confirmed = callback,
 		.cancelled = [=](Fn<void()> close) { done(false); close(); },
 		.confirmText = tr::lng_box_ok(),
@@ -344,10 +343,10 @@ void FillDisclaimerBox(
 			box.get(),
 			tr::lng_mini_apps_disclaimer_button(
 				lt_link,
-				rpl::single(Ui::Text::Link(
+				rpl::single(tr::link(
 					tr::lng_mini_apps_disclaimer_link(tr::now),
 					tr::lng_mini_apps_tos_url(tr::now))),
-				Ui::Text::WithEntities),
+				tr::marked),
 			st::urlAuthCheckbox,
 			std::move(checkView)),
 		{
@@ -427,9 +426,9 @@ void FillBotUsepic(
 		tr::lng_allow_bot_webview_details(
 			lt_emoji,
 			rpl::single(Ui::Text::IconEmoji(&st::textMoreIconEmoji)),
-			Ui::Text::RichLangValue
+			tr::rich
 		) | rpl::map([](TextWithEntities text) {
-			return Ui::Text::Link(std::move(text), u"internal:"_q);
+			return tr::link(std::move(text), u"internal:"_q);
 		}),
 		st::defaultFlatLabel);
 	const auto userpic = Ui::CreateChild<Ui::UserpicButton>(
@@ -549,7 +548,7 @@ void ConfirmEmojiStatusAccessBox(
 
 	AddSkip(box->verticalLayout(), 2 * st::defaultVerticalListSkip);
 
-	auto name = Ui::Text::Bold(bot->name());
+	auto name = tr::bold(bot->name());
 	box->addRow(
 		object_ptr<Ui::FlatLabel>(
 			box,
@@ -558,7 +557,7 @@ void ConfirmEmojiStatusAccessBox(
 				rpl::single(name),
 				lt_name,
 				rpl::single(name),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			st::botEmojiStatusText),
 		style::al_top);
 
@@ -611,8 +610,8 @@ void ConfirmEmojiStatusBox(
 			box,
 			tr::lng_bot_emoji_status_text(
 				lt_bot,
-				rpl::single(Ui::Text::Bold(bot->name())),
-				Ui::Text::RichLangValue),
+				rpl::single(tr::bold(bot->name())),
+				tr::rich),
 			st::botEmojiStatusText),
 		style::al_top);
 
@@ -1099,10 +1098,10 @@ void WebViewInstance::confirmOpen(Fn<void()> done) {
 			.text = tr::lng_profile_open_app_about(
 				tr::now,
 				lt_terms,
-				Ui::Text::Link(
+				tr::link(
 					tr::lng_profile_open_app_terms(tr::now),
 					tr::lng_mini_apps_tos_url(tr::now)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			.confirmed = crl::guard(this, callback),
 			.cancelled = crl::guard(this, cancel),
 			.confirmText = tr::lng_view_button_bot_app(),
@@ -1136,10 +1135,10 @@ void WebViewInstance::confirmAppOpen(
 			tr::lng_profile_open_app_about(
 				tr::now,
 				lt_terms,
-				Ui::Text::Link(
+				tr::link(
 					tr::lng_profile_open_app_terms(tr::now),
 					tr::lng_mini_apps_tos_url(tr::now)),
-				Ui::Text::RichLangValue),
+				tr::rich),
 			crl::guard(this, callback),
 			crl::guard(this, cancelled),
 			tr::lng_view_button_bot_app(),
@@ -1151,8 +1150,8 @@ void WebViewInstance::confirmAppOpen(
 					tr::lng_url_auth_allow_messages(
 						tr::now,
 						lt_bot,
-						Ui::Text::Bold(_bot->name()),
-						Ui::Text::WithEntities),
+						tr::bold(_bot->name()),
+						tr::marked),
 					true,
 					st::urlAuthCheckbox),
 				style::margins(
@@ -1735,8 +1734,8 @@ void WebViewInstance::botHandleMenuButton(
 				: tr::lng_bot_remove_from_menu_sure)(
 					tr::now,
 					lt_bot,
-					Ui::Text::Bold(name),
-					Ui::Text::WithEntities),
+					tr::bold(name),
+					tr::marked),
 			done,
 		}));
 	} break;
@@ -2627,8 +2626,8 @@ void AttachWebView::confirmAddToMenu(
 				box,
 				tr::lng_bot_will_be_added(
 					lt_bot,
-					rpl::single(Ui::Text::Bold(bot.name)),
-					Ui::Text::WithEntities),
+					rpl::single(tr::bold(bot.name)),
+					tr::marked),
 				st::boxLabel));
 		} else {
 			Ui::ConfirmBox(box, {
@@ -2637,8 +2636,8 @@ void AttachWebView::confirmAddToMenu(
 					: tr::lng_bot_add_to_menu)(
 						tr::now,
 						lt_bot,
-						Ui::Text::Bold(bot.name),
-						Ui::Text::WithEntities),
+						tr::bold(bot.name),
+						tr::marked),
 				done,
 				(callback
 					? [=](Fn<void()> close) { callback(false); close(); }
@@ -2651,8 +2650,8 @@ void AttachWebView::confirmAddToMenu(
 						tr::lng_url_auth_allow_messages(
 							tr::now,
 							lt_bot,
-							Ui::Text::Bold(bot.name),
-							Ui::Text::WithEntities),
+							tr::bold(bot.name),
+							tr::marked),
 						true,
 						st::urlAuthCheckbox),
 					style::margins(
