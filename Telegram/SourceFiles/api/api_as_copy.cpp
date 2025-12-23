@@ -95,7 +95,7 @@ FullReplyTo ReplyToIdFromDraft(not_null<PeerData*> peer) {
 			MTPmessages_SaveDraft(
 				MTP_flags(MTPmessages_SaveDraft::Flags(0)),
 				MTP_inputReplyToStory(MTP_inputPeerEmpty(), MTPint()),
-				history->peer->input,
+				history->peer->input(),
 				MTPstring(),
 				MTPVector<MTPMessageEntity>(),
 				MTP_inputMediaEmpty(),
@@ -143,7 +143,7 @@ void SendAlbumFromItems(
 				: MTPmessages_SendMultiMedia::Flag(0));
 		api.request(MTPmessages_SendMultiMedia(
 			MTP_flags(flags),
-			peer->input,
+			peer->input(),
 			ReplyToForMTP(history, replyTo),
 			MTP_vector<MTPInputSingleMedia>(medias),
 			MTP_int(toSend.scheduled),
@@ -241,7 +241,7 @@ void UpdateFileRef(
 	if (const auto channel = history->peer->asChannel()) {
 		history->session().api().request(
 			MTPchannels_GetMessages(
-				channel->inputChannel,
+				channel->inputChannel(),
 				MTP_vector<MTPInputMessage>(std::move(inputMessages)))
 		).done(receive).fail(receiveError).send();
 	} else {
