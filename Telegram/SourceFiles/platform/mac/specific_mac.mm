@@ -21,9 +21,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/platform/mac/base_confirm_quit.h"
 #include "base/platform/mac/base_utilities_mac.h"
 #include "base/platform/base_platform_info.h"
-#include "main/main_session.h"
-#include "window/window_session_controller.h"
-#include "base/options.h"
 
 #include <QtGui/QDesktopServices>
 #include <QtWidgets/QApplication>
@@ -245,7 +242,6 @@ bool AutostartSkip() {
 }
 
 void NewVersionLaunched(int oldVersion) {
-	base::options::lookup<bool>("text-recognition-mac").set(true);
 }
 
 QImage DefaultApplicationIcon() {

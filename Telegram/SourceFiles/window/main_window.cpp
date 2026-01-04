@@ -96,7 +96,7 @@ const QImage &GetForkIconOr(const QImage &l) {
 
 base::options::toggle OptionNewWindowsSizeAsFirst({
 	.id = kOptionNewWindowsSizeAsFirst,
-	.name = "Adjust size of new chat windows.",
+	.name = "Adjust size of new chat windows",
 	.description = "Open new windows with a size of the main window.",
 });
 
