@@ -98,7 +98,7 @@ void AddReplaceMedia(
 
 	const auto addAction = [&](QString &&s, Fn<void()> callback) {
 		auto item = base::make_unique_q<Ui::Menu::MultilineAction>(
-			menu,
+			menu->menu(),
 			st::defaultMenu,
 			st::historyHasCustomEmoji,
 			st::historyHasCustomEmojiPosition,
@@ -142,7 +142,7 @@ void AddSwapMedia(
 
 	const auto addAction = [&](QString &&s, Fn<void()> callback) {
 		auto item = base::make_unique_q<Ui::Menu::MultilineAction>(
-			menu,
+			menu->menu(),
 			st::defaultMenu,
 			st::historyHasCustomEmoji,
 			st::historyHasCustomEmojiPosition,
@@ -223,7 +223,7 @@ void AddGroupSelected(
 		not_null<Ui::PopupMenu*> menu,
 		Fn<void(bool)> callback) {
 	auto item = base::make_unique_q<Ui::Menu::Action>(
-		menu.get(),
+		menu->menu(),
 		menu->menu()->st(),
 		Ui::Menu::CreateAction(
 			menu.get(),
