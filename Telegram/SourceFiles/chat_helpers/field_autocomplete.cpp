@@ -1663,7 +1663,6 @@ void InitFieldAutocomplete(
 	const auto field = descriptor.field;
 
 	field->rawTextEdit()->installEventFilter(raw);
-	field->customTab(true);
 
 	raw->mentionChosen(
 	) | rpl::on_next([=](FieldAutocomplete::MentionChosen data) {
@@ -1732,9 +1731,10 @@ void InitFieldAutocomplete(
 	}
 
 	field->tabbed(
-	) | rpl::on_next([=] {
+	) | rpl::on_next([=](not_null<bool*> handled) {
 		if (!raw->isHidden()) {
 			raw->chooseSelected(FieldAutocomplete::ChooseMethod::ByTab);
+			*handled = true;
 		}
 	}, raw->lifetime());
 
