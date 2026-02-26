@@ -1644,7 +1644,7 @@ void UpdateApplication() {
 			if (KSandbox::isFlatpak()) {
 				return "https://flathub.org/apps/details/org.telegram.desktop";
 			} else if (KSandbox::isSnap()) {
-				return "https://snapcraft.io/telegram-desktop";
+				return "https://snapcraft.io/forkgram";
 			}
 			return "https://desktop.telegram.org";
 #endif // OS_WIN_STORE || OS_MAC_STORE

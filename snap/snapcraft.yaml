@@ -1,5 +1,5 @@
-name: telegram-desktop
-adopt-info: telegram
+name: forkgram
+adopt-info: forkgram
 icon: Telegram/Resources/art/icon512@2x.png
 
 base: core24
@@ -8,11 +8,11 @@ confinement: strict
 compression: lzo
 
 apps:
-  telegram-desktop:
-    command: usr/bin/telegram-desktop
+  forkgram:
+    command: usr/bin/forkgram
     common-id: org.telegram.desktop
     desktop: usr/share/applications/org.telegram.desktop.desktop
-    autostart: telegram-desktop_telegram-desktop.desktop
+    autostart: forkgram_forkgram.desktop
     extensions: [gnome]
     plugs:
       - audio-playback
@@ -32,7 +32,7 @@ layout:
     type: tmpfs
 
 parts:
-  telegram:
+  forkgram:
     plugin: cmake
     source: .
     source-type: git
@@ -70,7 +70,7 @@ parts:
       craftctl set version="$version"
     override-build: |
       craftctl default
-      mv "$CRAFT_PART_INSTALL"/usr/bin/{Telegram,telegram-desktop}
+      mv "$CRAFT_PART_INSTALL"/usr/bin/{Forkgram,forkgram}
 
       APP_ID=org.telegram.desktop
       sed -i "s/^Icon=$APP_ID$/Icon=snap.$CRAFT_PROJECT_NAME./g" "$CRAFT_PART_INSTALL/usr/share/applications/$APP_ID.desktop"
