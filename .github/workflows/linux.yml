@@ -145,12 +145,12 @@ jobs:
           -D DESKTOP_APP_SPECIAL_TARGET=linux \
           $DEFINE
 
-          strip -s out/Release/Telegram
+          strip -s out/MinSizeRel/Telegram
 
       - name: Check.
         if: env.ONLY_CACHE == 'false'
         run: |
-          filePath="out/Release/Telegram"
+          filePath="out/MinSizeRel/Telegram"
           if test -f "$filePath"; then
             echo "Build successfully done! :)"
 
@@ -164,7 +164,7 @@ jobs:
       - name: Compress.
         if: (github.event_name == 'release')
         run: |
-          cd out/Release
+          cd out/MinSizeRel
           tar -cJvf ../../Telegram.tar.xz *
 
       - name: Upload.
