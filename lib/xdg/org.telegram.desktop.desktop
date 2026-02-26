@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=Telegram
-Comment=New era of messaging
+Name=Forkgram
+Comment=Enhanced twist on Telegram
 TryExec=Forkgram
 Exec=Forkgram -- %U
 Icon=io.github.forkgram.tdesktop
@@ -18,5 +18,5 @@ X-GNOME-SingleWindow=true
 
 [Desktop Action quit]
 Exec=Forkgram -quit
-Name=Quit Telegram
+Name=Quit Forkgram
 Icon=application-exit
