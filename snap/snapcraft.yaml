@@ -10,8 +10,8 @@ compression: lzo
 apps:
   forkgram:
     command: usr/bin/forkgram
-    common-id: org.telegram.desktop
-    desktop: usr/share/applications/org.telegram.desktop.desktop
+    common-id: io.github.forkgram.tdesktop
+    desktop: usr/share/applications/io.github.forkgram.tdesktop.desktop
     autostart: forkgram_forkgram.desktop
     extensions: [gnome]
     plugs:
@@ -36,7 +36,7 @@ parts:
     plugin: cmake
     source: .
     source-type: git
-    parse-info: [usr/share/metainfo/org.telegram.desktop.metainfo.xml]
+    parse-info: [usr/share/metainfo/io.github.forkgram.tdesktop.metainfo.xml]
     build-environment:
       - LDFLAGS: ${LDFLAGS:+$LDFLAGS} -Wl,--push-state,--no-as-needed,-ldav1d,-lhwy,--pop-state -s
     build-packages:
@@ -72,7 +72,7 @@ parts:
       craftctl default
       mv "$CRAFT_PART_INSTALL"/usr/bin/{Forkgram,forkgram}
 
-      APP_ID=org.telegram.desktop
+      APP_ID=io.github.forkgram.tdesktop
       sed -i "s/^Icon=$APP_ID$/Icon=snap.$CRAFT_PROJECT_NAME./g" "$CRAFT_PART_INSTALL/usr/share/applications/$APP_ID.desktop"
       for i in $(find "$CRAFT_PART_INSTALL/usr/share/icons" -name "$APP_ID*.svg" -o -name "$APP_ID*.png"); do
         PREFIXED="$(dirname "$i")/snap.$CRAFT_PROJECT_NAME.$(basename "$i" | sed "s/$APP_ID//")"
