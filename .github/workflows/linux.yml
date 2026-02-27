@@ -138,6 +138,7 @@ jobs:
           docker run --rm \
           -u $(id -u) \
           -v $PWD:/usr/src/tdesktop \
+          -v $PWD/../DesktopPrivate:/usr/src/DesktopPrivate \
           $IMAGE_TAG \
           /usr/src/tdesktop/Telegram/build/docker/centos_env/build.sh \
           -D TDESKTOP_API_ID=${{ secrets.API_ID }} \
@@ -163,9 +164,7 @@ jobs:
 
       - name: Compress.
         if: (github.event_name == 'release')
-        run: |
-          cd out/MinSizeRel
-          tar -cJvf ../../Telegram.tar.xz *
+        run: tar -cJvf Telegram.tar.xz -C out/MinSizeRel Telegram
 
       - name: Upload.
         if: (github.event_name == 'release')
