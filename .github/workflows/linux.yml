@@ -146,12 +146,12 @@ jobs:
           -D DESKTOP_APP_SPECIAL_TARGET=linux \
           $DEFINE
 
-          strip -s out/MinSizeRel/Telegram
+          strip -s out/MinSizeRel/Forkgram
 
       - name: Check.
         if: env.ONLY_CACHE == 'false'
         run: |
-          filePath="out/MinSizeRel/Telegram"
+          filePath="out/MinSizeRel/Forkgram"
           if test -f "$filePath"; then
             echo "Build successfully done! :)"
 
@@ -164,13 +164,13 @@ jobs:
 
       - name: Compress.
         if: (github.event_name == 'release')
-        run: tar -cJvf Telegram.tar.xz -C out/MinSizeRel Telegram
+        run: tar -cJvf Forkgram.tar.xz -C out/MinSizeRel Forkgram
 
       - name: Upload.
         if: (github.event_name == 'release')
         uses: svenstaro/upload-release-action@2.11.4
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./Telegram.tar.xz
+          file: ./Forkgram.tar.xz
           tag: ${{ github.event.release.tag_name }}
-          asset_name: Telegram.tar.xz
+          asset_name: Forkgram.tar.xz
