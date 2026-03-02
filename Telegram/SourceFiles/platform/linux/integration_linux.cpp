@@ -35,7 +35,7 @@ namespace GObject = gi::repository::GObject;
 
 class Application : public Gio::impl::ApplicationImpl {
 public:
-	Application();
+	[[maybe_unused]] Application();
 
 	void before_emit_(GLib::Variant platformData) noexcept override {
 		if (Platform::IsWayland()) {

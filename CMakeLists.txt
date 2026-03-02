@@ -27,7 +27,9 @@ if (APPLE)
     enable_language(OBJC OBJCXX)
 endif()
 
-if (CMAKE_CONFIGURATION_TYPES AND configuration_types_init)
+if (configuration_types_init
+    AND CMAKE_CONFIGURATION_TYPES
+    AND NOT MinSizeRel IN_LIST CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_CONFIGURATION_TYPES "${CMAKE_CONFIGURATION_TYPES};MinSizeRel" CACHE STRING "" FORCE)
 endif()
 
