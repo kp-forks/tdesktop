@@ -8,6 +8,8 @@ Author: 23rd.
 
 #include "base/platform/base_platform_info.h"
 
+#include "base/basic_types.h"
+
 #ifdef Q_OS_WIN
 #include "base/platform/win/base_windows_winrt.h"
 
