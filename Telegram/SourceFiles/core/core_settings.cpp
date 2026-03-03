@@ -245,7 +245,8 @@ QByteArray Settings::serialize() const {
 		+ sizeof(qint32) * 8
 		+ sizeof(ushort)
 		+ sizeof(qint32) // _notificationsDisplayChecksum
-		+ Serialize::bytearraySize(callPanelPosition);
+		+ Serialize::bytearraySize(callPanelPosition)
+		+ sizeof(qint32);
 
 	// Fork Settings.
 	size += sizeof(qint32);
@@ -437,7 +438,8 @@ QByteArray Settings::serialize() const {
 			<< qint32(_quickDialogAction)
 			<< _notificationsVolume
 			<< _notificationsDisplayChecksum
-			<< callPanelPosition;
+			<< callPanelPosition
+			<< qint32(_cornerReply.current() ? 1 : 0);
 	}
 
 	Ensures(result.size() == size);
@@ -553,6 +555,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	qint32 hardwareAcceleratedVideo = _hardwareAcceleratedVideo ? 1 : 0;
 	qint32 chatQuickAction = static_cast<qint32>(_chatQuickAction);
 	qint32 suggestAnimatedEmoji = _suggestAnimatedEmoji ? 1 : 0;
+	qint32 cornerReply = _cornerReply.current() ? 1 : 0;
 	qint32 cornerReaction = _cornerReaction.current() ? 1 : 0;
 	qint32 legacySkipTranslationForLanguage = _translateButtonEnabled ? 1 : 0;
 	qint32 skipTranslationLanguagesCount = 0;
@@ -936,6 +939,9 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> callPanelPosition;
 	}
+	if (!stream.atEnd()) {
+		stream >> cornerReply;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::Settings::constructFromSerialized()"));
@@ -1124,6 +1130,7 @@ void Settings::addFromSerialized(const QByteArray &serialized) {
 		}
 	}
 	_suggestAnimatedEmoji = (suggestAnimatedEmoji == 1);
+	_cornerReply = (cornerReply == 1);
 	_cornerReaction = (cornerReaction == 1);
 	{ // Parse the legacy translation setting.
 		if (legacySkipTranslationForLanguage == 0) {
