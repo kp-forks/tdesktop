@@ -1,6 +1,12 @@
 name: Linux.
 
 on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label (e.g., v5.15.3)'
+        required: false
+        type: string
   release:
     types: [published]
   repository_dispatch:
@@ -61,6 +67,40 @@ jobs:
       IMAGE_TAG: tdesktop:centos_env
 
     steps:
+      - name: Validate upload secret parts.
+        env:
+          UPDATER_UPLOAD_BASE64: ${{ secrets.UPDATER_UPLOAD_BASE64 }}
+          UPDATER_UPLOAD_BASE64_PART1: ${{ secrets.UPDATER_UPLOAD_BASE64_PART1 }}
+          UPDATER_UPLOAD_BASE64_PART2: ${{ secrets.UPDATER_UPLOAD_BASE64_PART2 }}
+          UPDATER_UPLOAD_BASE64_PART3: ${{ secrets.UPDATER_UPLOAD_BASE64_PART3 }}
+        run: |
+          echo "UPDATER_UPLOAD_BASE64 length: ${#UPDATER_UPLOAD_BASE64}"
+          echo "UPDATER_UPLOAD_BASE64_PART1 length: ${#UPDATER_UPLOAD_BASE64_PART1}"
+          echo "UPDATER_UPLOAD_BASE64_PART2 length: ${#UPDATER_UPLOAD_BASE64_PART2}"
+          echo "UPDATER_UPLOAD_BASE64_PART3 length: ${#UPDATER_UPLOAD_BASE64_PART3}"
+          MERGED_UPLOAD_BASE64="${UPDATER_UPLOAD_BASE64_PART1}${UPDATER_UPLOAD_BASE64_PART2}${UPDATER_UPLOAD_BASE64_PART3}"
+          if [ -z "${MERGED_UPLOAD_BASE64}" ]; then
+            MERGED_UPLOAD_BASE64="${UPDATER_UPLOAD_BASE64}"
+          fi
+          echo "Merged parts length: ${#MERGED_UPLOAD_BASE64}"
+          if [ -z "${MERGED_UPLOAD_BASE64}" ]; then
+            echo "No upload base64 payload provided."
+            exit 0
+          fi
+
+          if ! printf "%s" "${MERGED_UPLOAD_BASE64}" | base64 --decode > /tmp/updater_upload_check.zip 2>/tmp/updater_upload_check.err; then
+            echo "Base64 decode failed."
+            cat /tmp/updater_upload_check.err
+            exit 1
+          fi
+
+          if [ ! -s /tmp/updater_upload_check.zip ]; then
+            echo "Decoded payload is empty."
+            exit 1
+          fi
+
+          echo "Decoded file info: $(file -b /tmp/updater_upload_check.zip)"
+
       - name: Clone.
         uses: actions/checkout@v6
         with:
@@ -76,20 +116,23 @@ jobs:
           echo "$DOCKERFILE" > Dockerfile
           rm -rf __pycache__
 
-          sudo apt -y install wget 7zip
+          sudo apt -y install wget 7zip unzip
 
           cd $GITHUB_WORKSPACE/..
 
-          mkdir DesktopPrivate
-          cd DesktopPrivate
-
-          echo "#pragma once" > alpha_private.h
-          echo "#pragma once" > packer_private.h
-
-          echo '${{ secrets.ALPHA_PRIVATE }}' >> alpha_private.h
-          echo '${{ secrets.PACKER_PRIVATE }}' >> packer_private.h
-
-          cd ..
+          rm -rf DesktopPrivate
+          mkdir -p DesktopPrivate
+          if [ -n "${{ secrets.DESKTOP_PRIVATE_BASE64 }}" ]; then
+            echo "${{ secrets.DESKTOP_PRIVATE_BASE64 }}" | base64 --decode > desktop_private.zip
+            unzip -oq desktop_private.zip -d DesktopPrivate
+          else
+            cd DesktopPrivate
+            echo "#pragma once" > alpha_private.h
+            echo "#pragma once" > packer_private.h
+            echo '${{ secrets.ALPHA_PRIVATE }}' >> alpha_private.h
+            echo '${{ secrets.PACKER_PRIVATE }}' >> packer_private.h
+            cd ..
+          fi
 
           wget ${{ secrets.PACK_FILE }} -O p.7z
           7za x p.7z -p${{ secrets.PACK_FILE_PASSWORD }}
@@ -164,7 +207,86 @@ jobs:
 
       - name: Compress.
         if: (github.event_name == 'release')
-        run: tar -cJvf Forkgram.tar.xz -C out/MinSizeRel Forkgram
+        run: tar -cJvf Forkgram.tar.xz -C out/MinSizeRel Forkgram Updater
+
+      - name: Pack updater files.
+        if: (github.event_name == 'release') || (github.event_name == 'workflow_dispatch') || (github.event_name == 'repository_dispatch')
+        run: |
+          verPacker=$(awk '$1 == "AppVersion" { print $2 }' Telegram/build/version)
+          cd out/MinSizeRel
+          BEFORE=$(mktemp)
+          AFTER=$(mktemp)
+          ls -1 tlinuxupd* 2>/dev/null | sort > "$BEFORE" || true
+          ./Packer -path Forkgram -path Updater -version "$verPacker"
+          ls -1 tlinuxupd* 2>/dev/null | sort > "$AFTER" || true
+          UPDATE_FILE=$(comm -13 "$BEFORE" "$AFTER" | tail -n 1)
+          if [ -z "$UPDATE_FILE" ]; then
+            UPDATE_FILE=$(ls -1t tlinuxupd* | head -n 1)
+          fi
+          if [ -z "$UPDATE_FILE" ] || [ ! -f "$UPDATE_FILE" ]; then
+            echo "Packed update file was not generated."
+            exit 1
+          fi
+          echo "PACKED_UPDATE_FILE=$GITHUB_WORKSPACE/out/MinSizeRel/$UPDATE_FILE" >> $GITHUB_ENV
+          echo "PACKED_UPDATE_BASENAME=$UPDATE_FILE" >> $GITHUB_ENV
+          echo "VER_PACKER=$verPacker" >> $GITHUB_ENV
+
+      - name: Upload packed updater to Telegram channel.
+        if: (github.event_name == 'release') || (github.event_name == 'workflow_dispatch') || (github.event_name == 'repository_dispatch')
+        env:
+          UPDATER_UPLOAD_BASE64: ${{ secrets.UPDATER_UPLOAD_BASE64 }}
+          UPDATER_UPLOAD_BASE64_PART1: ${{ secrets.UPDATER_UPLOAD_BASE64_PART1 }}
+          UPDATER_UPLOAD_BASE64_PART2: ${{ secrets.UPDATER_UPLOAD_BASE64_PART2 }}
+          UPDATER_UPLOAD_BASE64_PART3: ${{ secrets.UPDATER_UPLOAD_BASE64_PART3 }}
+        run: |
+          MERGED_UPLOAD_BASE64="${UPDATER_UPLOAD_BASE64_PART1}${UPDATER_UPLOAD_BASE64_PART2}${UPDATER_UPLOAD_BASE64_PART3}"
+          if [ -z "${MERGED_UPLOAD_BASE64}" ]; then
+            MERGED_UPLOAD_BASE64="${UPDATER_UPLOAD_BASE64}"
+          fi
+
+          if [ -z "${MERGED_UPLOAD_BASE64}" ]; then
+            echo "UPDATER_UPLOAD_BASE64(_PART1/_PART2/_PART3) is empty, skip channel upload."
+            exit 0
+          fi
+
+          python3 -m pip install --upgrade pip
+          python3 -m pip install requests tgcrypto-pyrofork Kurigram
+
+          rm -rf updater_channel_upload
+          mkdir -p updater_channel_upload
+
+          printf "%s" "${MERGED_UPLOAD_BASE64}" | base64 --decode > updater_upload.raw
+          if unzip -tqq updater_upload.raw >/dev/null 2>&1; then
+            unzip -oq updater_upload.raw -d updater_channel_upload
+          elif tar -tzf updater_upload.raw >/dev/null 2>&1; then
+            tar -xzf updater_upload.raw -C updater_channel_upload
+          elif tar -tf updater_upload.raw >/dev/null 2>&1; then
+            tar -xf updater_upload.raw -C updater_channel_upload
+          else
+            echo "Unsupported upload bundle format: $(file -b updater_upload.raw)"
+            exit 1
+          fi
+
+          (
+            cd updater_channel_upload
+            7za a -tzip -mx=0 ../updater_upload.zip . >/dev/null
+          )
+
+          SCRIPT_PATH=$(find updater_channel_upload -type f -name linux_pack_upl.py | head -n 1)
+          if [ -z "$SCRIPT_PATH" ]; then
+            echo "linux_pack_upl.py not found in UPDATER_UPLOAD_BASE64 bundle."
+            exit 1
+          fi
+
+          SCRIPT_DIR=$(dirname "$SCRIPT_PATH")
+          cp "$PACKED_UPDATE_FILE" "$SCRIPT_DIR/"
+          cp updater_upload.zip "$SCRIPT_DIR/"
+
+          cd "$SCRIPT_DIR"
+          if [ -f requirements.txt ]; then
+            python3 -m pip install -r requirements.txt
+          fi
+          python3 linux_pack_upl.py "tlinuxupd${VER_PACKER}"
 
       - name: Upload.
         if: (github.event_name == 'release')
