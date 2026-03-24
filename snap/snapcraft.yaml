@@ -52,8 +52,8 @@ parts:
     cmake-parameters:
       - -DCMAKE_BUILD_TYPE=Release
       - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DTDESKTOP_API_ID=611335
-      - -DTDESKTOP_API_HASH=d524b414d21f4d37f08684c1df41ac9c
+      - -DTDESKTOP_API_ID=14577864
+      - -DTDESKTOP_API_HASH=54d3ae230fd8f985ce9adccf08fbd9d6
     override-pull: |
       craftctl default
 
@@ -122,7 +122,7 @@ parts:
   patches:
     source: https://github.com/desktop-app/patches.git
     source-depth: 1
-    source-commit: b8c3a8ffc1514861837b9213383133c63023e0de
+    source-commit: 4519c85c924b9da81f29d4aac045886f896ee479
     plugin: nil
     override-pull: |
       craftctl default
@@ -320,7 +320,7 @@ parts:
   jpegli:
     source: https://github.com/libjxl/libjxl.git
     source-depth: 1
-    source-tag: v0.11.1
+    source-tag: v0.11.2
     plugin: cmake
     build-packages:
       - curl
@@ -403,7 +403,7 @@ parts:
   qt:
     source: https://github.com/qt/qt5.git
     source-depth: 1
-    source-tag: v6.10.2
+    source-tag: v6.11.0
     source-submodules:
       - qtbase
       - qtdeclarative
