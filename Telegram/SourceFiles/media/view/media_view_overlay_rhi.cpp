@@ -492,6 +492,26 @@ void OverlayWidget::RendererRhi::render(
 
 	_owner->paint(this);
 
+	if (const auto notch = _owner->topNotchSkip()) {
+		auto blackImage = QImage(1, 1, QImage::Format_ARGB32_Premultiplied);
+		blackImage.fill(Qt::black);
+		auto *blackTex = acquirePoolTexture(QSize(1, 1));
+		_rub->uploadTexture(
+			blackTex,
+			QRhiTextureUploadDescription(
+				QRhiTextureUploadEntry(0, 0,
+					QRhiTextureSubresourceUploadDescription(blackImage))));
+		const auto notchRect = transformRect(
+			QRect(0, 0, _owner->width(), notch));
+		const float notchCoords[] = {
+			notchRect.left(), notchRect.bottom(), 0.f, 0.f,
+			notchRect.right(), notchRect.bottom(), 1.f, 0.f,
+			notchRect.left(), notchRect.top(), 0.f, 1.f,
+			notchRect.right(), notchRect.top(), 1.f, 1.f,
+		};
+		drawTexturedQuad(_imagePipeline, blackTex, notchCoords);
+	}
+
 	cb->beginPass(rt, QColor(0, 0, 0, 0), { 1.0f, 0 }, _rub);
 	_rub = nullptr;
 
@@ -992,26 +1012,6 @@ void OverlayWidget::RendererRhi::paintBackground() {
 		vw,  0.f, 1.f, 1.f,
 	};
 	drawTexturedQuad(_imagePipeline, tex, coords);
-
-	if (const auto notch = _owner->topNotchSkip()) {
-		auto blackImage = QImage(1, 1, QImage::Format_ARGB32_Premultiplied);
-		blackImage.fill(Qt::black);
-		auto *blackTex = acquirePoolTexture(QSize(1, 1));
-		_rub->uploadTexture(
-			blackTex,
-			QRhiTextureUploadDescription(
-				QRhiTextureUploadEntry(0, 0,
-					QRhiTextureSubresourceUploadDescription(blackImage))));
-		const auto notchRect = transformRect(
-			QRect(0, 0, _owner->width(), notch));
-		const float notchCoords[] = {
-			notchRect.left(), notchRect.bottom(), 0.f, 0.f,
-			notchRect.right(), notchRect.bottom(), 1.f, 0.f,
-			notchRect.left(), notchRect.top(), 0.f, 1.f,
-			notchRect.right(), notchRect.top(), 1.f, 1.f,
-		};
-		drawTexturedQuad(_imagePipeline, blackTex, notchCoords);
-	}
 }
 
 void OverlayWidget::RendererRhi::paintVideoStream() {
