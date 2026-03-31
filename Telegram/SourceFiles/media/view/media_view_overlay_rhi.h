@@ -82,8 +82,16 @@ private:
 		const QImage &image,
 		ContentGeometry geometry);
 
+	struct Control {
+		int index = -1;
+		not_null<const style::icon*> icon;
+	};
+
 	void createPipelines();
 	void validateControlsFade();
+	void validateControls();
+	void invalidateControls();
+	[[nodiscard]] Control controlMeta(Over control) const;
 
 	void drawTexturedQuad(
 		QRhiGraphicsPipeline *pipeline,
@@ -161,6 +169,11 @@ private:
 	std::vector<PoolTexture> _texturePool;
 	int _nextPoolIndex = 0;
 	[[nodiscard]] QRhiTexture *acquirePoolTexture(QSize size);
+
+	static constexpr auto kControlsCount = 7;
+	QRhiTexture *_controlsAtlasTexture = nullptr;
+	QSize _controlsAtlasSize;
+	std::array<QRect, kControlsCount + 1> _controlsTextures;
 
 	QRhiTexture *_controlsFadeTexture = nullptr;
 	QSize _controlsFadeSize;
