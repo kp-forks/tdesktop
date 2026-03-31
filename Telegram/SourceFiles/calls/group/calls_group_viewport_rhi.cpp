@@ -1113,23 +1113,20 @@ void Viewport::RendererRhi::drawFramePass(
 
 	const auto rect = transformRect(geometry);
 
-	// For group_frame.vert: position in pixels, v_texcoord, b_texcoord
-	// Vertex layout: pos.x, pos.y, vtc.x, vtc.y, btc.x, btc.y
-	// Triangle strip: BL, BR, TL, TR
 	const float frameCoords[] = {
-		float(x) * _factor, float(y + height) * _factor,
+		rect.left(), rect.top(),
 		texCoords[0][0], texCoords[0][1],
 		blurTexCoords[0][0], blurTexCoords[0][1],
 
-		float(x + width) * _factor, float(y + height) * _factor,
+		rect.right(), rect.top(),
 		texCoords[1][0], texCoords[1][1],
 		blurTexCoords[1][0], blurTexCoords[1][1],
 
-		float(x) * _factor, float(y) * _factor,
+		rect.right(), rect.bottom(),
 		texCoords[2][0], texCoords[2][1],
 		blurTexCoords[2][0], blurTexCoords[2][1],
 
-		float(x + width) * _factor, float(y) * _factor,
+		rect.left(), rect.bottom(),
 		texCoords[3][0], texCoords[3][1],
 		blurTexCoords[3][0], blurTexCoords[3][1],
 	};
@@ -1153,10 +1150,10 @@ void Viewport::RendererRhi::drawFramePass(
 
 	uniforms.paused = float(paused);
 
-	uniforms.roundRect[0] = float(x) * _factor;
-	uniforms.roundRect[1] = float(y) * _factor;
-	uniforms.roundRect[2] = float(width) * _factor;
-	uniforms.roundRect[3] = float(height) * _factor;
+	uniforms.roundRect[0] = rect.x();
+	uniforms.roundRect[1] = rect.y();
+	uniforms.roundRect[2] = rect.width();
+	uniforms.roundRect[3] = rect.height();
 
 	const auto radius = _owner->videoStream()
 		? st::storiesRadius
