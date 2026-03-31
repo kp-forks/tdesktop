@@ -147,6 +147,10 @@ private:
 	QRhiGraphicsPipeline *_staticContentBlendPipeline = nullptr;
 	QRhiGraphicsPipeline *_transparentContentPipeline = nullptr;
 	QRhiGraphicsPipeline *_roundedCornersPipeline = nullptr;
+	QRhiGraphicsPipeline *_yuv420Pipeline = nullptr;
+	QRhiGraphicsPipeline *_yuv420BlendPipeline = nullptr;
+	QRhiGraphicsPipeline *_nv12Pipeline = nullptr;
+	QRhiGraphicsPipeline *_nv12BlendPipeline = nullptr;
 
 	struct DrawCommand {
 		QRhiGraphicsPipeline *pipeline = nullptr;
@@ -161,6 +165,16 @@ private:
 	QRhiTexture *_rgbaTextures[3] = {};
 	QSize _rgbaSizes[3];
 	quint64 _cacheKeys[3] = {};
+
+	QRhiTexture *_yTexture = nullptr;
+	QRhiTexture *_uTexture = nullptr;
+	QRhiTexture *_vTexture = nullptr;
+	QRhiTexture *_uvTexture = nullptr;
+	QSize _lumaSize;
+	QSize _chromaSize;
+	bool _chromaNV12 = false;
+	int _trackFrameIndex = 0;
+	int _streamedIndex = 0;
 
 	struct PoolTexture {
 		QRhiTexture *texture = nullptr;
