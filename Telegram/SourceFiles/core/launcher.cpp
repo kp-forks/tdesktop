@@ -40,6 +40,17 @@ base::options::toggle OptionHighDpiDownscale({
 	.restartRequired = true,
 });
 
+base::options::toggle OptionUseOpenGLRenderer({
+	.id = kOptionUseOpenGLRenderer,
+	.name = "Use OpenGL renderer",
+	.description = "Use the legacy OpenGL rendering backend instead of"
+		" the default Metal/Direct3D/Vulkan (QRhi) backend.",
+	.scope = [] {
+		return QLibraryInfo::version() >= QVersionNumber(6, 7);
+	},
+	.restartRequired = true,
+});
+
 base::options::toggle OptionFreeType({
 	.id = kOptionFreeType,
 	.name = "FreeType font engine",
@@ -309,6 +320,7 @@ base::options::toggle OptionFractionalScalingEnabled({
 const char kOptionFractionalScalingEnabled[] = "fractional-scaling-enabled";
 const char kOptionHighDpiDownscale[] = "high-dpi-downscale";
 const char kOptionFreeType[] = "freetype";
+const char kOptionUseOpenGLRenderer[] = "use-opengl-renderer";
 
 Launcher *Launcher::InstanceSetter::Instance = nullptr;
 
@@ -365,7 +377,7 @@ void Launcher::initHighDpi() {
 		qputenv("QT_WIDGETS_RHI_BACKEND", "opengl");
 	}
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
-	if (qEnvironmentVariableIsSet("DESKTOP_APP_USE_QRHI")) {
+	if (!OptionUseOpenGLRenderer.value()) {
 		qputenv("QT_WIDGETS_RHI", "1");
 #ifdef Q_OS_MAC
 		qputenv("QT_WIDGETS_RHI_BACKEND", "metal");
