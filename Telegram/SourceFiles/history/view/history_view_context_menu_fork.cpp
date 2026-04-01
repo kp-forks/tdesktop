@@ -79,7 +79,8 @@ void RememberPhotoAsInputMedia(not_null<PhotoData*> photo) {
 		.media = MTP_inputMediaPhoto(
 			MTP_flags(0),
 			photo->mtpInput(),
-			MTPint()),
+			MTPint(),
+			MTPInputDocument()),
 	};
 }
 
@@ -166,7 +167,8 @@ void AddSwapMedia(
 				? MTP_inputMediaPhoto(
 					MTP_flags(0),
 					photo1->mtpInput(),
-					MTPint())
+					MTPint(),
+					MTPInputDocument())
 				: MTP_inputMediaEmpty();
 			auto inputMedia2 = document2
 				? MTP_inputMediaDocument(
@@ -182,7 +184,8 @@ void AddSwapMedia(
 				? MTP_inputMediaPhoto(
 					MTP_flags(0),
 					photo2->mtpInput(),
-					MTPint())
+					MTPint(),
+					MTPInputDocument())
 				: MTP_inputMediaEmpty();
 			action();
 			const auto o1 = Api::SendOptions{

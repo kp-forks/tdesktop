@@ -71,7 +71,8 @@ MTPinputMedia InputMediaFromItem(not_null<HistoryItem*> i) {
 		return MTP_inputMediaPhoto(
 			MTP_flags(MTPDinputMediaPhoto::Flag(0)),
 			photo->mtpInput(),
-			MTP_int(0));
+			MTP_int(0),
+			MTPInputDocument());
 	} else {
 		return MTP_inputMediaEmpty();
 	}
