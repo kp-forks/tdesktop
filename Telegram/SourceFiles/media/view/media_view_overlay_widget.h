@@ -141,6 +141,7 @@ private:
 	class Renderer;
 	class RendererSW;
 	class RendererGL;
+	class RendererRhi;
 	class SponsoredButton;
 
 	// If changing, see paintControls()!
