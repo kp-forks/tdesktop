@@ -1620,9 +1620,11 @@ mac:
         -I "$USED_PREFIX/include" \
         -no-feature-futimens \
         -no-feature-brotli \
+        -no-feature-cxx17_filesystem \
         -platform macx-clang -- \
         -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
         -DCMAKE_PREFIX_PATH="$USED_PREFIX" \
+        -DQT_NO_HANDLE_APPLE_SINGLE_ARCH_CROSS_COMPILING=OFF \
         -DQT_SYNC_HEADERS_AT_CONFIGURE_TIME=ON
 
     cmake --build .
