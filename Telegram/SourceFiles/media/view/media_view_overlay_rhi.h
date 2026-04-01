@@ -191,7 +191,7 @@ private:
 	int _nextPoolIndex = 0;
 	[[nodiscard]] QRhiTexture *acquirePoolTexture(QSize size);
 
-	static constexpr auto kControlsCount = 7;
+	static constexpr auto kControlsCount = 8;
 	QRhiTexture *_controlsAtlasTexture = nullptr;
 	QSize _controlsAtlasSize;
 	std::array<QRect, kControlsCount + 1> _controlsTextures;

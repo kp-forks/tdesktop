@@ -1437,7 +1437,8 @@ auto OverlayWidget::RendererRhi::controlMeta(Over control) const
 	case Over::Share: return { 3, &st::mediaviewShare };
 	case Over::Rotate: return { 4, &st::mediaviewRotate };
 	case Over::More: return { 5, &st::mediaviewMore };
-	case Over::Recognize: return { 6, &st::mediaviewRecognize };
+	case Over::Draw: return { 6, &st::mediaviewDraw };
+	case Over::Recognize: return { 7, &st::mediaviewRecognize };
 	}
 	Unexpected("Control value in OverlayWidget::RendererRhi::controlMeta.");
 }
@@ -1453,6 +1454,7 @@ void OverlayWidget::RendererRhi::validateControls() {
 		controlMeta(Over::Share),
 		controlMeta(Over::Rotate),
 		controlMeta(Over::More),
+		controlMeta(Over::Draw),
 		controlMeta(Over::Recognize),
 	};
 	auto maxWidth = 0;
