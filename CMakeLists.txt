@@ -8,6 +8,29 @@ cmake_minimum_required(VERSION 3.25...3.31)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Apply qt6.11 patches to submodules at configure time.
+file(GLOB _submodule_patches "${CMAKE_SOURCE_DIR}/patches/*.patch")
+foreach(_patch ${_submodule_patches})
+    get_filename_component(_patch_name ${_patch} NAME)
+    # Extract target submodule directory from patch filename (prefix before first '_').
+    string(REGEX MATCH "^([a-z]+)" _submodule ${_patch_name})
+    if (IS_DIRECTORY "${CMAKE_SOURCE_DIR}/${_submodule}")
+        execute_process(
+            COMMAND git apply --check ${_patch}
+            WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/${_submodule}"
+            RESULT_VARIABLE _check_result
+            OUTPUT_QUIET ERROR_QUIET
+        )
+        if (_check_result EQUAL 0)
+            execute_process(
+                COMMAND git apply ${_patch}
+                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/${_submodule}"
+            )
+            message(STATUS "Applied patch: ${_patch_name}")
+        endif()
+    endif()
+endforeach()
+
 include(cmake/validate_special_target.cmake)
 include(cmake/version.cmake)
 desktop_app_parse_version(Telegram/build/version)

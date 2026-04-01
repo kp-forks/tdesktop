@@ -1554,6 +1554,10 @@ win:
     jom -j%NUMBER_OF_PROCESSORS% install
 mac:
     find ../../patches/qtbase_$QT -type f -print0 | sort -z | xargs -0 git apply
+    QT_MAJOR_MINOR=$(echo $QT | grep -oE '^[0-9]+\\.[0-9]+')
+    if [ -d "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" ]; then
+        find "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" -type f -print0 | sort -z | xargs -0 git apply
+    fi
     cd ..
 
     CONFIGURATIONS=-debug
@@ -1588,6 +1592,10 @@ else: # qt > '6'
 depends:patches/qtbase_""" + qt + """/*.patch
     cd qtbase
 mac:
+    QT_MAJOR_MINOR=$(echo $QT | grep -oE '^[0-9]+\\.[0-9]+')
+    if [ -d "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" ]; then
+        find "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" -type f -print0 | sort -z | xargs -0 git apply -v
+    fi
     find ../../patches/qtbase_$QT -type f -print0 | sort -z | xargs -0 git apply -v
     cd ..
     sed -i.bak 's/tqtc-//' {qtimageformats,qtsvg}/dependencies.yaml
@@ -1602,6 +1610,7 @@ mac:
         -opensource \
         -confirm-license \
         -static \
+        -no-framework \
         -opengl desktop \
         -no-openssl \
         -securetransport \
@@ -1611,7 +1620,8 @@ mac:
         -no-feature-brotli \
         -platform macx-clang -- \
         -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
-        -DCMAKE_PREFIX_PATH="$USED_PREFIX"
+        -DCMAKE_PREFIX_PATH="$USED_PREFIX" \
+        -DQT_SYNC_HEADERS_AT_CONFIGURE_TIME=ON
 
     cmake --build .
     cmake --install .
