@@ -655,7 +655,7 @@ public:
 		_yuv420Pipeline->create();
 
 #ifndef Q_OS_MAC
-		const auto argb32Fs = Ui::Rhi::ShaderFromFile(
+		const auto shadowFs = Ui::Rhi::ShaderFromFile(
 			u":/shaders/argb32.frag.qsb"_q);
 		QRhiGraphicsPipeline::TargetBlend blend;
 		blend.enable = true;
@@ -666,7 +666,7 @@ public:
 		_shadowBlendPipeline = rhi->newGraphicsPipeline();
 		_shadowBlendPipeline->setShaderStages({
 			{ QRhiShaderStage::Vertex, vs },
-			{ QRhiShaderStage::Fragment, argb32Fs },
+			{ QRhiShaderStage::Fragment, shadowFs },
 		});
 		_shadowBlendPipeline->setVertexInputLayout(layout);
 		_shadowBlendPipeline->setTargetBlends({ blend });
