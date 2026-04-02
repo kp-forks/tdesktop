@@ -826,6 +826,8 @@ PRIVATE
     export/view/export_view_settings.h
     export/view/export_view_top_bar.cpp
     export/view/export_view_top_bar.h
+    forkgram/gpu_demo_renderer.cpp
+    forkgram/gpu_demo_renderer.h
     forkgram/uri_menu.cpp
     forkgram/uri_menu.h
     history/admin_log/history_admin_log_filter.cpp
@@ -1800,6 +1802,10 @@ PRIVATE
     ui/effects/message_sending_animation_controller.h
     ui/effects/reaction_fly_animation.cpp
     ui/effects/reaction_fly_animation.h
+    ui/effects/thanos_effect.cpp
+    ui/effects/thanos_effect.h
+    ui/effects/thanos_effect_renderer.cpp
+    ui/effects/thanos_effect_renderer.h
     ui/effects/send_action_animations.cpp
     ui/effects/send_action_animations.h
     ui/image/image.cpp
