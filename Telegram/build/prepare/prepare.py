@@ -1555,11 +1555,11 @@ win:
     jom -j%NUMBER_OF_PROCESSORS%
     jom -j%NUMBER_OF_PROCESSORS% install
 mac:
-    find ../../patches/qtbase_$QT -type f -print0 | sort -z | xargs -0 git apply
     QT_MAJOR_MINOR=$(echo $QT | grep -oE '^[0-9]+\\.[0-9]+')
     if [ -d "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" ]; then
         find "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" -type f -print0 | sort -z | xargs -0 git apply
     fi
+    find ../../patches/qtbase_$QT -type f -print0 | sort -z | xargs -0 git apply
     cd ..
 
     CONFIGURATIONS=-debug
@@ -1624,7 +1624,7 @@ mac:
         -platform macx-clang -- \
         -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" \
         -DCMAKE_PREFIX_PATH="$USED_PREFIX" \
-        -DQT_NO_HANDLE_APPLE_SINGLE_ARCH_CROSS_COMPILING=OFF \
+        -DQT_NO_HANDLE_APPLE_SINGLE_ARCH_CROSS_COMPILING=ON \
         -DQT_SYNC_HEADERS_AT_CONFIGURE_TIME=ON
 
     cmake --build .
