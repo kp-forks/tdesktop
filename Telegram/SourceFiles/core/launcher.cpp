@@ -380,7 +380,8 @@ void Launcher::initHighDpi() {
 	if (!OptionUseOpenGLRenderer.value()) {
 		qputenv("QT_WIDGETS_RHI", "1");
 #ifdef Q_OS_MAC
-		qputenv("QT_WIDGETS_RHI_BACKEND", "metal");
+		qputenv("QT_WIDGETS_RHI_BACKEND",
+			Platform::MetalSupported() ? "metal" : "opengl");
 #elif defined(Q_OS_WIN)
 		qputenv("QT_WIDGETS_RHI_BACKEND", "d3d11");
 #else
