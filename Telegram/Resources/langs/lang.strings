@@ -324,10 +324,16 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_sure_enable_socks" = "Are you sure you want to enable this proxy?\n\nServer: {server}\nPort: {port}\n\nYou can change your proxy server later in Settings > Advanced > Connection Type.";
 "lng_sure_enable" = "Enable";
 "lng_proxy_box_title" = "Enable proxy";
+"lng_proxy_box_table_title" = "Proxy Server";
+"lng_proxy_box_table_button" = "Connect Proxy";
+"lng_proxy_box_table_checking" = "Checking…";
+"lng_proxy_box_table_available" = "Available (ping: {ping} ms)";
+"lng_proxy_box_table_unavailable" = "Not Available";
 "lng_proxy_box_server" = "Server";
 "lng_proxy_box_port" = "Port";
 "lng_proxy_box_secret" = "Secret";
 "lng_proxy_box_status" = "Status";
+"lng_proxy_box_check_status" = "Check Status";
 "lng_proxy_box_username" = "Username";
 "lng_proxy_box_password" = "Password";
 "lng_proxy_invalid" = "The proxy link is invalid.";
@@ -4243,8 +4249,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_gift_resale_symbol" = "Symbol";
 "lng_gift_resale_symbols#one" = "{count} Symbol";
 "lng_gift_resale_symbols#other" = "{count} Symbols";
-"lng_gift_resale_switch_to_ton" = "Switch to Ton";
-"lng_gift_resale_switch_to_stars" = "Switch to Stars";
 "lng_gift_resale_search_none" = "No gifts found for your search.";
 "lng_gift_resale_early" = "You will be able to resell this gift in {duration}.";
 "lng_gift_transfer_early" = "You will be able to transfer this gift in {duration}.";
