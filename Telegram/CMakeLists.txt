@@ -92,6 +92,7 @@ PRIVATE
     desktop-app::external_qt_static_plugins
     desktop-app::external_qt
     desktop-app::external_qr_code_generator
+    desktop-app::external_zbar
     desktop-app::external_crash_reports
     desktop-app::external_auto_updates
     desktop-app::external_openssl
@@ -1649,6 +1650,8 @@ PRIVATE
     settings/sections/settings_calls.h
     settings/sections/settings_fork.cpp
     settings/sections/settings_fork.h
+    settings/sections/settings_link_device.cpp
+    settings/sections/settings_link_device.h
     settings/settings_codes.cpp
     settings/settings_codes.h
     settings/settings_common_session.cpp

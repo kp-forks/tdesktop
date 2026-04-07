@@ -48,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "settings/sections/settings_calls.h"
 #include "settings/sections/settings_chat.h"
 #include "settings/sections/settings_fork.h"
+#include "settings/sections/settings_link_device.h"
 #include "settings/settings_codes.h"
 #include "settings/settings_faq_suggestions.h"
 #include "settings/sections/settings_credits.h"
@@ -423,6 +424,13 @@ void BuildSectionButtons(SectionBuilder &builder) {
 			controller->show(Box(PowerSavingBox, PowerSaving::Flags()));
 		},
 		.keywords = { u"battery"_q, u"animations"_q, u"power"_q, u"saving"_q },
+	});
+
+	builder.addSectionButton({
+		.title = tr::lng_settings_link_device(),
+		.targetSection = LinkDeviceId(),
+		.icon = { &st::menuIconQrCode },
+		.keywords = { u"link"_q, u"device"_q, u"qr"_q, u"scan"_q },
 	});
 
 	builder.addSectionButton({

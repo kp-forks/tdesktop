@@ -94,3 +94,6 @@
 [submodule "Telegram/lib_translate"]
 	path = Telegram/lib_translate
 	url = https://github.com/desktop-app/lib_translate
+[submodule "Telegram/ThirdParty/zbar"]
+	path = Telegram/ThirdParty/zbar
+	url = https://github.com/mchehab/zbar.git

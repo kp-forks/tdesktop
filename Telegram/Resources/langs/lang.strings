@@ -555,6 +555,17 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_custom_sticker_size" = "Custom Sticker Size";
 "lng_settings_sticker_size_label" = "Allowed values are between 50 and 256.";
 
+// Link Device (QR login).
+"lng_settings_link_device" = "Link Device";
+"lng_settings_link_device_privacy" = "Your camera feed stays on your device. No video data is sent over the network — QR codes are scanned locally.";
+"lng_settings_link_device_start" = "Open Camera";
+"lng_settings_link_device_scanning" = "Point camera at the QR code shown on the device you want to log in.";
+"lng_settings_link_device_success" = "Device linked successfully!";
+"lng_settings_link_device_error" = "Could not link device: {error}";
+"lng_settings_link_device_confirm" = "Do you want to link this device to your account?";
+"lng_settings_link_device_stop" = "Stop Camera";
+"lng_settings_link_device_clipboard" = "Scan QR from Clipboard";
+
 "lng_context_open_uri_link" = "Open Link with URI Scheme";
 
 "lng_context_search_selected" = "Search Selected Text";
