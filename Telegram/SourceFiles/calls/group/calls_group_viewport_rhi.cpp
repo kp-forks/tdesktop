@@ -152,7 +152,9 @@ Viewport::RendererRhi::RendererRhi(not_null<Viewport*> owner)
 }
 
 Viewport::RendererRhi::~RendererRhi() {
-	releaseResources();
+	if (_initialized) {
+		releaseResources();
+	}
 }
 
 QColor Viewport::RendererRhi::rhiClearColor() {
