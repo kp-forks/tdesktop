@@ -2,8 +2,14 @@
 ![image](https://user-images.githubusercontent.com/4051126/43634235-402a8b74-9714-11e8-85c0-8ceb0844a3b0.png)  
 Forkgram is the cutting-edge Telegram fork with small Quality-of-Life enhancements.  
 
-[![Build Status](https://github.com/Forkgram/tdesktop/workflows/Windows./badge.svg)](https://github.com/Forkgram/tdesktop/actions)
-[![Github All Releases](https://img.shields.io/github/downloads/Forkgram/tdesktop/total.svg)](https://github.com/Forkgram/tdesktop/releases)
+[![Github All Releases](https://img.shields.io/github/downloads/Forkgram/tdesktop/total.svg?style=for-the-badge)](https://github.com/Forkgram/tdesktop/releases)  
+[![Snap Store](https://img.shields.io/snapcraft/v/forkgram/latest/stable?style=for-the-badge)](https://snapcraft.io/forkgram)  
+[![AUR](https://img.shields.io/aur/version/forkgram.svg?style=for-the-badge)](https://aur.archlinux.org/packages/forkgram)  
+[![Chocolatey](https://img.shields.io/chocolatey/v/forkgram.svg?style=for-the-badge)](https://community.chocolatey.org/packages/forkgram)  
+[![Scoop](https://img.shields.io/scoop/v/forkgram?bucket=extras&style=for-the-badge)](https://scoop.sh/#/apps?q=forkgram)
+[![Windows](https://img.shields.io/badge/Windows-x64%20%7C%20x86-blue?style=for-the-badge&logo=windows)](https://github.com/Forkgram/tdesktop/releases/latest)  
+[![Homebrew Cask](https://img.shields.io/homebrew/cask/v/forkgram.svg?style=for-the-badge)](https://formulae.brew.sh/cask/forkgram)  
+[![macOS](https://img.shields.io/badge/macOS-arm64%20%7C%20x86-black?style=for-the-badge&logo=apple)](https://github.com/Forkgram/tdesktop/releases/latest)  
 
 ## Features:
 - Square avatars. *(Added XX.04.2017.)*  
