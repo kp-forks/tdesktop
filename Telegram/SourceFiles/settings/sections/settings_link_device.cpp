@@ -272,7 +272,6 @@ void SetupLinkDeviceContent(
 	const auto buttonPadding = st::boxRowPadding;
 	const auto buttonPaddingH = buttonPadding.left() + buttonPadding.right();
 	const auto setupFullWidth = [=](not_null<Ui::RoundButton*> btn) {
-		btn->setTextTransform(Ui::RoundButton::TextTransform::NoTransform);
 		btn->setFullRadius(true);
 		rpl::combine(
 			container->widthValue(),
