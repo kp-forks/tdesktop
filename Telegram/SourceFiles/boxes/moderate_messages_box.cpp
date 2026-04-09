@@ -81,6 +81,8 @@ const char kModerateCommonGroups[] = "moderate-common-groups";
 
 namespace {
 
+constexpr auto kModerateMessagesBoxAnimationDuration = crl::time(80);
+
 struct ModerateOptions final {
 	bool allCanBan = false;
 	bool allCanDelete = false;
@@ -353,6 +355,7 @@ void CreateModerateMessagesBox(
 		Fn<void()> confirmed,
 		ModerateMessagesBoxOptions options) {
 	Expects(!items.empty());
+	box->setLayerAnimationDuration(kModerateMessagesBoxAnimationDuration);
 
 	using Controller = Ui::ExpandablePeerListController;
 
