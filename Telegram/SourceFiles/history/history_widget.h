@@ -938,6 +938,7 @@ private:
 	};
 	std::vector<CollapseGapState> _collapseGaps;
 	Ui::Animations::Simple _collapseAnimation;
+	int _collapseScrollCompensation = 0;
 	void collapseAnimationCallback();
 	void syncCollapseGapsToList();
 
