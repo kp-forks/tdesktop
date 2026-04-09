@@ -7495,6 +7495,7 @@ void HistoryWidget::startCollapseAnimation(int height, int itemTop) {
 				&& itemTop <= gap.absY + gap.currentHeight)) {
 			gap.startHeight += height;
 			gap.currentHeight += height;
+			gap.originalHeight += height;
 			merged = true;
 			break;
 		}
@@ -7502,6 +7503,7 @@ void HistoryWidget::startCollapseAnimation(int height, int itemTop) {
 			gap.absY = itemTop;
 			gap.startHeight += height;
 			gap.currentHeight += height;
+			gap.originalHeight += height;
 			merged = true;
 			break;
 		}
@@ -7511,6 +7513,7 @@ void HistoryWidget::startCollapseAnimation(int height, int itemTop) {
 			.absY = itemTop,
 			.startHeight = height,
 			.currentHeight = height,
+			.originalHeight = height,
 		});
 		std::sort(_collapseGaps.begin(), _collapseGaps.end(),
 			[](const auto &a, const auto &b) { return a.absY < b.absY; });
@@ -7567,8 +7570,13 @@ void HistoryWidget::syncCollapseGapsToList() {
 	}
 	auto gaps = std::vector<HistoryInner::CollapseGap>();
 	gaps.reserve(_collapseGaps.size());
+	auto cumulativeOriginal = 0;
 	for (const auto &g : _collapseGaps) {
-		gaps.push_back({ .absY = g.absY, .height = g.currentHeight });
+		gaps.push_back({
+			.absY = g.absY - cumulativeOriginal,
+			.height = g.currentHeight,
+		});
+		cumulativeOriginal += g.originalHeight;
 	}
 	_list->setCollapseGaps(gaps);
 }
