@@ -14,6 +14,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "history/history.h"
 #include "ui/widgets/popup_menu.h"
 #include "ui/widgets/buttons.h"
+#include "ui/painter.h"
 #include "ui/widgets/shadow.h"
 #include "ui/widgets/tooltip.h"
 #include "ui/emoji_config.h"
@@ -47,6 +48,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "window/window_media_preview.h"
 #include "styles/style_dialogs.h"
 #include "styles/style_layers.h"
+#include "styles/style_widgets.h"
 #include "styles/style_window.h"
 
 #include <QtGui/QWindow>
@@ -77,6 +79,39 @@ base::options::toggle AutoScrollInactiveChat({
 		"even when the window is not in focus.",
 });
 
+constexpr auto kFpsCounterMeasureWindow = crl::time(1000);
+constexpr auto kFpsCounterRefreshInterval = crl::time(250);
+
+[[nodiscard]] bool HasOnlyModifiersWithoutKeypad(
+		Qt::KeyboardModifiers modifiers,
+		Qt::KeyboardModifiers expected) {
+	return (modifiers & ~Qt::KeypadModifier) == expected;
+}
+
+[[nodiscard]] bool IsFpsCounterKey(const QKeyEvent *e) {
+	if (!e || e->isAutoRepeat() || (e->key() != Qt::Key_F)) {
+		return false;
+	}
+#ifdef Q_OS_MAC
+	return HasOnlyModifiersWithoutKeypad(
+		e->modifiers(),
+		Qt::AltModifier | Qt::ShiftModifier | Qt::ControlModifier)
+		|| HasOnlyModifiersWithoutKeypad(
+			e->modifiers(),
+			Qt::AltModifier | Qt::ShiftModifier | Qt::MetaModifier);
+#else // Q_OS_MAC
+	return HasOnlyModifiersWithoutKeypad(
+		e->modifiers(),
+		Qt::AltModifier | Qt::ShiftModifier | Qt::ControlModifier);
+#endif // !Q_OS_MAC
+}
+
+[[nodiscard]] bool WidgetInHierarchy(
+		not_null<const QWidget*> widget,
+		not_null<const QWidget*> root) {
+	return (widget == root) || root->isAncestorOf(widget);
+}
+
 } // namespace
 
 const char kOptionAutoScrollInactiveChat[]
@@ -103,6 +138,10 @@ MainWindow::MainWindow(not_null<Window::Controller*> controller)
 	) | rpl::on_next([=] {
 		Ui::ForceFullRepaint(this);
 	}, lifetime());
+
+	_fpsCounterTimer.setCallback([=] {
+		refreshFpsCounter();
+	});
 
 	setAttribute(Qt::WA_OpaquePaintEvent);
 }
@@ -165,6 +204,175 @@ void MainWindow::clearWidgetsHook() {
 		_passcodeLock.destroy();
 	}
 	_setupEmailLock.destroy();
+}
+
+bool MainWindow::countsForFpsCounter(QObject *object) const {
+	const auto widget = qobject_cast<QWidget*>(object);
+	if (!_fpsCounterVisible || !widget || (widget->window() != this)) {
+		return false;
+	}
+	if (_fpsCounter && WidgetInHierarchy(widget, _fpsCounter)) {
+		return false;
+	}
+	const auto visibleRoot = [&]() -> QWidget* {
+		if (_testingThemeWarning && !_testingThemeWarning->isHidden()) {
+			return _testingThemeWarning;
+		} else if (_mediaPreview && !_mediaPreview->isHidden()) {
+			return _mediaPreview;
+		} else if (_layer && !_layer->isHidden()) {
+			return _layer.get();
+		} else if (_passcodeLock && !_passcodeLock->isHidden()) {
+			return _passcodeLock;
+		} else if (_setupEmailLock && !_setupEmailLock->isHidden()) {
+			return _setupEmailLock;
+		} else if (_main && !_main->isHidden()) {
+			return _main;
+		} else if (_intro && !_intro->isHidden()) {
+			return _intro;
+		}
+		return nullptr;
+	}();
+	return !visibleRoot || WidgetInHierarchy(widget, visibleRoot);
+}
+
+bool MainWindow::matchesFpsCounterKey(
+		QObject *object,
+		const QKeyEvent *e) const {
+	if (!IsFpsCounterKey(e)) {
+		return false;
+	}
+	if (const auto widget = qobject_cast<QWidget*>(object)) {
+		return widget->window() == this;
+	} else if (const auto window = qobject_cast<QWindow*>(object)) {
+		return window == windowHandle();
+	}
+	return false;
+}
+
+void MainWindow::ensureFpsCounterCreated() {
+	if (_fpsCounter) {
+		return;
+	}
+
+	_fpsCounter.create(bodyWidget());
+	_fpsCounter->hide();
+	_fpsCounter->setAttribute(Qt::WA_TransparentForMouseEvents);
+	_fpsCounter->paintRequest() | rpl::on_next([=] {
+		if (!_fpsCounter) {
+			return;
+		}
+		const auto &tooltip = st::defaultTooltip;
+		auto p = Painter(_fpsCounter);
+		{
+			auto hq = PainterHighQualityEnabler(p);
+			p.setPen(QPen(st::boxTextFgGood, st::lineWidth));
+			p.setBrush(st::imageBg);
+			p.drawRoundedRect(
+				QRectF(
+					0.5,
+					0.5,
+					_fpsCounter->width() - 1.,
+					_fpsCounter->height() - 1.),
+				st::roundRadiusSmall,
+				st::roundRadiusSmall);
+		}
+		p.setPen(st::dialogsOnlineBadgeFg);
+		p.setFont(tooltip.textStyle.font);
+		p.drawText(
+			QRect(
+				st::lineWidth + tooltip.textPadding.left(),
+				st::lineWidth + tooltip.textPadding.top(),
+				_fpsCounter->width()
+					- (2 * st::lineWidth)
+					- tooltip.textPadding.left()
+					- tooltip.textPadding.right(),
+				_fpsCounter->height()
+					- (2 * st::lineWidth)
+					- tooltip.textPadding.top()
+					- tooltip.textPadding.bottom()),
+			Qt::AlignCenter,
+			_fpsCounterText);
+	}, _fpsCounter->lifetime());
+	updateFpsCounterGeometry();
+}
+
+void MainWindow::pruneFpsFrames(crl::time now) {
+	const auto till = now - kFpsCounterMeasureWindow;
+	while (!_fpsFrames.empty() && (_fpsFrames.front() <= till)) {
+		_fpsFrames.pop_front();
+	}
+}
+
+void MainWindow::recordFpsFrame() {
+	if (!_fpsCounterVisible) {
+		return;
+	}
+	const auto now = crl::now();
+	_fpsFrames.push_back(now);
+	pruneFpsFrames(now);
+}
+
+void MainWindow::refreshFpsCounter() {
+	if (!_fpsCounterVisible || !_fpsCounter) {
+		return;
+	}
+	const auto now = crl::now();
+	pruneFpsFrames(now);
+	const auto elapsed = std::min(
+		kFpsCounterMeasureWindow,
+		now - _fpsCounterShownAt);
+	const auto fps = (elapsed > 0)
+		? ((int(_fpsFrames.size()) * 1000) + (elapsed / 2)) / elapsed
+		: 0;
+	const auto displayed = (fps > 999) ? 999 : int(fps);
+	const auto text = QString::number(displayed) + u" FPS"_q;
+	if (_fpsCounterText != text) {
+		_fpsCounterText = text;
+		_fpsCounter->update();
+	}
+}
+
+void MainWindow::toggleFpsCounter() {
+	ensureFpsCounterCreated();
+	if (!_fpsCounter) {
+		return;
+	}
+
+	_fpsCounterVisible = !_fpsCounterVisible;
+	_fpsFrameQueued = false;
+	_fpsFrames.clear();
+	if (!_fpsCounterVisible) {
+		_fpsCounterTimer.cancel();
+		_fpsCounter->hide();
+		return;
+	}
+
+	_fpsCounterShownAt = crl::now();
+	_fpsCounterText.clear();
+	updateFpsCounterGeometry();
+	_fpsCounter->show();
+	refreshFpsCounter();
+	fixOrder();
+	_fpsCounterTimer.callEach(kFpsCounterRefreshInterval);
+}
+
+void MainWindow::updateFpsCounterGeometry() {
+	if (!_fpsCounter) {
+		return;
+	}
+	const auto &tooltip = st::defaultTooltip;
+	_fpsCounter->resize(
+		(2 * st::lineWidth)
+			+ tooltip.textPadding.left()
+			+ tooltip.textPadding.right()
+			+ tooltip.textStyle.font->width(u"999 FPS"_q),
+		(2 * st::lineWidth)
+			+ tooltip.textPadding.top()
+			+ tooltip.textPadding.bottom()
+			+ tooltip.textStyle.font->height);
+	_fpsCounter->moveToLeft(
+		tooltip.skip,
+		tooltip.skip);
 }
 
 QPixmap MainWindow::grabForSlideAnimation() {
@@ -615,7 +823,18 @@ void MainWindow::setInnerFocus() {
 
 bool MainWindow::eventFilter(QObject *object, QEvent *e) {
 	switch (e->type()) {
+	case QEvent::ShortcutOverride: {
+		if (matchesFpsCounterKey(object, static_cast<QKeyEvent*>(e))) {
+			e->accept();
+			return true;
+		}
+	} break;
+
 	case QEvent::KeyPress: {
+		if (matchesFpsCounterKey(object, static_cast<QKeyEvent*>(e))) {
+			toggleFpsCounter();
+			return true;
+		}
 		if (Logs::DebugEnabled()
 			&& object == windowHandle()) {
 			const auto key = static_cast<QKeyEvent*>(e)->key();
@@ -638,6 +857,17 @@ bool MainWindow::eventFilter(QObject *object, QEvent *e) {
 			}
 		}
 #endif
+	} break;
+
+	case QEvent::UpdateRequest:
+	case QEvent::Paint: {
+		if (countsForFpsCounter(object) && !_fpsFrameQueued) {
+			_fpsFrameQueued = true;
+			recordFpsFrame();
+			InvokeQueued(this, [=] {
+				_fpsFrameQueued = false;
+			});
+		}
 	} break;
 
 	case QEvent::MouseMove: {
@@ -694,6 +924,7 @@ void MainWindow::fixOrder() {
 	if (_layer) _layer->raise();
 	if (_mediaPreview) _mediaPreview->raise();
 	if (_testingThemeWarning) _testingThemeWarning->raise();
+	if (_fpsCounter) _fpsCounter->raise();
 }
 
 void MainWindow::closeEvent(QCloseEvent *e) {
@@ -747,6 +978,7 @@ void MainWindow::updateControlsGeometry() {
 	if (_layer) _layer->setGeometry(body);
 	if (_mediaPreview) _mediaPreview->setGeometry(body);
 	if (_testingThemeWarning) _testingThemeWarning->setGeometry(body);
+	if (_fpsCounter) updateFpsCounterGeometry();
 
 	if (_main) _main->checkMainSectionToLayer();
 }

@@ -7,10 +7,14 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #pragma once
 
+#include <deque>
+
+#include "base/timer.h"
 #include "platform/platform_main_window.h"
 #include "ui/layers/layer_widget.h"
 
 class MainWidget;
+class QKeyEvent;
 
 namespace Intro {
 class Widget;
@@ -33,6 +37,7 @@ namespace Ui {
 class LinkButton;
 class BoxContent;
 class LayerStackWidget;
+class RpWidget;
 } // namespace Ui
 
 class MediaPreviewWidget;
@@ -119,12 +124,30 @@ protected:
 
 private:
 	void applyInitialWorkMode();
+	[[nodiscard]] bool countsForFpsCounter(QObject *object) const;
+	[[nodiscard]] bool matchesFpsCounterKey(
+		QObject *object,
+		const QKeyEvent *e) const;
+	void ensureFpsCounterCreated();
+	void pruneFpsFrames(crl::time now);
+	void recordFpsFrame();
+	void refreshFpsCounter();
+	void toggleFpsCounter();
+	void updateFpsCounterGeometry();
 	void ensureLayerCreated();
 	void destroyLayer();
 
 	void themeUpdated(const Window::Theme::BackgroundUpdate &data);
 
 	QPoint _lastMousePosition;
+
+	object_ptr<Ui::RpWidget> _fpsCounter = { nullptr };
+	base::Timer _fpsCounterTimer;
+	std::deque<crl::time> _fpsFrames;
+	crl::time _fpsCounterShownAt = 0;
+	QString _fpsCounterText;
+	bool _fpsCounterVisible = false;
+	bool _fpsFrameQueued = false;
 
 	object_ptr<Window::PasscodeLockWidget> _passcodeLock = { nullptr };
 	object_ptr<Window::SetupEmailLockWidget> _setupEmailLock = { nullptr };
