@@ -1655,6 +1655,10 @@ Ui::ScrollArea *ScheduledWidget::listScrollArea() const {
 	return _scroll.data();
 }
 
+bool ScheduledWidget::listThanosEffectEnabled() const {
+	return false;
+}
+
 void ScheduledWidget::confirmSendNowSelected() {
 	ConfirmSendNowSelectedItems(_inner);
 }
