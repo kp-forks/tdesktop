@@ -684,6 +684,10 @@ void ListWidget::setGeometryCrashAnnotations(not_null<Element*> view) {
 void ListWidget::refreshRows(const Data::MessagesSlice &old) {
 	Expects(_viewsCapacity.empty());
 
+	if (_thanosController) {
+		_thanosController->clearPreCaptured();
+	}
+
 	saveScrollState();
 
 	const auto scrolledTillEnd = _itemsKnownTillEnd

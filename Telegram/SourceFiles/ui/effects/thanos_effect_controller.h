@@ -57,6 +57,7 @@ public:
 	~ThanosEffectController();
 
 	void captureOnRemoval(not_null<const HistoryItem*> item);
+	void clearPreCaptured();
 
 	[[nodiscard]] const std::vector<CollapseGap> &renderGaps() const {
 		return _renderGaps;
