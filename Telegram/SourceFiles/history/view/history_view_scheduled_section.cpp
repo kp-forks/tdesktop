@@ -1651,6 +1651,10 @@ void ScheduledWidget::listAddTranslatedItems(
 	not_null<TranslateTracker*> tracker) {
 }
 
+Ui::ScrollArea *ScheduledWidget::listScrollArea() const {
+	return _scroll.data();
+}
+
 void ScheduledWidget::confirmSendNowSelected() {
 	ConfirmSendNowSelectedItems(_inner);
 }
