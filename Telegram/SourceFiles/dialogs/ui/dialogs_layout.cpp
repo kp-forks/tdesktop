@@ -788,15 +788,20 @@ void PaintRow(
 	}
 	if (from) {
 		if (from->isUser() && Core::App().settings().fork().lastSeenInDialogs()) {
-			auto lastSeen = Data::OnlineText(from->asUser(), base::unixtime::now());
-			static QSet<QString> ignoredStrings {
-				tr::lng_status_recently(tr::now),
-				tr::lng_status_bot(tr::now),
-				tr::lng_status_service_notifications(tr::now),
-				tr::lng_status_support(tr::now),
-			};
-			if (!ignoredStrings.contains(lastSeen)) {
-				PaintRowTopRight(p, lastSeen, rectForName, context);
+			const auto user = from->asUser();
+			const auto now = base::unixtime::now();
+			const auto status = user->lastseen();
+			if (status.isOnline(now)) {
+				PaintRowTopRight(p, tr::lng_status_online(tr::now), rectForName, context);
+			} else {
+				const auto till = status.onlineTill();
+				if (till > 0) {
+					const auto elapsed = now - till;
+					const auto text = Ui::FormatMuteForTiny(elapsed);
+					if (!text.isEmpty()) {
+						PaintRowTopRight(p, text, rectForName, context);
+					}
+				}
 			}
 		}
 	}
