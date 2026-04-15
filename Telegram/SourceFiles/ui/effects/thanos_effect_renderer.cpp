@@ -298,6 +298,9 @@ void ThanosEffectRenderer::render(
 		auto needsInit = false;
 
 		for (auto &item : _items) {
+			if (item.phase >= kMaxPhaseDuration) {
+				continue;
+			}
 			const auto animationTimeStep
 				= dt * AnimationSpeedMultiplier(item.phase);
 			item.phase += animationTimeStep * kPhaseSpeed;
@@ -347,6 +350,9 @@ void ThanosEffectRenderer::render(
 		}
 
 		for (auto &item : _items) {
+			if (item.phase >= kMaxPhaseDuration) {
+				continue;
+			}
 			cb->setComputePipeline(_computeUpdatePipeline);
 			cb->setShaderResources(item.computeUpdateSrb);
 			const auto count = item.particleCountX * item.particleCountY;
@@ -361,6 +367,9 @@ void ThanosEffectRenderer::render(
 	{
 		auto *renderRub = rhi->nextResourceUpdateBatch();
 		for (auto &item : _items) {
+			if (item.phase >= kMaxPhaseDuration) {
+				continue;
+			}
 			RenderUniforms uni;
 			uni.rect[0] = float(item.rect.x()) / viewW;
 			uni.rect[1] = (viewH - float(item.rect.y())
@@ -389,6 +398,9 @@ void ThanosEffectRenderer::render(
 		cb->beginPass(rt, bg, { 1.0f, 0 }, renderRub);
 
 		for (auto &item : _items) {
+			if (item.phase >= kMaxPhaseDuration) {
+				continue;
+			}
 			cb->setGraphicsPipeline(_renderPipeline);
 			cb->setShaderResources(item.renderSrb);
 			cb->setViewport({
@@ -410,11 +422,22 @@ void ThanosEffectRenderer::render(
 		cb->endPass();
 	}
 
+	// Remove finished items using deleteLater() so QRhi resources
+	// survive until the command buffer is fully submitted.
 	auto hadItems = !_items.empty();
 	_items.erase(
 		std::remove_if(_items.begin(), _items.end(), [&](auto &item) {
 			if (item.phase >= kMaxPhaseDuration) {
-				destroyAnimatingItem(item);
+				if (item.renderSrb) item.renderSrb->deleteLater();
+				if (item.computeUpdateSrb) item.computeUpdateSrb->deleteLater();
+				if (item.computeInitSrb) item.computeInitSrb->deleteLater();
+				if (item.renderUniformBuffer) item.renderUniformBuffer->deleteLater();
+				if (item.computeUpdateUniformBuffer) item.computeUpdateUniformBuffer->deleteLater();
+				if (item.computeInitUniformBuffer) item.computeInitUniformBuffer->deleteLater();
+				if (item.particleBuffer) item.particleBuffer->deleteLater();
+				if (item.sampler) item.sampler->deleteLater();
+				if (item.texture) item.texture->deleteLater();
+				item = {};
 				return true;
 			}
 			return false;
