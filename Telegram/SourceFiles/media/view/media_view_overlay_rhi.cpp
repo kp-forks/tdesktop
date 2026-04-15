@@ -1463,6 +1463,13 @@ void OverlayWidget::RendererRhi::paintChapter(QRect outer) {
 	}, true);
 }
 
+void OverlayWidget::RendererRhi::paintSpeedBoost(QRect outer) {
+	paintUsingRaster(outer, [&](Painter &p) {
+		const auto newOuter = QRect(QPoint(), outer.size());
+		_owner->paintSpeedBoostContent(p, newOuter, newOuter);
+	}, true);
+}
+
 auto OverlayWidget::RendererRhi::controlMeta(Over control) const
 -> Control {
 	const auto stories = [&] {

@@ -304,7 +304,10 @@ void DocumentMedia::checkStickerLarge() {
 void DocumentMedia::automaticLoad(
 		Data::FileOrigin origin,
 		const HistoryItem *item) {
-	if (_owner->status != FileReady || loaded() || _owner->cancelled()) {
+	if (_owner->status != FileReady
+		|| loaded()
+		|| _owner->uploading()
+		|| _owner->cancelled()) {
 		return;
 	} else if (!item && !_owner->sticker() && !_owner->isAnimation()) {
 		return;

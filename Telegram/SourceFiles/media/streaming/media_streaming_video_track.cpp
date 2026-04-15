@@ -762,6 +762,7 @@ void VideoTrackObject::callReady() {
 			_stream.rotation),
 		.cover = frame->original,
 		.rotation = _stream.rotation,
+		.fps = _stream.fps,
 		.alpha = frame->alpha,
 	} });
 }
