@@ -1390,6 +1390,7 @@ PRIVATE
     media/streaming/media_streaming_utility.h
     media/streaming/media_streaming_video_track.cpp
     media/streaming/media_streaming_video_track.h
+    media/streaming/media_streaming_native_frame_mac.h
     media/view/media_view_group_thumbs.cpp
     media/view/media_view_group_thumbs.h
     media/view/media_view_open_common.cpp
@@ -1931,6 +1932,7 @@ if (APPLE)
     PRIVATE
         tray_accounts_menu.cpp
         media/view/media_view_metal_texture.mm
+        media/streaming/media_streaming_native_frame_mac.mm
     )
 else()
     nice_target_sources(Telegram ${src_loc}

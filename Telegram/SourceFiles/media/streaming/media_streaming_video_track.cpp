@@ -13,6 +13,10 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "core/crash_reports.h"
 #include "base/debug_log.h"
 
+#ifdef Q_OS_MAC
+#include "media/streaming/media_streaming_native_frame_mac.h"
+#endif // Q_OS_MAC
+
 namespace Media {
 namespace Streaming {
 namespace {
@@ -1246,10 +1250,15 @@ QImage VideoTrack::frameImage(
 			unwrapped.updateFrameRequest(instance, useRequest);
 		});
 	}
-	if (frame->original.isNull()
-		&& (frame->format == FrameFormat::YUV420
-			|| frame->format == FrameFormat::NV12)) {
-		frame->original = ConvertToARGB32(frame->format, frame->yuv);
+	if (frame->original.isNull()) {
+		if (frame->format == FrameFormat::YUV420
+			|| frame->format == FrameFormat::NV12) {
+			frame->original = ConvertToARGB32(frame->format, frame->yuv);
+#ifdef Q_OS_MAC
+		} else if (frame->format == FrameFormat::NativeTexture) {
+			frame->original = ConvertNativeFrameToARGB32(frame->nativeFrame);
+#endif // Q_OS_MAC
+		}
 	}
 	if (GoodForRequest(
 			frame->original,
@@ -1287,10 +1296,15 @@ QImage VideoTrack::frameImage(
 
 QImage VideoTrack::currentFrameImage() {
 	const auto frame = _shared->frameForPaint();
-	if (frame->original.isNull()
-		&& (frame->format == FrameFormat::YUV420
-			|| frame->format == FrameFormat::NV12)) {
-		frame->original = ConvertToARGB32(frame->format, frame->yuv);
+	if (frame->original.isNull()) {
+		if (frame->format == FrameFormat::YUV420
+			|| frame->format == FrameFormat::NV12) {
+			frame->original = ConvertToARGB32(frame->format, frame->yuv);
+#ifdef Q_OS_MAC
+		} else if (frame->format == FrameFormat::NativeTexture) {
+			frame->original = ConvertNativeFrameToARGB32(frame->nativeFrame);
+#endif // Q_OS_MAC
+		}
 	}
 	return frame->original;
 }
