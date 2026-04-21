@@ -495,9 +495,9 @@ bool ReadSetting(
 		proxySettings.setSettings(proxy
 			? MTP::ProxyData::Settings::Enabled
 			: MTP::ProxyData::Settings::System);
-		proxySettings.list() = proxy
-			? std::vector<MTP::ProxyData>{ 1, proxy }
-			: std::vector<MTP::ProxyData>{};
+		proxySettings.setList(proxy
+			? std::vector<MTP::ProxyData>{ proxy }
+			: std::vector<MTP::ProxyData>{});
 		Core::App().refreshGlobalProxy();
 		context.legacyRead = true;
 	} break;
@@ -570,16 +570,16 @@ bool ReadSetting(
 			if (!CheckStreamStatus(stream)) {
 				return false;
 			}
-			proxySettings.list() = list;
+			proxySettings.setList(std::move(list));
 			if (connectionType == dbictProxiesListOld) {
 				settings = static_cast<qint32>(
-					(index > 0 && index <= list.size()
+					(index > 0 && index <= proxySettings.list().size()
 						? MTP::ProxyData::Settings::Enabled
 						: MTP::ProxyData::Settings::System));
 				index = std::abs(index);
 			}
-			proxySettings.setSelected((index > 0 && index <= list.size())
-				? list[index - 1]
+			proxySettings.setSelected((index > 0 && index <= proxySettings.list().size())
+				? proxySettings.list()[index - 1]
 				: MTP::ProxyData());
 
 			const auto unchecked = static_cast<MTP::ProxyData::Settings>(settings);
@@ -604,14 +604,14 @@ bool ReadSetting(
 				return false;
 			}
 			if (proxy) {
-				proxySettings.list() = { 1, proxy };
+				proxySettings.setList({ proxy });
 				proxySettings.setSelected(proxy);
 				proxySettings.setSettings((connectionType == dbictTcpProxy
 					|| connectionType == dbictHttpProxy)
 						? MTP::ProxyData::Settings::Enabled
 						: MTP::ProxyData::Settings::System);
 			} else {
-				proxySettings.list() = {};
+				proxySettings.setList({});
 				proxySettings.setSelected(MTP::ProxyData());
 				proxySettings.setSettings(MTP::ProxyData::Settings::System);
 			}

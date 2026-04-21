@@ -63,7 +63,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 namespace HistoryView {
 namespace {
 
-constexpr auto kSummarizeThreshold = 512;
 constexpr auto kPlayStatusLimit = 2;
 constexpr auto kMaxWidth = (1 << 16) - 1;
 constexpr auto kMaxNiceToReadLines = 6;
@@ -2327,11 +2326,10 @@ void Message::paintText(
 		});
 	}
 
-	const auto realWidth = textRealWidth();
 	auto highlightRequest = context.computeHighlightCache();
 	text().draw(p, {
 		.position = trect.topLeft(),
-		.availableWidth = realWidth ? realWidth : trect.width(),
+		.availableWidth = std::max(textRealWidth(), trect.width()),
 		.palette = &stm->textPalette,
 		.pre = stm->preCache.get(),
 		.blockquote = context.quoteCache(
@@ -3650,7 +3648,7 @@ bool Message::getStateText(
 	if (base::in_range(point.y(), trect.y(), trect.y() + trect.height())) {
 		*outResult = TextState(item, text().getState(
 			point - trect.topLeft(),
-			trect.width(),
+			std::max(textRealWidth(), trect.width()),
 			request.forText()));
 		if (outResult->link
 			&& IsRippleLink(outResult->link)
@@ -4225,6 +4223,8 @@ int Message::bubbleTextualWidth() const {
 					}
 				}
 				_bubbleTextualWidthCache = right;
+				[[maybe_unused]] const auto ensureRightCache
+					= textHeightFor(bubbleTextWidth(right));
 			}
 		}
 	}

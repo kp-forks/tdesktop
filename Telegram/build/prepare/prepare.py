@@ -1495,8 +1495,8 @@ release:
     cd qt_$QT
     git submodule update --init --recursive --progress qtbase qtimageformats qtsvg
 depends:patches/qtbase_""" + qt + """/*.patch
-    cd qtbase
 win:
+    cd qtbase
     setlocal enabledelayedexpansion
     for /r %%i in (..\\..\\patches\\qtbase_%QT%\\*) do (
         git apply %%i -v
@@ -1505,7 +1505,6 @@ win:
             exit /b 1
         )
     )
-
     cd ..
 
     SET CONFIGURATIONS=-debug
@@ -1559,7 +1558,7 @@ mac:
     if [ -d "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" ]; then
         find "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" -type f -print0 | sort -z | xargs -0 git apply
     fi
-    find ../../patches/qtbase_$QT -type f -print0 | sort -z | xargs -0 git apply
+    find ../../patches/qtbase_$QT -type f -print0 | sort -z | xargs -0 git -C qtbase apply
     cd ..
 
     CONFIGURATIONS=-debug
@@ -1592,13 +1591,12 @@ else: # qt > '6'
     cd qt_$QT
     git submodule update --init --recursive --progress qtbase qtimageformats qtsvg
 depends:patches/qtbase_""" + qt + """/*.patch
-    cd qtbase
 mac:
     QT_MAJOR_MINOR=$(echo $QT | grep -oE '^[0-9]+\\.[0-9]+')
     if [ -d "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" ]; then
         find "../../patches/qt6_highsierra/$QT_MAJOR_MINOR" -type f -print0 | sort -z | xargs -0 git apply -v
     fi
-    find ../../patches/qtbase_$QT -type f -print0 | sort -z | xargs -0 git apply -v
+    find $PWD/../patches/qtbase_$QT -type f -print0 | sort -z | xargs -0 git -C qtbase apply -v
     cd ..
     sed -i.bak 's/tqtc-//' {qtimageformats,qtsvg}/dependencies.yaml
 
@@ -1630,6 +1628,7 @@ mac:
     cmake --build .
     cmake --install .
 win:
+    cd qtbase
     for /r %%i in (..\\..\\patches\\qtbase_%QT%\\*) do git apply %%i -v
     cd ..
 
