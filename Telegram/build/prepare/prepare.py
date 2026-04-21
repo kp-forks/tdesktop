@@ -61,6 +61,7 @@ optionsList = [
     'qt6',
     'skip-release',
     'build-stackwalk',
+    'win7',
 ]
 options = []
 runCommand = []
@@ -453,6 +454,15 @@ stage('patches', """
     git clone https://github.com/desktop-app/patches.git
     cd patches
     git checkout 4519c85c924b9da81f29d4aac045886f896ee479
+""")
+
+if 'win7' in options:
+    stage('yy_thunks', """
+version: 1
+win32_win64:
+    powershell -Command "iwr -OutFile ./yy_thunks.zip https://github.com/Chuyu-Team/YY-Thunks/releases/download/v1.1.9/YY-Thunks-Objs.zip"
+    powershell -Command "Expand-Archive ./yy_thunks.zip"
+    del yy_thunks.zip
 """)
 
 stage('msys64', """

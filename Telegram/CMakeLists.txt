@@ -2018,6 +2018,27 @@ if (WIN32)
     endif()
 
     target_link_options(Telegram PRIVATE /PDBPAGESIZE:8192)
+
+    option(DESKTOP_APP_WIN7_COMPAT "Enable Windows 7/8 compatibility by linking YY-Thunks objects." OFF)
+
+    set(yy_thunks_obj "")
+    if (DESKTOP_APP_WIN7_COMPAT AND NOT build_winarm AND NOT build_winstore)
+        if (CMAKE_SIZEOF_VOID_P EQUAL 8)
+            set(_yy_thunks_arch x64)
+        else()
+            set(_yy_thunks_arch x86)
+        endif()
+        set(_yy_thunks_candidate "${libs_loc}/yy_thunks/objs/${_yy_thunks_arch}/YY_Thunks_for_Win7.obj")
+        if (EXISTS "${_yy_thunks_candidate}")
+            message(STATUS "YY-Thunks: enabling Windows 7/8 compatibility via ${_yy_thunks_candidate}")
+            set(yy_thunks_obj "${_yy_thunks_candidate}")
+            set_source_files_properties("${yy_thunks_obj}" PROPERTIES EXTERNAL_OBJECT true)
+            target_sources(Telegram PRIVATE ${yy_thunks_obj})
+            target_link_options(Telegram PRIVATE /FORCE:MULTIPLE /IGNORE:4006 /SUBSYSTEM:WINDOWS,6.01)
+        else()
+            message(FATAL_ERROR "DESKTOP_APP_WIN7_COMPAT=ON but YY-Thunks object not found at ${_yy_thunks_candidate}. Run Telegram/build/prepare/prepare.py with the 'win7' option to fetch it.")
+        endif()
+    endif()
 elseif (APPLE)
     if (NOT DESKTOP_APP_USE_PACKAGED)
         target_link_libraries(Telegram PRIVATE desktop-app::external_iconv)
@@ -2305,6 +2326,10 @@ if (NOT DESKTOP_APP_DISABLE_AUTOUPDATE AND NOT build_macstore AND NOT build_wins
         else()
             target_link_options(Updater PRIVATE -municode)
         endif()
+        if (yy_thunks_obj)
+            target_sources(Updater PRIVATE ${yy_thunks_obj})
+            target_link_options(Updater PRIVATE /FORCE:MULTIPLE /IGNORE:4006 /SUBSYSTEM:WINDOWS,6.01)
+        endif()
     elseif (APPLE)
         add_custom_command(TARGET Updater
         POST_BUILD
@@ -2335,6 +2360,11 @@ if (NOT DESKTOP_APP_DISABLE_AUTOUPDATE AND NOT build_macstore AND NOT build_wins
 
         if (DESKTOP_APP_USE_PACKAGED)
             target_compile_definitions(Packer PRIVATE PACKER_USE_PACKAGED)
+        endif()
+
+        if (WIN32 AND yy_thunks_obj)
+            target_sources(Packer PRIVATE ${yy_thunks_obj})
+            target_link_options(Packer PRIVATE /FORCE:MULTIPLE /IGNORE:4006 /SUBSYSTEM:CONSOLE,6.01)
         endif()
 
         set_target_properties(Packer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${output_folder})
