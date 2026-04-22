@@ -725,6 +725,11 @@ int psFixPrevious() {
 
 namespace Platform {
 
+void SetupQtRhi() {
+	qputenv("QT_WIDGETS_RHI", "1");
+	qputenv("QT_WIDGETS_RHI_BACKEND", "opengl");
+}
+
 void start() {
 	QGuiApplication::setDesktopFileName([&] {
 		if (KSandbox::isFlatpak()) {
