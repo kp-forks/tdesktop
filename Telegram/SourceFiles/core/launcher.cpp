@@ -19,6 +19,9 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/concurrent_timer.h"
 #include "base/options.h"
 
+#ifdef _WIN32
+#include <VersionHelpers.h>
+#endif
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QStandardPaths>
 #include <QtCore/QLibraryInfo>
@@ -378,15 +381,23 @@ void Launcher::initHighDpi() {
 	}
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
 	if (!OptionUseOpenGLRenderer.value()) {
+#if defined(Q_OS_WIN)
+		// QRhi with D3D11 on Win8+ (with WARP software fallback).
+		// On Win7, QRhi is not enabled because neither D3D11 WARP
+		// nor reliable OpenGL are available. Qt uses QPainter raster.
+		if (IsWindows8OrGreater()) {
+			qputenv("QT_WIDGETS_RHI", "1");
+			qputenv("QT_WIDGETS_RHI_BACKEND", "d3d11");
+		}
+#else
 		qputenv("QT_WIDGETS_RHI", "1");
 #ifdef Q_OS_MAC
 		qputenv("QT_WIDGETS_RHI_BACKEND",
 			Platform::MetalSupported() ? "metal" : "opengl");
-#elif defined(Q_OS_WIN)
-		qputenv("QT_WIDGETS_RHI_BACKEND", "d3d11");
 #else
 		qputenv("QT_WIDGETS_RHI_BACKEND", "opengl");
 #endif
+#endif // Q_OS_WIN
 	}
 #endif // Qt >= 6.7
 

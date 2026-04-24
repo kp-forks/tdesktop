@@ -709,6 +709,11 @@ GroupCall::GroupCall(
 }
 
 void GroupCall::processConferenceStart(StartConferenceInfo conference) {
+#ifdef DESKTOP_APP_DISABLE_WEBVIEW2
+	// Win7 debug: skip conference start to avoid crash in
+	// rpl::event_stream null consumer / GroupCall initialization.
+	return;
+#endif // DESKTOP_APP_DISABLE_WEBVIEW2
 	if (!conference.videoCapture) {
 		return;
 	}
