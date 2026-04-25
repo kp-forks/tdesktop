@@ -1162,10 +1162,10 @@ void Viewport::RendererRhi::drawFramePass(
 		QSize blurSize) {
 	const auto geometry = tile->geometry().translated(
 		_owner->borrowedOrigin());
-	const auto x = geometry.x();
-	const auto y = geometry.y();
-	const auto width = geometry.width();
-	const auto height = geometry.height();
+	//const auto x = geometry.x();
+	//const auto y = geometry.y();
+	//const auto width = geometry.width();
+	//const auto height = geometry.height();
 
 	const auto data = tile->track()->frameWithInfo(false);
 	const auto frameSize = _userpicFrame
@@ -1346,11 +1346,11 @@ void Viewport::RendererRhi::drawControls(
 	const auto fullNameShift = st.namePosition.y() + st::normalFont->height;
 	const auto nameShift = anim::interpolate(fullNameShift, 0, shown);
 	const auto row = tile->row();
-	const auto outline = tileData.outlined.value(
-		tileData.outline ? 1. : 0.);
+	//const auto outline = tileData.outlined.value(
+	//	tileData.outline ? 1. : 0.);
 	const auto paused = tileData.paused.value(
 		tileData.pause ? 1. : 0.);
-	const auto factor = style::DevicePixelRatio();
+	//const auto factor = style::DevicePixelRatio();
 
 	const auto nameTop = y + (height
 		- st.namePosition.y()
@@ -1367,8 +1367,8 @@ void Viewport::RendererRhi::drawControls(
 	ensureButtonsImage();
 	row->lazyInitialize(st::groupCallMembersListItem);
 
-	const auto pw = float(_rt->pixelSize().width());
-	const auto ph = float(_rt->pixelSize().height());
+	//const auto pw = float(_rt->pixelSize().width());
+	//const auto ph = float(_rt->pixelSize().height());
 
 	auto drawRasterOverlay = [&](
 			QRect rect,
@@ -1694,8 +1694,8 @@ void Viewport::RendererRhi::ensureButtonsImage() {
 void Viewport::RendererRhi::validateDatas() {
 	const auto &tiles = _owner->_tiles;
 	const auto count = int(tiles.size());
-	const auto factor = style::DevicePixelRatio();
-	const auto nameHeight = st::semiboldFont->height * factor;
+	//const auto factor = style::DevicePixelRatio();
+	//const auto nameHeight = st::semiboldFont->height * factor;
 
 	for (auto &data : _tileData) {
 		data.stale = true;
