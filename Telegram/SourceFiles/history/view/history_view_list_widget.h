@@ -332,11 +332,12 @@ public:
 		const Window::SectionShow &params,
 		Fn<void(bool found)> done = nullptr);
 	void refreshViewer();
+	void overrideInitialScroll(Fn<bool()> callback);
 
 	[[nodiscard]] TextForMimeData getSelectedText() const;
 	[[nodiscard]] MessageIdsList getSelectedIds() const;
 	[[nodiscard]] SelectedItems getSelectedItems() const;
-	[[nodiscard]] const TextSelection &getSelectedTextRange(
+	[[nodiscard]] TextSelection getSelectedTextRange(
 		not_null<HistoryItem*> item) const;
 	void cancelSelection();
 	void selectItem(not_null<HistoryItem*> item);
@@ -634,6 +635,7 @@ private:
 	void scrollDateCheck();
 	void scrollDateHideByTimer();
 	void keepScrollDateForNow();
+	void scrollDateCheckDownward();
 
 	void computeScrollTo(
 		int to,
@@ -833,6 +835,7 @@ private:
 	base::Timer _scrollDateHideTimer;
 	Element *_scrollDateLastItem = nullptr;
 	int _scrollDateLastItemTop = 0;
+	bool _scrollDateAfterDayCrossing = false;
 	ClickHandlerPtr _scrollDateLink;
 	SingleQueuedInvokation _applyUpdatedScrollState;
 
