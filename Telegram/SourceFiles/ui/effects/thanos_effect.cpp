@@ -8,6 +8,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/effects/thanos_effect.h"
 
 #include "ui/effects/thanos_effect_renderer.h"
+#include "ui/gl/gl_detection.h"
 #include "ui/gl/gl_surface.h"
 #include "ui/power_saving.h"
 #include "ui/rp_widget.h"
@@ -33,9 +34,9 @@ namespace {
 	// Create a throw-away QRhi with the same backend SurfaceRhi will use
 	// in production, ask whether GPU compute is available, then destroy.
 	// This is real hardware/driver capability detection — no OS version
-	// guards. On a Mac with macOS 10.13 + Metal the answer is "no",
-	// which is exactly what makes the surface render uninitialized
-	// (Y-flipped) garbage and triggers the mirror bug elsewhere.
+	// guards. On older Metal-capable Macs the answer is "no", which
+	// is exactly what makes the surface render uninitialized (Y-flipped)
+	// garbage and triggers the mirror bug elsewhere.
 	auto rhi = std::unique_ptr<QRhi>(nullptr);
 #ifdef Q_OS_MAC
 	if (::Platform::MetalSupported()) {
@@ -79,7 +80,6 @@ namespace {
 		).arg(rhi->backendName()
 		).arg(rhi->driverInfo().deviceName
 		).arg(supported ? "yes" : "no"));
-	// Destroy the RHI before the offscreen surface goes out of scope.
 	rhi.reset();
 	return supported;
 }
@@ -97,12 +97,9 @@ bool ThanosEffect::Supported() {
 	if (PowerSaving::On(PowerSaving::kChatEffects)) {
 		return false;
 	}
-	// The effect is built around compute shaders. If the driver does
-	// not expose them (e.g. Metal on older macOS), the surface would
-	// render an uninitialized swap-chain texture, which on macOS 10.13
-	// observably mirrors the underlying window. Refuse to create the
-	// effect at all in that case — the controller falls back to the
-	// regular collapse animation.
+	if (!GL::WidgetsRhiEnabled()) {
+		return false;
+	}
 	return RhiComputeSupportedCached();
 #else
 	return false;
@@ -111,9 +108,9 @@ bool ThanosEffect::Supported() {
 
 void ThanosEffect::WarmUp() {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
-	// Triggers the static-local probe inside RhiComputeSupportedCached.
-	// Called explicitly from an idle spot (e.g. after dialogs finish
-	// loading) so the probe cost is paid before the first Thanos use.
+	if (!GL::WidgetsRhiEnabled()) {
+		return;
+	}
 	(void)RhiComputeSupportedCached();
 #endif
 }

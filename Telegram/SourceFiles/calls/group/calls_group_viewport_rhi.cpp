@@ -266,8 +266,6 @@ void Viewport::RendererRhi::createPipelines() {
 		{ 0, 2, QRhiVertexInputAttribute::Float2, 4 * sizeof(float) },
 	});
 
-	// Downscale ARGB32: passthrough vert + argb32 frag
-	// argb32.frag needs: s_texture at binding 1, no uniform block
 	_downscaleArgb32Srb = _rhi->newShaderResourceBindings();
 	_downscaleArgb32Srb->setBindings({
 		QRhiShaderResourceBinding::sampledTexture(
@@ -278,8 +276,6 @@ void Viewport::RendererRhi::createPipelines() {
 	});
 	_downscaleArgb32Srb->create();
 
-	// Downscale YUV420: passthrough vert + yuv420 frag
-	// yuv420.frag needs: y_texture(1), u_texture(2), v_texture(3)
 	_downscaleYuv420Srb = _rhi->newShaderResourceBindings();
 	_downscaleYuv420Srb->setBindings({
 		QRhiShaderResourceBinding::sampledTexture(
@@ -300,8 +296,6 @@ void Viewport::RendererRhi::createPipelines() {
 	});
 	_downscaleYuv420Srb->create();
 
-	// Blur H: passthrough vert + blur_h frag
-	// blur_h.frag needs: BlurParams at binding 0, b_texture at binding 1
 	_blurHSrb = _rhi->newShaderResourceBindings();
 	_blurHSrb->setBindings({
 		QRhiShaderResourceBinding::uniformBuffer(
@@ -382,9 +376,6 @@ void Viewport::RendererRhi::createPipelines() {
 	_blurVPipeline->setRenderPassDescriptor(_offscreenRpDesc);
 	_blurVPipeline->create();
 
-	// Frame composite: group_frame vert + group_frame frag (on-screen)
-	// group_frame.frag needs: uniform block(0), s_texture(1),
-	// b_texture(2), n_texture(3)
 	auto *frameSrb = _rhi->newShaderResourceBindings();
 	frameSrb->setBindings({
 		QRhiShaderResourceBinding::uniformBuffer(
@@ -424,7 +415,6 @@ void Viewport::RendererRhi::createPipelines() {
 	_framePipeline->setRenderPassDescriptor(rpDesc);
 	_framePipeline->create();
 
-	// Controls: argb32 vert + controls frag (blending on-screen)
 	auto *controlsSrb = _rhi->newShaderResourceBindings();
 	controlsSrb->setBindings({
 		QRhiShaderResourceBinding::uniformBuffer(
@@ -547,7 +537,6 @@ void Viewport::RendererRhi::render(
 		QRhiCommandBuffer *cb) {
 	renderOffscreen(rhi, rt, cb);
 
-	// Prepare onscreen: accumulate all resource updates into _rub.
 	_nextOnscreenSlot = 0;
 	_onscreenDraws.clear();
 	auto *screenRub = _rhi->nextResourceUpdateBatch();
@@ -556,7 +545,6 @@ void Viewport::RendererRhi::render(
 	}
 	_rub = screenRub;
 	renderOnscreen(rhi, rt, cb);
-	// Apply all accumulated updates via beginPass.
 	cb->beginPass(rt, *clearColor(), { 1.0f, 0 }, _rub);
 	_rub = nullptr;
 	const auto pw = float(rt->pixelSize().width());
@@ -1162,10 +1150,6 @@ void Viewport::RendererRhi::drawFramePass(
 		QSize blurSize) {
 	const auto geometry = tile->geometry().translated(
 		_owner->borrowedOrigin());
-	//const auto x = geometry.x();
-	//const auto y = geometry.y();
-	//const auto width = geometry.width();
-	//const auto height = geometry.height();
 
 	const auto data = tile->track()->frameWithInfo(false);
 	const auto frameSize = _userpicFrame
@@ -1346,11 +1330,8 @@ void Viewport::RendererRhi::drawControls(
 	const auto fullNameShift = st.namePosition.y() + st::normalFont->height;
 	const auto nameShift = anim::interpolate(fullNameShift, 0, shown);
 	const auto row = tile->row();
-	//const auto outline = tileData.outlined.value(
-	//	tileData.outline ? 1. : 0.);
 	const auto paused = tileData.paused.value(
 		tileData.pause ? 1. : 0.);
-	//const auto factor = style::DevicePixelRatio();
 
 	const auto nameTop = y + (height
 		- st.namePosition.y()
@@ -1366,9 +1347,6 @@ void Viewport::RendererRhi::drawControls(
 
 	ensureButtonsImage();
 	row->lazyInitialize(st::groupCallMembersListItem);
-
-	//const auto pw = float(_rt->pixelSize().width());
-	//const auto ph = float(_rt->pixelSize().height());
 
 	auto drawRasterOverlay = [&](
 			QRect rect,
@@ -1694,8 +1672,6 @@ void Viewport::RendererRhi::ensureButtonsImage() {
 void Viewport::RendererRhi::validateDatas() {
 	const auto &tiles = _owner->_tiles;
 	const auto count = int(tiles.size());
-	//const auto factor = style::DevicePixelRatio();
-	//const auto nameHeight = st::semiboldFont->height * factor;
 
 	for (auto &data : _tileData) {
 		data.stale = true;
