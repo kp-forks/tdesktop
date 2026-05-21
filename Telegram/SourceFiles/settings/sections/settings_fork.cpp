@@ -541,7 +541,7 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 	add(
 		u"fork/remember_media_menu"_q,
 		{ u"remember"_q, u"media"_q, u"menu"_q },
-		rpl::single(u"Add 'Remember' to menu for media"_q),
+		tr::lng_settings_remember_media_menu(),
 		[] { return Core::App().settings().fork().addToMenuRememberMedia(); },
 		[](bool checked) {
 			Core::App().settings().fork().setAddToMenuRememberMedia(checked);
@@ -551,7 +551,7 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 	addRestart(
 		u"fork/hide_all_chats_tab"_q,
 		{ u"hide"_q, u"all_chats"_q, u"tab"_q },
-		rpl::single(u"Hide 'All Chats' tab"_q),
+		tr::lng_settings_hide_all_chats_tab(),
 		[] { return Core::App().settings().fork().hideAllChatsTab(); },
 		[](bool checked) {
 			Core::App().settings().fork().setHideAllChatsTab(checked);
@@ -561,7 +561,7 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 	add(
 		u"fork/disable_global_search"_q,
 		{ u"disable"_q, u"global"_q, u"search"_q },
-		rpl::single(u"Disable global search"_q),
+		tr::lng_settings_disable_global_search(),
 		[] { return Core::App().settings().fork().globalSearchDisabled(); },
 		[](bool checked) {
 			Core::App().settings().fork().setGlobalSearchDisabled(checked);
@@ -571,7 +571,7 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 	add(
 		u"fork/forward_and_remove"_q,
 		{ u"forward"_q, u"button"_q, u"remove"_q },
-		rpl::single(u"Button to forward and remove"_q),
+		tr::lng_settings_forward_and_remove(),
 		[] { return Core::App().settings().fork().thirdButtonTopBar(); },
 		[](bool checked) {
 			Core::App().settings().fork().setThirdButtonTopBar(checked);
@@ -581,7 +581,7 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 	add(
 		u"fork/auto_copy_incoming_login_codes"_q,
 		{ u"auto_copy"_q, u"login"_q, u"code"_q },
-		rpl::single(u"Auto-copy incoming login codes"_q),
+		tr::lng_settings_auto_copy_login_codes(),
 		[] { return Core::App().settings().fork().copyLoginCode(); },
 		[](bool checked) {
 			Core::App().settings().fork().setCopyLoginCode(checked);
@@ -591,7 +591,7 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 	add(
 		u"fork/hide_archived_stories"_q,
 		{ u"hide"_q, u"archived"_q, u"stories"_q },
-		rpl::single(u"Hide archived stories"_q),
+		tr::lng_settings_hide_archived_stories(),
 		[] { return Core::App().settings().fork().archivedStoriesAreHidden(); },
 		[](bool checked) {
 			Core::App().settings().fork().setArchivedStoriesAreHidden(checked);
@@ -606,7 +606,7 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 	add(
 		u"fork/skip_share_from_bot"_q,
 		{ u"skip"_q, u"share"_q, u"bot"_q },
-		rpl::single(u"Skip share box from app bots"_q),
+		tr::lng_settings_skip_share_from_bot(),
 		[] { return Core::App().settings().fork().skipShareFromBot(); },
 		[](bool checked) {
 			Core::App().settings().fork().setSkipShareFromBot(checked);
@@ -614,7 +614,7 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 	add(
 		u"fork/additional_buttons_web_bot"_q,
 		{ u"additional"_q, u"button"_q, u"web_bot"_q },
-		rpl::single(u"Display additional buttons for app bots"_q),
+		tr::lng_settings_additional_buttons_web_bot(),
 		[] { return Core::App().settings().fork().additionalButtonsWebBot(); },
 		[](bool checked) {
 			Core::App().settings().fork().setAdditionalButtonsWebBot(checked);
