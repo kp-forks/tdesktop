@@ -432,16 +432,6 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 
 	//
 	add(
-		u"fork/mention_by_name"_q,
-		{ u"mention"_q, u"by"_q, u"name"_q },
-		tr::lng_settings_mention_by_name(),
-		[] { return Core::App().settings().fork().mentionByNameDisabled(); },
-		[=](bool checked) {
-			Core::App().settings().fork().setMentionByNameDisabled(checked);
-		});
-
-	//
-	add(
 		u"fork/all_recent_stickers"_q,
 		{ u"all"_q, u"recent"_q, u"stickers"_q },
 		tr::lng_settings_show_all_recent_stickers(),

@@ -552,7 +552,6 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_use_original_tray_icon" = "Use original tray icon";
 "lng_settings_auto_submit_passcode" = "Auto-submit local passcode";
 "lng_settings_emoji_on_click" = "Disable emoji popup display on hovering";
-"lng_settings_mention_by_name" = "Disable mention by name";
 "lng_settings_primary_unmuted" = "Unmuted Messages are Primary";
 
 "lng_settings_custom_sticker_size" = "Custom Sticker Size";
