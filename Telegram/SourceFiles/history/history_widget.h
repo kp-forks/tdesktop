@@ -25,6 +25,10 @@ enum class SendMediaType;
 class MessageLinksParser;
 struct InlineBotQuery;
 
+namespace Fork {
+class ExtractMediaBar;
+} // namespace Fork
+
 namespace MTP {
 class Error;
 } // namespace MTP
@@ -752,6 +756,7 @@ private:
 	std::unique_ptr<HistoryView::SuggestOptionsBar> _suggestOptions;
 
 	object_ptr<Ui::IconButton> _fieldBarCancel;
+	std::unique_ptr<Fork::ExtractMediaBar> _forkExtractMedia;
 
 	std::unique_ptr<Ui::RpWidget> _topBars;
 

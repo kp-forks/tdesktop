@@ -562,6 +562,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_skip_share_from_bot" = "Skip share box from app bots";
 "lng_settings_additional_buttons_web_bot" = "Display additional buttons for app bots";
 
+"lng_fork_extract_media_from_preview" = "Send media from link preview as attachment";
+
 "lng_settings_custom_sticker_size" = "Custom Sticker Size";
 "lng_settings_sticker_size_label" = "Allowed values are between 50 and 256.";
 

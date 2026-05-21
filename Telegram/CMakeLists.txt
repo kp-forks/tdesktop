@@ -1112,6 +1112,8 @@ PRIVATE
     history/history_view_swipe_back_session.h
     history/history_widget.cpp
     history/history_widget.h
+    history/history_widget_extract_media_fork.cpp
+    history/history_widget_extract_media_fork.h
     info/bot/earn/info_bot_earn_list.cpp
     info/bot/earn/info_bot_earn_list.h
     info/bot/earn/info_bot_earn_widget.cpp
