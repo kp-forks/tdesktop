@@ -249,9 +249,6 @@ using namespace Builder;
 
 void BuildForkSectionContent(SectionBuilder &builder) {
 	const auto controller = builder.controller();
-	if (!controller) {
-		return;
-	}
 	struct State {
 		rpl::variable<bool> checked;
 	};
@@ -269,6 +266,9 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 			.toggled = rpl::single(checkedCallback()),
 			.keywords = std::move(keywords),
 		});
+		if (!checkbox) {
+			return;
+		}
 		checkbox->toggledValue(
 		) | rpl::filter([=](bool checked) {
 			return (checked != checkedCallback());
@@ -312,6 +312,9 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 			) | rpl::then(state->checked.changes()),
 			.keywords = std::move(keywords),
 		});
+		if (!checkbox) {
+			return;
+		}
 		checkbox->toggledValue(
 		) | rpl::filter([=](bool checked) {
 			return (checked != checkedCallback());
