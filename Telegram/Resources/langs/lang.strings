@@ -567,6 +567,11 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_custom_sticker_size" = "Custom Sticker Size";
 "lng_settings_sticker_size_label" = "Allowed values are between 50 and 256.";
 
+"lng_settings_markdown_clipboard_text" = "Clipboard text for 'Save to markdown file'";
+"lng_settings_markdown_clipboard_text_box_title" = "Clipboard text for 'Save to markdown file'";
+"lng_settings_markdown_clipboard_text_label" = "Use '%q' as a placeholder for the path to the saved markdown file. Leave empty to copy the path itself.";
+"lng_settings_markdown_clipboard_text_placeholder" = "Text to copy on save";
+
 // Link Device (QR login).
 "lng_settings_link_device" = "Link Device";
 "lng_settings_link_device_privacy" = "Your camera feed stays on your device. No video data is sent over the network — QR codes are scanned locally.";
@@ -5178,6 +5183,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_context_delete_selected" = "Delete Selected";
 "lng_context_save_images_selected" = "Save Selected";
 "lng_context_save_documents_selected" = "Download Selected";
+"lng_context_save_to_markdown_selected" = "Save to markdown file";
+"lng_context_save_to_markdown_done" = "Markdown saved. Path copied to clipboard.";
 "lng_context_clear_selection" = "Clear Selection";
 "lng_context_to_save_messages" = "To Saved Messages";
 "lng_context_group_items" = "Group Selected";

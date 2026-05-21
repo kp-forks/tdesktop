@@ -1472,6 +1472,8 @@ PRIVATE
     menu/menu_item_download_files.h
     menu/menu_item_rate_transcribe_session.cpp
     menu/menu_item_rate_transcribe_session.h
+    menu/menu_item_save_to_markdown.cpp
+    menu/menu_item_save_to_markdown.h
     menu/menu_mute.cpp
     menu/menu_mute.h
     menu/menu_send.cpp

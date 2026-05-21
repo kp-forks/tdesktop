@@ -42,6 +42,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "styles/style_menu_icons.h"
 #include "styles/style_settings.h"
 
+#include "base/options.h"
 #include "base/qthelp_url.h"
 #include "base/weak_ptr.h"
 #include "boxes/abstract_box.h"
@@ -51,6 +52,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "lang/lang_keys.h"
 #include "main/main_domain.h"
 #include "main/main_session.h"
+#include "menu/menu_item_save_to_markdown.h"
 #include "settings/settings_common.h"
 #include "storage/localstorage.h"
 #include "styles/style_boxes.h"
@@ -241,6 +243,67 @@ QString StickerSizeBox::getOrSetGlobal(QString value) {
 bool StickerSizeBox::isInvalidUrl(QString linkUrl) {
 	const auto number = linkUrl.toInt();
 	return !number || number < 50 || number > 256;
+}
+
+//////
+
+class MarkdownClipboardTextBox : public Ui::BoxContent {
+public:
+	MarkdownClipboardTextBox(QWidget*) {
+	}
+
+	void setInnerFocus() override {
+		Expects(_setInnerFocus != nullptr);
+
+		_setInnerFocus();
+	}
+
+protected:
+	void prepare() override;
+
+private:
+	Fn<void()> _setInnerFocus;
+
+};
+
+void MarkdownClipboardTextBox::prepare() {
+	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
+
+	content->add(
+		object_ptr<Ui::FlatLabel>(
+			content,
+			tr::lng_settings_markdown_clipboard_text_label(),
+			st::boxDividerLabel),
+		st::defaultBoxDividerLabelPadding);
+
+	auto &option = base::options::lookup<QString>(
+		Menu::kOptionMarkdownClipboardText);
+
+	const auto field = content->add(
+		object_ptr<Ui::InputField>(
+			content,
+			st::defaultInputField,
+			Ui::InputField::Mode::MultiLine,
+			tr::lng_settings_markdown_clipboard_text_placeholder(),
+			option.value()),
+		st::markdownLinkFieldPadding);
+
+	const auto submit = [=, &option] {
+		option.set(field->getLastText());
+		closeBox();
+	};
+
+	setTitle(tr::lng_settings_markdown_clipboard_text_box_title());
+
+	addButton(tr::lng_box_ok(), submit);
+	addButton(tr::lng_cancel(), [=] { closeBox(); });
+
+	content->moveToLeft(0, 0);
+	setDimensionsToContent(st::boxWidth, content);
+
+	_setInnerFocus = [=] {
+		field->setFocusFast();
+	};
 }
 
 //////
@@ -504,6 +567,23 @@ void BuildForkSectionContent(SectionBuilder &builder) {
 					tr::lng_settings_sticker_size_label));
 		},
 		.keywords = { u"custom"_q, u"sticker"_q, u"size"_q },
+	});
+
+	//
+	builder.addButton({
+		.id = u"fork/markdown_clipboard_text"_q,
+		.title = tr::lng_settings_markdown_clipboard_text(),
+		.st = &st::settingsButton,
+		.icon = { &st::menuIconExport },
+		.onClick = [=] {
+			controller->show(Box<MarkdownClipboardTextBox>());
+		},
+		.keywords = {
+			u"markdown"_q,
+			u"clipboard"_q,
+			u"save"_q,
+			u"text"_q,
+		},
 	});
 
 	//
