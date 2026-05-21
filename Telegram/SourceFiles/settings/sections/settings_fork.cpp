@@ -638,6 +638,17 @@ private:
 
 };
 
+const auto kMeta = BuildHelper({
+	.id = Fork::Id(),
+	.parentId = MainId(),
+	.title = &tr::lng_settings_section_fork,
+	.icon = &st::menuIconForkSettings,
+}, [](SectionBuilder &builder) {
+	BuildForkSectionContent(builder);
+});
+
+const SectionBuildMethod kForkSection = kMeta.build;
+
 Fork::Fork(
 	QWidget *parent,
 	not_null<Window::SessionController*> controller)
@@ -658,35 +669,9 @@ void Fork::sectionSaveChanges(FnMut<void()> done) {
 void Fork::setupContent() {
 	const auto content = Ui::CreateChild<Ui::VerticalLayout>(this);
 
-	const SectionBuildMethod buildMethod = [](
-			not_null<Ui::VerticalLayout*> container,
-			not_null<Window::SessionController*> controller,
-			Fn<void(Type)> showOther,
-			rpl::producer<> showFinished) {
-		const auto isPaused = Window::PausedIn(
-			controller,
-			Window::GifPauseReason::Layer);
-		auto builder = SectionBuilder(WidgetContext{
-			.container = container,
-			.controller = controller,
-			.showOther = std::move(showOther),
-			.isPaused = isPaused,
-		});
-		BuildForkSectionContent(builder);
-	};
-
-	build(content, buildMethod);
+	build(content, kForkSection);
 	Ui::ResizeFitChild(this, content);
 }
-
-const auto kMeta = BuildHelper({
-	.id = Fork::Id(),
-	.parentId = MainId(),
-	.title = &tr::lng_settings_section_fork,
-	.icon = &st::menuIconForkSettings,
-}, [](SectionBuilder &builder) {
-	BuildForkSectionContent(builder);
-});
 
 } // namespace
 
@@ -696,7 +681,7 @@ Type ForkId() {
 
 namespace Builder {
 
-SectionBuildMethod ForkSection = kMeta.build;
+SectionBuildMethod ForkSection = kForkSection;
 
 } // namespace Builder
 } // namespace Settings
