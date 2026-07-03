@@ -1519,7 +1519,7 @@ if qt < '6':
 win:
     git clone https://github.com/desktop-app/tg_angle.git
     cd tg_angle
-    git checkout fedf9110db
+    git checkout d4c3606e47
     cmake -B out ^
         -DTG_ANGLE_SPECIAL_TARGET=%SPECIAL_TARGET% ^
         -DTG_ANGLE_ZLIB_INCLUDE_PATH=%LIBS_DIR%/zlib
@@ -1590,7 +1590,10 @@ win:
         -nomake tests ^
         -platform win32-msvc
 
-    jom -j%NUMBER_OF_PROCESSORS%
+    rem jom -jN occasionally fails to create the shared mkspecs\\modules-inst
+    rem directory due to a race in qmake's mkpath under parallel builds; the
+    rem build is incremental, so simply retrying picks up where it stopped.
+    jom -j%NUMBER_OF_PROCESSORS% || jom -j%NUMBER_OF_PROCESSORS%
     jom -j%NUMBER_OF_PROCESSORS% install
 """)
 else: # qt > '6'
