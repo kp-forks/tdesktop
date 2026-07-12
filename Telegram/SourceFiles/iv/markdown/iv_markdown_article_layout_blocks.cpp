@@ -726,8 +726,9 @@ void PopulateCodeBlockLeaf(
 [[nodiscard]] int LimitedMediaWidth(
 		int availableWidth,
 		int intrinsicWidth) {
-	const auto limit = (intrinsicWidth > 0)
-		? (2 * intrinsicWidth)
+	const auto scaledIntrinsic = style::ConvertScale(intrinsicWidth);
+	const auto limit = (scaledIntrinsic > 0)
+		? (2 * scaledIntrinsic)
 		: availableWidth;
 	return std::clamp(limit, 1, std::max(availableWidth, 1));
 }
@@ -1584,10 +1585,14 @@ bool IsAnchorOnlyBlock(const PreparedBlock &block) {
 QString ListMarkerText(const PreparedBlock &block) {
 	if (block.listKind == ListKind::Ordered) {
 		if (!block.orderedMarkerText.isEmpty()) {
-			return block.orderedMarkerText;
+			return FormatPreparedOrderedRawMarkerText(
+				block.orderedMarkerText,
+				block.listDelimiter);
 		}
 		if (!block.articleOrderedMarkerText.isEmpty()) {
-			return block.articleOrderedMarkerText;
+			return FormatPreparedOrderedRawMarkerText(
+				block.articleOrderedMarkerText,
+				block.listDelimiter);
 		}
 		const auto delimiter = (block.listDelimiter == ListDelimiter::Parenthesis)
 			? u")"_q
@@ -4606,7 +4611,9 @@ std::optional<int> RecountSimpleLaidOutBlock(
 			scrollOwner,
 			context);
 	case PreparedBlockKind::Photo:
-		if (!block || !block->mediaBlock) {
+		if (!block
+			|| !block->mediaBlock
+			|| !block->mediaBlock->alive()) {
 			return std::nullopt;
 		}
 		return LayoutFramedMediaBlockGeometry(
@@ -4623,7 +4630,9 @@ std::optional<int> RecountSimpleLaidOutBlock(
 			prepared.photo.width,
 			context);
 	case PreparedBlockKind::Video:
-		if (!block || !block->mediaBlock) {
+		if (!block
+			|| !block->mediaBlock
+			|| !block->mediaBlock->alive()) {
 			return std::nullopt;
 		}
 		return LayoutFramedMediaBlockGeometry(
@@ -4640,7 +4649,9 @@ std::optional<int> RecountSimpleLaidOutBlock(
 			prepared.video.media.width,
 			context);
 	case PreparedBlockKind::Audio:
-		if (!block || !block->mediaBlock) {
+		if (!block
+			|| !block->mediaBlock
+			|| !block->mediaBlock->alive()) {
 			return std::nullopt;
 		}
 		return LayoutCardMediaBlockGeometry(
@@ -4654,7 +4665,9 @@ std::optional<int> RecountSimpleLaidOutBlock(
 			st.audio.captionSkip,
 			context);
 	case PreparedBlockKind::Map:
-		if (!block || !block->mediaBlock) {
+		if (!block
+			|| !block->mediaBlock
+			|| !block->mediaBlock->alive()) {
 			return std::nullopt;
 		}
 		return LayoutFramedMediaBlockGeometry(
@@ -4671,7 +4684,9 @@ std::optional<int> RecountSimpleLaidOutBlock(
 			0,
 			context);
 	case PreparedBlockKind::Channel:
-		if (!block || !block->mediaBlock) {
+		if (!block
+			|| !block->mediaBlock
+			|| !block->mediaBlock->alive()) {
 			return std::nullopt;
 		}
 		return LayoutCardMediaBlockGeometry(
@@ -4685,7 +4700,9 @@ std::optional<int> RecountSimpleLaidOutBlock(
 			st.audio.captionSkip,
 			context);
 	case PreparedBlockKind::GroupedMedia:
-		if (!block || !block->mediaBlock) {
+		if (!block
+			|| !block->mediaBlock
+			|| !block->mediaBlock->alive()) {
 			return std::nullopt;
 		}
 		return LayoutFramedMediaBlockGeometry(

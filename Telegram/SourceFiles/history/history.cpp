@@ -173,6 +173,7 @@ History::History(not_null<Data::Session*> owner, PeerId peerId)
 			_outboxReadBefore = std::numeric_limits<MsgId>::max();
 		}
 	}
+	updateCommunityRegistration();
 }
 
 History::~History() = default;
@@ -839,7 +840,9 @@ not_null<HistoryItem*> History::addNewItem(
 	}
 
 	if (!loadedAtBottom() || peer->migrateTo()) {
-		setLastMessage(item);
+		if (!item->isEphemeral()) {
+			setLastMessage(item);
+		}
 		if (unread) {
 			const auto type = item->out()
 				? NewAddType::Outgoing
@@ -1213,7 +1216,9 @@ not_null<HistoryItem*> History::addNewToBack(
 		}
 	}
 
-	setLastMessage(item);
+	if (!item->isEphemeral()) {
+		setLastMessage(item);
+	}
 	if (unread) {
 		const auto type = item->out()
 			? NewAddType::Outgoing
@@ -2308,9 +2313,8 @@ void History::setUnreadCount(int newUnreadCount) {
 	} else if (!_firstUnreadView && !_unreadBarView && loadedAtBottom()) {
 		calculateFirstUnreadMessage();
 	}
-	if (Core::ForkSettings::PrimaryUnmutedMessages()) {
-		updateChatListSortPosition();
-		updateChatListEntry();
+	if (isLinkedCommunityMember()) {
+		_communityInfo->oneUnreadStateChanged();
 	}
 }
 
@@ -2324,6 +2328,9 @@ void History::setUnreadMark(bool unread) {
 	const auto notifier = unreadStateChangeNotifier(
 		useMyUnreadInParent() && !unreadCount());
 	Thread::setUnreadMarkFlag(unread);
+	if (isLinkedCommunityMember()) {
+		_communityInfo->oneUnreadStateChanged();
+	}
 }
 
 void History::setFakeUnreadWhileOpened(bool enabled) {
@@ -2368,9 +2375,10 @@ void History::setMuted(bool muted) {
 	if (const auto forum = peer->forum()) {
 		owner().notifySettings().forumParentMuteUpdated(forum);
 	}
-	if (Core::ForkSettings::PrimaryUnmutedMessages()) {
-		updateChatListSortPosition();
-		updateChatListEntry();
+	if (const auto channel = peer->asChannel()) {
+		if (channel->isCommunity()) {
+			owner().notifySettings().communityParentMuteUpdated(channel);
+		}
 	}
 }
 
@@ -2466,6 +2474,53 @@ void History::setFolderPointer(Data::Folder *folder) {
 	session().changes().historyUpdated(this, UpdateFlag::Folder);
 }
 
+void History::updateCommunityRegistration() {
+	const auto communityId = Data::PeerLinkedCommunityId(peer);
+	const auto info = communityId
+		? owner().channel(communityId)->ensuredCommunityInfo().get()
+		: nullptr;
+	if (_communityInfo == info) {
+		return;
+	}
+	const auto listFor = [&](Data::CommunityInfo *info)
+	-> Dialogs::MainList* {
+		if (info
+			&& info->collapsedInDialogs()
+			&& info->channel() != peer) {
+			return info->chatsList();
+		}
+		return owner().chatsList(folder());
+	};
+	const auto wasInList = inChatList();
+	const auto wasList = wasInList ? listFor(_communityInfo) : nullptr;
+	const auto nowList = wasInList ? listFor(info) : nullptr;
+	const auto moving = wasInList && (wasList != nowList);
+	if (moving) {
+		removeFromChatList(0, wasList);
+	}
+	if (const auto was = base::take(_communityInfo)) {
+		was->unregisterOne(this);
+	}
+	_communityInfo = info;
+	if (info) {
+		info->registerOne(this);
+	}
+	if (moving) {
+		addToChatList(0, nowList);
+		updateChatListEntry();
+	}
+}
+
+void History::communityChatsListDateChanged(TimeId wasDate) {
+	if (isLinkedCommunityMember()) {
+		_communityInfo->oneChatsListDateChanged(wasDate, chatListTimeId());
+	}
+}
+
+bool History::isLinkedCommunityMember() const {
+	return _communityInfo && Data::CommunityChatJoined(this);
+}
+
 int History::chatListNameVersion() const {
 	return peer->nameVersion();
 }
@@ -2525,6 +2580,13 @@ void History::applyPinnedUpdate(const MTPDupdateDialogPinned &data) {
 
 TimeId History::adjustedChatListTimeId() const {
 	const auto result = chatListTimeId();
+	if (const auto channel = peer->asChannel()) {
+		if (channel->isCommunity()) {
+			if (const auto info = channel->communityInfo()) {
+				return std::max(result, info->chatsListDate());
+			}
+		}
+	}
 	if (const auto draft = cloudDraft(MsgId(), PeerId())) {
 		if (!peer->forum()
 			&& !Data::DraftIsNull(draft)
@@ -2688,7 +2750,20 @@ Dialogs::UnreadState History::chatListUnreadState() const {
 }
 
 Dialogs::BadgesState History::chatListBadgesState() const {
-	if (const auto forum = peer->forum()) {
+	const auto channel = peer->asChannel();
+	if (channel && channel->isCommunity()) {
+		if (const auto info = channel->communityInfo()) {
+			auto state = Dialogs::UnreadState();
+			for (const auto &history : info->histories()) {
+				state += history->chatListUnreadState();
+			}
+			return Dialogs::BadgesForUnread(
+				state,
+				Dialogs::CountInBadge::Chats,
+				Dialogs::IncludeInBadge::All);
+		}
+		return computeBadgesState();
+	} else if (const auto forum = peer->forum()) {
 		return adjustBadgesStateByFolder(
 			Dialogs::BadgesForUnread(
 				forum->topicsList()->unreadState(),
@@ -2887,6 +2962,15 @@ bool History::loadedAtTop() const {
 	return _loadedAtTop;
 }
 
+void History::markLoadedAtTop() {
+	if (_loadedAtTop) {
+		return;
+	}
+	_loadedAtTop = true;
+	checkLocalMessages();
+	addEdgesToSharedMedia();
+}
+
 bool History::hasGuestChatBotMessages() const {
 	return _flags & Flag::HasGuestChatBotMessages;
 }
@@ -3018,6 +3102,7 @@ void History::setChatListMessage(HistoryItem *item) {
 	if (_chatListMessage && *_chatListMessage == item) {
 		return;
 	}
+	const auto wasKnown = _chatListMessage.has_value();
 	const auto was = _chatListMessage.value_or(nullptr);
 	if (item) {
 		if (item->isSponsored()) {
@@ -3038,6 +3123,13 @@ void History::setChatListMessage(HistoryItem *item) {
 	}
 	if (const auto folder = this->folder()) {
 		folder->oneListMessageChanged(was, item);
+	}
+	if (_communityInfo
+		&& peer->isUser()
+		&& (!wasKnown || ((was != nullptr) != (item != nullptr)))) {
+		_communityInfo->refreshOneMembership(this);
+	} else if (isLinkedCommunityMember()) {
+		_communityInfo->oneListMessageChanged();
 	}
 	if (const auto to = peer->migrateTo()) {
 		if (const auto history = owner().historyLoaded(to)) {
@@ -3117,6 +3209,18 @@ void History::setChatListMessageUnknown() {
 }
 
 void History::requestChatListMessage() {
+	const auto channel = peer->asChannel();
+	if (channel && channel->isCommunity()) {
+		// Communities have no own messages, the chats list row shows
+		// a list of community chat names instead of a last message.
+		if (!lastMessageKnown()) {
+			setLastMessage(nullptr);
+		}
+		if (!chatListMessageKnown()) {
+			setChatListMessage(nullptr);
+		}
+		return;
+	}
 	if (!lastMessageKnown()) {
 		owner().histories().requestDialogEntry(this, [=] {
 			requestChatListMessage();
@@ -3279,6 +3383,11 @@ bool History::trackUnreadMessages() const {
 bool History::shouldBeInChatList() const {
 	if (peer->migrateTo() || !folderKnown()) {
 		return false;
+	} else if (const auto community = peer->asChannel()
+		; community && community->isCommunity()) {
+		return !(community->flags() & ChannelDataFlag::Forbidden)
+			&& !community->haveLeft()
+			&& (community->flags() & ChannelDataFlag::CommunityCollapsed);
 	} else if (isPinnedDialog(FilterId())) {
 		return true;
 	} else if (const auto channel = peer->asChannel()) {
