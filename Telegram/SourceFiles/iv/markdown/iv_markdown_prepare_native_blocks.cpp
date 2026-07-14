@@ -675,6 +675,10 @@ void ApplyNativeIvEditPlaceholderText(PreparedBlock *block) {
 		&& (block->editLeaf->kind == PreparedEditLeafKind::BlockCaption)) {
 		block->editPlaceholderText = tr::lng_article_placeholder_author(tr::now);
 		return;
+	} else if (block->footer
+		&& (block->editLeaf->kind == PreparedEditLeafKind::BlockText)) {
+		block->editPlaceholderText = tr::lng_article_insert_footer(tr::now);
+		return;
 	}
 	block->editPlaceholderText = NativeIvEditPlaceholderText(
 		block->kind,
@@ -1245,7 +1249,8 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 		QString anchorId,
 		std::optional<PreparedEditBlockPath> path,
 		NativeIvPrepareState *state,
-		bool allowEmpty = false) {
+		bool allowEmpty = false,
+		bool footer = false) {
 	auto prepared = PreparedIvRichText();
 	const auto context = NativeIvRichTextContextForTextSize(
 		NativeIvFlowTextSize(kind, headingLevel, state->dimensions),
@@ -1275,8 +1280,11 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 		false,
 		std::move(editBlock),
 		std::move(editLeaf));
-	if (appended && state->editMode && (result->size() > count)) {
-		ApplyNativeIvEditPlaceholderText(&result->back());
+	if (appended && (result->size() > count)) {
+		result->back().footer = footer;
+		if (state->editMode) {
+			ApplyNativeIvEditPlaceholderText(&result->back());
+		}
 	}
 	return appended;
 }
@@ -1814,7 +1822,9 @@ void ClearPreparedEditSources(std::vector<PreparedBlock> *blocks) {
 			block.text,
 			block.anchorId,
 			path,
-			state);
+			state,
+			false,
+			(block.kind == RichPageBlockKind::Footer));
 	case RichPageBlockKind::Thinking:
 		return AppendNativeIvFlowBlock(
 			result,

@@ -1748,6 +1748,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_profile_posts#other" = "{count} posts";
 "lng_profile_photos#one" = "{count} photo";
 "lng_profile_photos#other" = "{count} photos";
+"lng_profile_media#one" = "{count} media";
+"lng_profile_media#other" = "{count} media";
 "lng_profile_gifs#one" = "{count} GIF";
 "lng_profile_gifs#other" = "{count} GIFs";
 "lng_profile_polls#one" = "{count} poll";
@@ -1915,6 +1917,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_profile_action_short_live_stream" = "Live stream";
 "lng_profile_action_short_video_chat" = "Video chat";
 
+"lng_media_type_media" = "Media";
 "lng_media_type_photos" = "Photos";
 "lng_media_type_gifs" = "GIFs";
 "lng_media_type_videos" = "Videos";
@@ -1929,6 +1932,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_media_type_similar" = "Similar";
 "lng_media_type_gifts" = "Gifts";
 "lng_media_type_saved" = "Saved";
+"lng_profile_tab_set_as_main" = "Set as Main Tab";
 "lng_polls_search_none" = "No polls found";
 "lng_media_type_rounds" = "Video messages";
 "lng_media_zoom_in" = "Zoom In";
@@ -1946,6 +1950,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_profile_export_chat" = "Export chat history";
 "lng_profile_export_topic" = "Export topic history";
 "lng_profile_gift_premium" = "Gift Premium";
+"lng_media_selected_media#one" = "{count} Media";
+"lng_media_selected_media#other" = "{count} Media";
 "lng_media_selected_photo#one" = "{count} Photo";
 "lng_media_selected_photo#other" = "{count} Photos";
 "lng_media_selected_gif#one" = "{count} GIF";
@@ -3608,6 +3614,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_credits_small_balance_for_search" = "Buy **Stars** to search through public posts.";
 "lng_credits_small_balance_fallback" = "Buy **Stars** to unlock content and services on Telegram.";
 "lng_credits_purchase_blocked" = "Sorry, you can't purchase this item with Telegram Stars.";
+"lng_credits_topup_disabled" = "Sorry, you don't have enough Telegram Stars on your balance.";
 "lng_credits_enough" = "You have enough stars at the moment. {link}";
 "lng_credits_enough_link" = "Buy anyway";
 
@@ -7455,6 +7462,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_article_insert_blockquote" = "Blockquote";
 "lng_article_insert_code" = "Code Block";
 "lng_article_insert_math" = "Math";
+"lng_article_insert_footer" = "Footer";
 "lng_article_insert_divider" = "Divider";
 "lng_article_insert_ordered_list" = "Ordered List";
 "lng_article_insert_bullet_list" = "Bullet List";
