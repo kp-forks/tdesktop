@@ -11,15 +11,15 @@ namespace {
 
 constexpr auto kDefaultStickerSize = 256;
 
-bool StaticPrimaryUnmutedMessages = false;
+bool StaticHideFromBlockedUsers = false;
 
 } // namespace
 
 ForkSettings::ForkSettings() {
 }
 
-bool ForkSettings::PrimaryUnmutedMessages() {
-	return StaticPrimaryUnmutedMessages;
+bool ForkSettings::HideFromBlockedUsers() {
+	return StaticHideFromBlockedUsers;
 }
 
 QByteArray ForkSettings::serialize() const {
@@ -51,7 +51,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_autoSubmitPasscode ? 1 : 0)
 			<< qint32(_emojiPopupOnClick ? 1 : 0)
 			<< qint32(0) // Vacant slot (was _mentionByNameDisabled).
-			<< qint32(_primaryUnmutedMessages ? 1 : 0)
+			<< qint32(0) // Vacant slot (was _primaryUnmutedMessages).
 			<< qint32(_addToMenuRememberMedia ? 1 : 0)
 			<< qint32(_hideAllChatsTab ? 1 : 0)
 			<< qint32(_globalSearchDisabled ? 1 : 0)
@@ -61,6 +61,7 @@ QByteArray ForkSettings::serialize() const {
 			<< qint32(_additionalButtonsWebBot ? 1 : 0)
 			<< _botsPlatforms
 			<< qint32(_archivedStoriesAreHidden ? 1 : 0)
+			<< qint32(_hideFromBlockedUsers ? 1 : 0)
 			;
 	}
 	return result;
@@ -88,7 +89,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 autoSubmitPasscode = _autoSubmitPasscode;
 	qint32 emojiPopupOnClick = _emojiPopupOnClick;
 	qint32 mentionByNameDisabled = 0; // Vacant slot.
-	qint32 primaryUnmutedMessages = _primaryUnmutedMessages;
+	qint32 primaryUnmutedMessages = 0; // Vacant slot.
 	qint32 addToMenuRememberMedia = _addToMenuRememberMedia;
 	qint32 hideAllChatsTab = _hideAllChatsTab;
 	qint32 globalSearchDisabled = _globalSearchDisabled;
@@ -97,6 +98,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	qint32 copyLoginCode = _copyLoginCode;
 	qint32 additionalButtonsWebBot = _additionalButtonsWebBot;
 	qint32 archivedStoriesAreHidden = _archivedStoriesAreHidden;
+	qint32 hideFromBlockedUsers = _hideFromBlockedUsers;
 	QString botsPlatforms = _botsPlatforms;
 
 	if (!stream.atEnd()) {
@@ -145,6 +147,9 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	if (!stream.atEnd()) {
 		stream >> archivedStoriesAreHidden;
 	}
+	if (!stream.atEnd()) {
+		stream >> hideFromBlockedUsers;
+	}
 	if (stream.status() != QDataStream::Ok) {
 		LOG(("App Error: "
 			"Bad data for Core::ForkSettings::constructFromSerialized()"));
@@ -166,7 +171,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_autoSubmitPasscode = (autoSubmitPasscode == 1);
 	_emojiPopupOnClick = (emojiPopupOnClick == 1);
 	(void)mentionByNameDisabled; // Vacant slot.
-	setPrimaryUnmutedMessages(primaryUnmutedMessages == 1);
+	(void)primaryUnmutedMessages; // Vacant slot.
 	_addToMenuRememberMedia = (addToMenuRememberMedia == 1);
 	_hideAllChatsTab = (hideAllChatsTab == 1);
 	_globalSearchDisabled = (globalSearchDisabled == 1);
@@ -175,6 +180,7 @@ void ForkSettings::addFromSerialized(const QByteArray &serialized) {
 	_copyLoginCode = (copyLoginCode == 1);
 	_additionalButtonsWebBot = (additionalButtonsWebBot == 1);
 	_archivedStoriesAreHidden = (archivedStoriesAreHidden == 1);
+	setHideFromBlockedUsers(hideFromBlockedUsers == 1);
 	_botsPlatforms = std::move(botsPlatforms);
 }
 
@@ -191,7 +197,6 @@ void ForkSettings::resetOnLastLogout() {
 	_useOriginalTrayIcon = false;
 	_autoSubmitPasscode = false;
 	_emojiPopupOnClick = false;
-	setPrimaryUnmutedMessages(false);
 	_addToMenuRememberMedia = false;
 	_hideAllChatsTab = false;
 	_globalSearchDisabled = false;
@@ -200,15 +205,8 @@ void ForkSettings::resetOnLastLogout() {
 	_copyLoginCode = false;
 	_additionalButtonsWebBot = false;
 	_archivedStoriesAreHidden = false;
+	setHideFromBlockedUsers(false);
 	_botsPlatforms = QString();
-}
-
-[[nodiscard]] bool ForkSettings::primaryUnmutedMessages() const {
-	return _primaryUnmutedMessages;
-}
-void ForkSettings::setPrimaryUnmutedMessages(bool newValue) {
-	StaticPrimaryUnmutedMessages = newValue;
-	_primaryUnmutedMessages = newValue;
 }
 
 [[nodiscard]] bool ForkSettings::addToMenuRememberMedia() const {
@@ -272,6 +270,14 @@ void ForkSettings::setBotsPlatforms(QString newValue) {
 }
 void ForkSettings::setArchivedStoriesAreHidden(bool newValue) {
 	_archivedStoriesAreHidden = newValue;
+}
+
+[[nodiscard]] bool ForkSettings::hideFromBlockedUsers() const {
+	return _hideFromBlockedUsers;
+}
+void ForkSettings::setHideFromBlockedUsers(bool newValue) {
+	StaticHideFromBlockedUsers = newValue;
+	_hideFromBlockedUsers = newValue;
 }
 
 } // namespace Core

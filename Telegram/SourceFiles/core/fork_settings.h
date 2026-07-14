@@ -9,7 +9,7 @@ class ForkSettings final {
 public:
 	ForkSettings();
 
-	[[nodiscard]] static bool PrimaryUnmutedMessages();
+	[[nodiscard]] static bool HideFromBlockedUsers();
 
 	[[nodiscard]] QByteArray serialize() const;
 	void addFromSerialized(const QByteArray &serialized);
@@ -94,8 +94,6 @@ public:
 	void setEmojiPopupOnClick(bool newValue) {
 		_emojiPopupOnClick = newValue;
 	}
-	[[nodiscard]] bool primaryUnmutedMessages() const;
-	void setPrimaryUnmutedMessages(bool newValue);
 	[[nodiscard]] bool addToMenuRememberMedia() const;
 	void setAddToMenuRememberMedia(bool newValue);
 
@@ -124,6 +122,9 @@ public:
 	[[nodiscard]] bool archivedStoriesAreHidden() const;
 	void setArchivedStoriesAreHidden(bool newValue);
 
+	[[nodiscard]] bool hideFromBlockedUsers() const;
+	void setHideFromBlockedUsers(bool newValue);
+
 private:
 	bool _squareUserpics = false;
 	bool _audioFade = true;
@@ -138,7 +139,6 @@ private:
 	bool _useOriginalTrayIcon = false;
 	bool _autoSubmitPasscode = false;
 	bool _emojiPopupOnClick = false;
-	bool _primaryUnmutedMessages = false;
 	bool _addToMenuRememberMedia = false;
 	bool _hideAllChatsTab = false;
 	bool _globalSearchDisabled = false;
@@ -148,6 +148,7 @@ private:
 	bool _additionalButtonsWebBot = false;
 	QString _botsPlatforms;
 	bool _archivedStoriesAreHidden = false;
+	bool _hideFromBlockedUsers = false;
 
 };
 

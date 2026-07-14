@@ -37,6 +37,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "boxes/premium_preview_box.h"
 #include "core/application.h"
 #include "core/core_settings.h"
+#include "core/fork_settings.h"
 #include "core/click_handler_types.h"
 #include "core/ui_integration.h"
 #include "main/main_app_config.h"
@@ -1495,7 +1496,26 @@ bool Element::isHiddenByGroup() const {
 }
 
 bool Element::isHidden() const {
-	return isHiddenByGroup();
+	if (isHiddenByGroup()) {
+		return true;
+	}
+	if (Core::ForkSettings::HideFromBlockedUsers()) {
+		const auto item = data();
+		if (!item->out()) {
+			const auto from = item->from();
+			if (from != item->history()->peer
+				&& from->isUser()
+				&& from->isBlocked()) {
+				return true;
+			}
+			if (const auto original = item->originalSender()) {
+				if (original->isUser() && original->isBlocked()) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 void Element::overrideMedia(std::unique_ptr<Media> media) {

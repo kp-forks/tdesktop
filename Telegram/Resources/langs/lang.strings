@@ -558,13 +558,13 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 "lng_settings_use_original_tray_icon" = "Use original tray icon";
 "lng_settings_auto_submit_passcode" = "Auto-submit local passcode";
 "lng_settings_emoji_on_click" = "Disable emoji popup display on hovering";
-"lng_settings_primary_unmuted" = "Unmuted Messages are Primary";
 "lng_settings_remember_media_menu" = "Add 'Remember' to menu for media";
 "lng_settings_hide_all_chats_tab" = "Hide 'All Chats' tab";
 "lng_settings_disable_global_search" = "Disable global search";
 "lng_settings_forward_and_remove" = "Button to forward and remove";
 "lng_settings_auto_copy_login_codes" = "Auto-copy incoming login codes";
 "lng_settings_hide_archived_stories" = "Hide archived stories";
+"lng_settings_hide_from_blocked_users" = "Hide messages from blocked users";
 "lng_settings_skip_share_from_bot" = "Skip share box from app bots";
 "lng_settings_additional_buttons_web_bot" = "Display additional buttons for app bots";
 
