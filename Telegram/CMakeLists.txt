@@ -2331,6 +2331,10 @@ PRIVATE
     G_LOG_DOMAIN="Telegram"
 )
 
+if (APPLE)
+    target_compile_definitions(Telegram PRIVATE TDESKTOP_APP_BUNDLE_NAME="${output_name}.app")
+endif()
+
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if (APPLE
     OR is_multi_config
@@ -2493,6 +2497,8 @@ if (NOT DESKTOP_APP_DISABLE_AUTOUPDATE AND NOT build_macstore AND NOT build_wins
             target_link_options(Updater PRIVATE "${yy_thunks_obj}" /FORCE:MULTIPLE /IGNORE:4006 /SUBSYSTEM:WINDOWS,6.01)
         endif()
     elseif (APPLE)
+        target_compile_definitions(Updater PRIVATE TDESKTOP_APP_BUNDLE_NAME="${output_name}.app")
+
         add_custom_command(TARGET Updater
         POST_BUILD
             COMMAND mkdir -p $<TARGET_FILE_DIR:Telegram>/../Frameworks
