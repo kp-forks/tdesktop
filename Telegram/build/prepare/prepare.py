@@ -1513,6 +1513,16 @@ release:
     lipo -create Release.arm64/libcrashpad_client.a Release.x86_64/libcrashpad_client.a -output Release/libcrashpad_client.a
 """)
 
+if win:
+    stage('qt6windows7', """
+win:
+    git clone https://github.com/qr243vbi/qt6windows7.git
+    cd qt6windows7
+    git checkout aa73dc1aa33989d09e5823532bccb1d31e39bb64
+    SET FGPATCHES=%ROOT_DIR%\\tdesktop\\patches
+    git -c user.email=build@local -c user.name=build am --ignore-whitespace "%FGPATCHES%\\0001-Enabled-DirectComposition-in-Win7-path-and-FLIP_SEQU.patch" "%FGPATCHES%\\0002-Ported-Windows-7-backport-from-Qt-6.10.0-to-Qt-6.11..patch" "%FGPATCHES%\\0003-Added-three-way-port-script-for-moving-overlay-to-ne.patch" "%FGPATCHES%\\0004-Routed-new-6.11-notifyRoleChange-UIA-call-through-wr.patch"
+""")
+
 if qt < '6':
     if win:
         stage('tg_angle', """
@@ -1526,15 +1536,6 @@ win:
     cmake --build out --config Debug
 release:
     cmake --build out --config Release
-""")
-
-    stage('qt6windows7', """
-win:
-    git clone https://github.com/qr243vbi/qt6windows7.git
-    cd qt6windows7
-    git checkout aa73dc1aa33989d09e5823532bccb1d31e39bb64
-    SET FGPATCHES=%ROOT_DIR%\\tdesktop\\patches
-    git -c user.email=build@local -c user.name=build am --ignore-whitespace "%FGPATCHES%\\0001-Enabled-DirectComposition-in-Win7-path-and-FLIP_SEQU.patch" "%FGPATCHES%\\0002-Ported-Windows-7-backport-from-Qt-6.10.0-to-Qt-6.11..patch" "%FGPATCHES%\\0003-Added-three-way-port-script-for-moving-overlay-to-ne.patch" "%FGPATCHES%\\0004-Routed-new-6.11-notifyRoleChange-UIA-call-through-wr.patch"
 """)
 
     stage('qt_' + qt, """
