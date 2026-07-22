@@ -42,7 +42,7 @@ jobs:
       IMAGE_TAG: tdesktop:centos_env
       BUILD_CONFIG: MinSizeRel
       UPD_PREFIX: tlinuxupd
-      ASSET_PORTABLE: Forkgram.Linux.x64.tar.xz
+      ASSET_PORTABLE: Forkgram.tar.xz
       ONLY_CACHE: ${{ (github.event_name == 'schedule' || inputs.only_cache) && 'true' || 'false' }}
       PUBLISH_RELEASE: ${{ (inputs.publish_release || startsWith(github.ref, 'refs/tags/')) && 'true' || 'false' }}
 
