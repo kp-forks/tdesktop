@@ -1685,6 +1685,11 @@ win:
         -system-webp ^
         -system-zlib ^
         -system-libjpeg ^
+win32:
+    # Qt 6.11 autodetects the Windows IoRing backend whenever the SDK has
+    # ioringapi.h, but qioring_win.cpp static_asserts on 64-bit pointers.
+        -no-feature-windows-ioring ^
+win:
         -platform win32-msvc ^
         -D ZLIB_WINAPI ^
         -- ^
