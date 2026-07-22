@@ -140,7 +140,7 @@ async def main():
                 msg = await client.send_file(
                     files, path,
                     force_document=True,
-                    caption=f"{os.path.basename(path)} ({platform})",
+                    caption='',
                     schedule=when)
                 entry = f"{version}:{FILES}#{msg.id}"
                 print(f"uploaded {platform}: {entry}")
