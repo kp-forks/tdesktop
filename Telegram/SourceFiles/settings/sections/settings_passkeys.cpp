@@ -10,6 +10,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "base/unixtime.h"
 #include "core/application.h"
 #include "data/components/passkeys.h"
+#include "data/data_passkey_deserialize.h"
 #include "data/data_session.h"
 #include "data/stickers/data_custom_emoji.h"
 #include "lang/lang_keys.h"
@@ -504,51 +505,63 @@ void PasskeysNoneBox(
 	{
 		const auto &st = st::premiumPreviewDoubledLimitsBox;
 		const auto canRegister = session->passkeys().canRegister();
-		const auto localOnly = !canRegister
-			&& session->passkeys().canRegisterLocalOnly();
+		const auto localOnly = session->passkeys().canRegisterLocalOnly();
 		box->setStyle(st);
+		if (localOnly) {
+			const auto local = box->addRow(
+				object_ptr<Ui::RoundButton>(
+					content,
+					tr::lng_fork_passkeys_none_button_local(),
+					st::defaultLightButton),
+				st::boxRowPadding);
+			local->setClickedCallback([=] {
+				CreateLocalOnlyPasskey(
+					box->uiShow(),
+					session,
+					crl::guard(box, [=] { box->closeBox(); }));
+			});
+			box->widthValue() | rpl::on_next([=](int width) {
+				local->resizeToWidth(width
+					- st::boxRowPadding.left()
+					- st::boxRowPadding.right());
+			}, local->lifetime());
+			Ui::AddSkip(content);
+			Ui::AddSkip(content);
+		}
 		auto button = object_ptr<Ui::RoundButton>(
 			box,
 			(canRegister
 				? tr::lng_settings_passkeys_none_button()
-				: localOnly
-				? tr::lng_fork_passkeys_none_button_local()
 				: tr::lng_settings_passkeys_none_button_unsupported()),
 			st::defaultActiveButton);
 		const auto createButton = button.data();
 		button->resizeToWidth(box->width()
 			- st.buttonPadding.left()
 			- st.buttonPadding.left());
+		const auto show = box->uiShow();
 		button->setClickedCallback([=] {
-			if (localOnly) {
-				CreateLocalOnlyPasskey(
-					box->uiShow(),
-					session,
-					crl::guard(box.get(), [=] { box->closeBox(); }));
-				return;
-			}
-			session->passkeys().initRegistration([=](
+			session->passkeys().initRegistration(crl::guard(box, [=](
 					const Data::Passkey::RegisterData &data) {
-				Platform::WebAuthn::RegisterKey(data, [=](
+				Platform::WebAuthn::RegisterKey(data, crl::guard(box, [=](
 						Platform::WebAuthn::RegisterResult result) {
 					if (!result.success) {
 						using Error = Platform::WebAuthn::Error;
 						if (result.error == Error::UnsignedBuild) {
-							box->uiShow()->showToast(
+							show->showToast(
 								tr::lng_settings_passkeys_unsigned_error(
 									tr::now));
 						}
 						return;
 					}
-					session->passkeys().registerPasskey(result, [=] {
-						box->closeBox();
-					});
-				});
-			}, crl::guard(box.get(), [=](QString error) {
-				box->uiShow()->showToast(error);
+					session->passkeys().registerPasskey(
+						result,
+						crl::guard(box, [=] { box->closeBox(); }));
+				}));
+			}), crl::guard(box, [=](QString error) {
+				show->showToast(error);
 			}));
 		});
-		if (!canRegister && !localOnly) {
+		if (!canRegister) {
 			button->setAttribute(Qt::WA_TransparentForMouseEvents);
 			button->setTextFgOverride(
 				anim::with_alpha(button->st().textFg->c, 0.5));

@@ -234,6 +234,10 @@ QrWidget::QrWidget(
 	}) | rpl::on_next([=] {
 		setupPasskeyLink();
 	}, lifetime());
+
+	sizeValue() | rpl::on_next([=] {
+		updatePasskeyLinks();
+	}, lifetime());
 }
 
 QString QrWidget::accessibilityName() {
@@ -374,36 +378,54 @@ void QrWidget::setupControls() {
 }
 
 void QrWidget::setupPasskeyLink() {
-	Expects(!_passkey);
-
-	const auto standard = Platform::WebAuthn::IsSupported()
-		&& account().appConfig().settingsDisplayPasskeys();
 	const auto testServer
 		= (account().mtp().environment() == MTP::Environment::Test);
-	const auto localOnly = !standard
-		&& Platform::WebAuthn::LocalOnlySupported()
-		&& Platform::WebAuthn::HasLocalOnlyKeys(testServer);
-	if (!standard && !localOnly) {
-		return;
+	if (!_passkey
+		&& Platform::WebAuthn::IsSupported()
+		&& account().appConfig().settingsDisplayPasskeys()) {
+		_passkey = createPasskeyLink(
+			tr::lng_intro_qr_passkey(tr::now),
+			false,
+			testServer);
 	}
-	_passkey = Ui::CreateChild<Ui::LinkButton>(
-		this,
-		(localOnly
-			? tr::lng_fork_passkeys_intro_local(tr::now)
-			: tr::lng_intro_qr_passkey(tr::now)));
-	_passkey->show();
-	rpl::combine(
-		sizeValue(),
-		_passkey->widthValue()
-	) | rpl::on_next([=](QSize size, int passkeyWidth) {
-		_passkey->moveToLeft(
-			(size.width() - passkeyWidth) / 2,
+	if (!_passkeyLocal
+		&& Platform::WebAuthn::LocalOnlySupported()
+		&& Platform::WebAuthn::HasLocalOnlyKeys(testServer)) {
+		_passkeyLocal = createPasskeyLink(
+			tr::lng_fork_passkeys_intro_local(tr::now),
+			true,
+			testServer);
+	}
+	updatePasskeyLinks();
+}
+
+void QrWidget::updatePasskeyLinks() {
+	auto row = 0;
+	for (const auto link : { _passkey, _passkeyLocal }) {
+		if (!link) {
+			continue;
+		}
+		link->moveToLeft(
+			(width() - link->width()) / 2,
 			(contentTop()
 				+ st::introQrSkipTop
-				+ 1.5 * st::normalFont->height));
-	}, _passkey->lifetime());
+				+ (1.5 + 1.5 * row) * st::normalFont->height));
+		++row;
+	}
+}
 
-	_passkey->setClickedCallback([=] {
+auto QrWidget::createPasskeyLink(
+		const QString &text,
+		bool localOnly,
+		bool testServer)
+-> not_null<Ui::LinkButton*> {
+	const auto result = Ui::CreateChild<Ui::LinkButton>(this, text);
+	result->show();
+	result->widthValue() | rpl::on_next([=] {
+		updatePasskeyLinks();
+	}, result->lifetime());
+
+	result->setClickedCallback([=] {
 		const auto attempt = [=](
 				const ::Data::Passkey::LoginData &loginData) {
 			const auto initialDc = _passkeyLoginDc;
@@ -456,6 +478,7 @@ void QrWidget::setupPasskeyLink() {
 			});
 		}
 	});
+	return result;
 }
 
 void QrWidget::refreshCode() {
