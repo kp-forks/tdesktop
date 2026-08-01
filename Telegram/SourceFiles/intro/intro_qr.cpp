@@ -23,6 +23,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 #include "ui/image/image_prepare.h"
 #include "ui/painter.h"
 #include "main/main_app_config.h"
+#include "mtproto/mtp_instance.h"
+#include "mtproto/mtproto_dc_options.h"
 #include "main/main_account.h"
 #include "ui/boxes/confirm_box.h"
 #include "core/application.h"
@@ -374,13 +376,21 @@ void QrWidget::setupControls() {
 void QrWidget::setupPasskeyLink() {
 	Expects(!_passkey);
 
-	if (!account().appConfig().settingsDisplayPasskeys()
-		|| !Platform::WebAuthn::IsSupported()) {
+	const auto standard = Platform::WebAuthn::IsSupported()
+		&& account().appConfig().settingsDisplayPasskeys();
+	const auto testServer
+		= (account().mtp().environment() == MTP::Environment::Test);
+	const auto localOnly = !standard
+		&& Platform::WebAuthn::LocalOnlySupported()
+		&& Platform::WebAuthn::HasLocalOnlyKeys(testServer);
+	if (!standard && !localOnly) {
 		return;
 	}
 	_passkey = Ui::CreateChild<Ui::LinkButton>(
 		this,
-		tr::lng_intro_qr_passkey(tr::now));
+		(localOnly
+			? tr::lng_fork_passkeys_intro_local(tr::now)
+			: tr::lng_intro_qr_passkey(tr::now)));
 	_passkey->show();
 	rpl::combine(
 		sizeValue(),
@@ -397,7 +407,7 @@ void QrWidget::setupPasskeyLink() {
 		const auto attempt = [=](
 				const ::Data::Passkey::LoginData &loginData) {
 			const auto initialDc = _passkeyLoginDc;
-			Platform::WebAuthn::Login(loginData, crl::guard(this, [=](
+			const auto callback = crl::guard(this, [=](
 					Platform::WebAuthn::LoginResult result) {
 				if (result.userHandle.isEmpty()) {
 					using Error = Platform::WebAuthn::Error;
@@ -420,7 +430,15 @@ void QrWidget::setupPasskeyLink() {
 							showError(rpl::single(error));
 						}
 					});
-			}));
+			});
+			if (localOnly) {
+				Platform::WebAuthn::LoginLocalOnly(
+					loginData,
+					testServer,
+					callback);
+			} else {
+				Platform::WebAuthn::Login(loginData, callback);
+			}
 		};
 		if (_passkeyLoginData
 			&& (crl::now() - _passkeyLoginTime

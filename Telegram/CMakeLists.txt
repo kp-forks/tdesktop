@@ -1666,6 +1666,8 @@ PRIVATE
     platform/mac/translate_provider_mac.mm
     platform/mac/tray_mac.h
     platform/mac/tray_mac.mm
+    platform/mac/webauthn_local_mac.h
+    platform/mac/webauthn_local_mac.mm
     platform/mac/webauthn_mac.mm
     platform/mac/window_title_mac.mm
     platform/mac/touchbar/items/mac_formatter_item.h

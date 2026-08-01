@@ -26,4 +26,29 @@ void Login(
 	callback({});
 }
 
+bool LocalOnlySupported() {
+	return false;
+}
+
+bool HasLocalOnlyKeys(bool testServer) {
+	return false;
+}
+
+void RegisterKeyLocalOnly(
+		const Data::Passkey::RegisterData &data,
+		bool testServer,
+		Fn<void(RegisterResult result)> callback) {
+	callback({});
+}
+
+void LoginLocalOnly(
+		const Data::Passkey::LoginData &data,
+		bool testServer,
+		Fn<void(LoginResult result)> callback) {
+	callback({});
+}
+
+void RemoveKeyLocalOnly(const QString &credentialId) {
+}
+
 } // namespace Platform::WebAuthn
