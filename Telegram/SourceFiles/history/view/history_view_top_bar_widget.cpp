@@ -825,7 +825,7 @@ void TopBarWidget::mousePressEvent(QMouseEvent *e) {
 		if ((_animatingMode && _back->rect().contains(e->pos()))
 			|| archiveTop) {
 			if (!rootChatsListBar()) {
-				backClicked();
+				InvokeQueued(this, [=] { backClicked(); });
 			}
 		} else {
 			infoClicked();
@@ -1313,6 +1313,7 @@ void TopBarWidget::updateControlsVisibility() {
 	_forward->setVisible(_canForward && visible);
 	_forwardAndDelete->setVisible(_canForward
 		&& _canDelete
+		&& visible
 		&& Core::App().settings().fork().thirdButtonTopBar());
 	_sendNow->setVisible(_canSendNow && visible);
 

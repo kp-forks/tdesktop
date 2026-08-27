@@ -156,6 +156,10 @@ PinnedWidget::PinnedWidget(
 	) | rpl::on_next([=] {
 		confirmForwardSelected();
 	}, _topBar->lifetime());
+	_topBar->forwardAndDeleteSelectionRequest(
+	) | rpl::on_next([=] {
+		confirmForwardAndDeleteSelected();
+	}, _topBar->lifetime());
 	_topBar->clearSelectionRequest(
 	) | rpl::on_next([=] {
 		clearSelected();
@@ -448,6 +452,11 @@ std::shared_ptr<Window::SectionMemento> PinnedWidget::createMemento() {
 	auto result = std::make_shared<PinnedMemento>(thread());
 	saveState(result.get());
 	return result;
+}
+
+auto PinnedWidget::createIdentityMemento()
+-> std::shared_ptr<Window::SectionMemento> {
+	return std::make_shared<PinnedMemento>(thread());
 }
 
 bool PinnedWidget::showMessage(
@@ -839,6 +848,10 @@ void PinnedWidget::confirmDeleteSelected() {
 
 void PinnedWidget::confirmForwardSelected() {
 	ConfirmForwardSelectedItems(_inner);
+}
+
+void PinnedWidget::confirmForwardAndDeleteSelected() {
+	ConfirmForwardAndDeleteSelectedItems(_inner);
 }
 
 void PinnedWidget::clearSelected() {

@@ -360,6 +360,7 @@ private:
 
 	void confirmDeleteSelected();
 	void confirmForwardSelected();
+	void confirmForwardAndDeleteSelected();
 	void clearSelected();
 	void setPinnedVisibility(bool shown);
 
