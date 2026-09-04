@@ -34,7 +34,7 @@ THUMB = os.environ.get("TG_THUMB") or os.path.join(
 # Update file name -> platform key the client matches against Platform::AutoUpdateKey().
 NAME_TO_PLATFORM = [
     (re.compile(r"^tx64upd(\d+)$"), "win64"),
-    (re.compile(r"^tarm64upd(\d+)$"), "winarm64"),
+    (re.compile(r"^tarm64upd(\d+)$"), "winarm"),
     (re.compile(r"^tupdate(\d+)$"), "win"),
     (re.compile(r"^tlinuxupd(\d+)$"), "linux"),
 ]

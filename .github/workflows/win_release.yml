@@ -324,13 +324,24 @@ jobs:
         shell: bash
         run: |
           [ -d "$LibrariesPath" ] || exit 0
-          if [ ! -f "$LibrariesPath/yy_thunks/objs/$MODULES_ARCH/YY_Thunks_for_Win7.lib" ]; then
-            rm -f "$LibrariesPath"/cache_keys/yy_thunks*
-            echo "yy_thunks library missing, dropped its cache key"
-          fi
-          if [ ! -f "$LibrariesPath/tg_angle/out/Release/tg_angle.lib" ]; then
-            rm -f "$LibrariesPath"/cache_keys/tg_angle*
-            echo "tg_angle library missing, dropped its cache key"
+          drop() {
+            rm -f "$LibrariesPath"/cache_keys/$1
+            echo "$2, dropped the $1 cache key"
+          }
+          [ -f "$LibrariesPath/yy_thunks/objs/$MODULES_ARCH/YY_Thunks_for_Win7.lib" ] \
+            || drop yy_thunks "YY-Thunks library missing"
+          [ -f "$LibrariesPath/tg_angle/out/Release/tg_angle.lib" ] \
+            || drop tg_angle "ANGLE library missing"
+          # prepare.py rebuilds a stage whose folder the sweep emptied, but
+          # nv-codec-headers keeps its headers, so the folder survives without
+          # the makefile the ffmpeg build script installs from. The .pc files
+          # it reads live in the shared prefix, which has no stage of its own.
+          [ -f "$LibrariesPath/nv-codec-headers/Makefile" ] \
+            || drop nv-codec-headers "nv-codec-headers makefile missing"
+          if [ -z "$(ls -A "$LibrariesPath/local/lib/pkgconfig" 2>/dev/null)" ]; then
+            for lib in dav1d openh264 opus libvpx; do
+              drop $lib "pkg-config files missing"
+            done
           fi
 
       - name: Libraries.
@@ -344,7 +355,7 @@ jobs:
         shell: bash
         run: |
           [ -d "$LibrariesPath" ] || { echo "nothing to clean up"; exit 0; }
-          find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/qt6_windows7/*' -o -path '*/yy_thunks/*' ')' -type f ')' -o -empty ')' -delete || true
+          find $LibrariesPath '(' '(' ! '(' -name '*.lib' -o -name '*.a' -o -name '*.exe' -o -name '*.h' -o -name '*.hpp' -o -name '*.inc' -o -name '*.cmake' -o -name '*.pc' -o -path '*/include/*' -o -path '*/objects-*' -o -path '*/cache_keys/*' -o -path '*/patches/*' -o -path '*/qt6_windows7/*' -o -path '*/yy_thunks/*' -o -path '*/nv-codec-headers/*' -o -path '*/gas-preprocessor/*' ')' -type f ')' -o -empty ')' -delete || true
 
       - name: Save ThirdParty cache.
         if: always()
