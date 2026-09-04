@@ -58,11 +58,11 @@ thirdPartyDir = os.path.realpath(os.path.join(rootDir, 'ThirdParty'))
 usedPrefix = os.path.realpath(os.path.join(libsDir, 'local'))
 
 optionsList = [
+    'qt5',
     'qt6',
     'skip-release',
     'build-stackwalk',
     'qt-asserts',
-    'win7',
 ]
 options = []
 runCommand = []
@@ -459,20 +459,33 @@ if customRunCommand:
 stage('patches', """
     git clone https://github.com/desktop-app/patches.git
     cd patches
-    git checkout 0a3f68f4ad100f8672b6f3b2c830a138293d5872
+    git checkout 0851f126ded4cbc0f7167092fba1576d6841f420
 mac:
     git clone https://github.com/desktop-app/qt6_highsierra_patches.git qt6_highsierra
     cd qt6_highsierra
-    git checkout 4aae812a405f47553e001faf566de572d3eccd16
+    git checkout 7387476bb3b7200d3b044015696cb3c28f78593c
 """)
 
-if 'win7' in options:
+if qt >= '6':
+    # Built from source, prebuilt object is not something to link on trust.
     stage('yy_thunks', """
-version: 1
 win32_win64:
-    powershell -Command "iwr -OutFile ./yy_thunks.zip https://github.com/Chuyu-Team/YY-Thunks/releases/download/v1.1.9/YY-Thunks-Objs.zip"
-    powershell -Command "Expand-Archive ./yy_thunks.zip"
-    del yy_thunks.zip
+    git clone --depth 1 -b v1.2.2 https://github.com/Chuyu-Team/YY-Thunks.git yy_thunks
+    cd yy_thunks
+    msbuild "src\\YY-Thunks.UnitTest\\YY-Thunks.UnitTest.vcxproj" -t:Build_YY_Thunks_List_hpp
+    SET "include=%cd%\\src\\Thunks;%cd%\\src\\Shared;%cd%\\src;%include%"
+    SET YY_FLAGS=/O1 /Os /Oi /GS- /std:c++17 /execution-charset:utf-8 ^
+        /guard:ehcont /Zc:sizedDealloc- /Zc:tlsGuards- /Zc:alignedNew- ^
+        /Z7 /MT /Zl /c /D NDEBUG /D YY_Thunks_Target=__WindowsNT6_1
+win32:
+    SET YY_ARCH=x86
+    SET YY_FLAGS=%YY_FLAGS% /arch:IA32
+win64:
+    SET YY_ARCH=x64
+win32_win64:
+    md objs\\%YY_ARCH%
+    cl %YY_FLAGS% /Fo"objs\\%YY_ARCH%\\YY_Thunks_for_Win7.obj" "src\\Thunks\\YY_Thunks.cpp"
+    lib /nologo /out:"objs\\%YY_ARCH%\\YY_Thunks_for_Win7.lib" "objs\\%YY_ARCH%\\YY_Thunks_for_Win7.obj"
 """)
 
 stage('msys64', """
@@ -1515,20 +1528,18 @@ release:
     lipo -create Release.arm64/libcrashpad_client.a Release.x86_64/libcrashpad_client.a -output Release/libcrashpad_client.a
 """)
 
-if win:
-    stage('qt6windows7', """
-win:
-    git clone https://github.com/qr243vbi/qt6windows7.git
-    cd qt6windows7
-    git checkout aa73dc1aa33989d09e5823532bccb1d31e39bb64
-    SET FGPATCHES=%ROOT_DIR%\\tdesktop\\patches
-    git -c user.email=build@local -c user.name=build am --ignore-whitespace "%FGPATCHES%\\0001-Enabled-DirectComposition-in-Win7-path-and-FLIP_SEQU.patch" "%FGPATCHES%\\0002-Ported-Windows-7-backport-from-Qt-6.10.0-to-Qt-6.11..patch" "%FGPATCHES%\\0003-Added-three-way-port-script-for-moving-overlay-to-ne.patch" "%FGPATCHES%\\0004-Routed-new-6.11-notifyRoleChange-UIA-call-through-wr.patch"
+if win and qt >= '6':
+    # Windows 7 and 8 support for qtbase, and the ANGLE backend Qt 6 dropped.
+    stage('qt6_windows7', """
+win32_win64:
+    git clone https://github.com/desktop-app/qt6_windows7_patches.git qt6_windows7
+    cd qt6_windows7
+    git checkout 4366991164017d68c0dfc32e01c603da0e5c50e9
 """)
 
-if qt < '6':
-    if win:
-        stage('tg_angle', """
-win:
+if win:
+    stage('tg_angle', """
+win32_win64:
     git clone https://github.com/desktop-app/tg_angle.git
     cd tg_angle
     git checkout 48bc60bdb1
@@ -1540,6 +1551,7 @@ release:
     cmake --build out --config Release
 """)
 
+if qt < '6':
     stage('qt_' + qt, """
     git clone -b v$QT-lts-lgpl https://github.com/qt/qt5.git qt_$QT
     cd qt_$QT
@@ -1615,6 +1627,8 @@ else: # qt > '6'
     cd qt_$QT
     git submodule update --init --recursive --progress qtbase qtimageformats qtshadertools qtsvg
 depends:patches/qtbase_""" + qt + """/*.patch
+win32_win64:
+depends:qt6_windows7/*.patch
 mac:
     if [ -d "../patches/qt6_highsierra" ]; then
         find "$PWD/../patches/qt6_highsierra" -maxdepth 1 -name "*.patch" -print0 | sort -z | xargs -0 git -C qtbase apply -v
@@ -1655,11 +1669,18 @@ mac:
     cmake --install .
 win:
     cd qtbase
-    echo Applying Qt6 Windows 7 compatibility patches...
-    xcopy /E /Y "%LIBS_DIR%\\qt6windows7\\qtbase\\src" src\\
     setlocal enabledelayedexpansion
+win32_win64:
+    for %%i in (..\\..\\qt6_windows7\\*.patch) do (
+        git apply %%i --ignore-whitespace -v
+        if errorlevel 1 (
+            echo ERROR: Applying patch %%~nxi failed!
+            exit /b 1
+        )
+    )
+win:
     for /r %%i in (..\\..\\patches\\qtbase_%QT%\\*) do (
-        git apply %%i -v
+        git apply %%i --ignore-whitespace -v
         if errorlevel 1 (
             echo ERROR: Applying patch %%~nxi failed!
             exit /b 1
@@ -1689,20 +1710,30 @@ win:
         -confirm-license ^
         -static ^
         -static-runtime ^
-        -trace no ^
         -feature-c++20 ^
         -openssl linked ^
         -system-webp ^
         -system-zlib ^
         -system-libjpeg ^
+win32_win64:
+    # ANGLE is restored by qt6_windows7 series, tracing pulls Windows 10 ETW.
+        -trace no ^
+        -feature-egl ^
 win32:
-    # Qt 6.11 autodetects the Windows IoRing backend whenever the SDK has
-    # ioringapi.h, but qioring_win.cpp static_asserts on 64-bit pointers.
+    # qioring_win.cpp static_asserts on 64-bit pointers, so no IoRing on x86.
         -no-feature-windows-ioring ^
 win:
         -platform win32-msvc ^
         -D ZLIB_WINAPI ^
         -- ^
+win32_win64:
+        -D EGL_INCLUDE_DIR:PATH="%LIBS_DIR%\\tg_angle\\include" ^
+        -D EGL_LIBRARY:FILEPATH="%LIBS_DIR%\\tg_angle\\out\\Release\\tg_angle.lib" ^
+        -D HAVE_EGL:BOOL=ON ^
+        -D GLESv2_INCLUDE_DIR:PATH="%LIBS_DIR%\\tg_angle\\include" ^
+        -D GLESv2_LIBRARY:FILEPATH="%LIBS_DIR%\\tg_angle\\out\\Release\\tg_angle.lib" ^
+        -D HAVE_GLESv2:BOOL=ON ^
+win:
         -D OPENSSL_FOUND=1 ^
         -D OPENSSL_INCLUDE_DIR="%OPENSSL_DIR%\\include" ^
         -D LIB_EAY_DEBUG="%OPENSSL_LIBS_DIR%.dbg\\libcrypto.lib" ^
