@@ -64,6 +64,15 @@ jobs:
           else
             echo "AppVersionStrFull=${AppVersionStr}" >> $GITHUB_ENV
           fi
+
+          # Packer's channel and the file name suffix, both from BetaChannel.
+          if [ "$BetaChannel" != "0" ]; then
+            echo "UPD_CHANNEL=beta" >> $GITHUB_ENV
+            echo "UPD_SUFFIX=-beta" >> $GITHUB_ENV
+          else
+            echo "UPD_CHANNEL=stable" >> $GITHUB_ENV
+            echo "UPD_SUFFIX=" >> $GITHUB_ENV
+          fi
           echo "Building version $AppVersionStr ($AppVersion)."
 
       - name: Set up DesktopPrivate.
@@ -217,12 +226,12 @@ jobs:
           set -e
           cd out/$BUILD_CONFIG
           ./Packer -path Forkgram -path Updater -version "$AppVersion" \
-            -channel stable \
+            -channel "$UPD_CHANNEL" \
             -keys-loc "$GITHUB_WORKSPACE/Telegram/Resources/update" \
             -local-key "$GITHUB_WORKSPACE/../DesktopPrivate/forkgram-release-2026a.pem" \
             -local-key-id fg-2026a
 
-          update="${UPD_PREFIX}${AppVersion}"
+          update="${UPD_PREFIX}${AppVersion}${UPD_SUFFIX}"
           if [ ! -f "$update" ]; then
             echo "Packed update file $update was not produced."
             exit 1
@@ -239,7 +248,7 @@ jobs:
           tar -cJf "deploy/$ASSET_PORTABLE" -C "$release" Forkgram Updater
 
           # The update file keeps its raw name: the Telegram job derives the platform from it.
-          cp "$release/${UPD_PREFIX}${AppVersion}" deploy/
+          cp "$release/${UPD_PREFIX}${AppVersion}${UPD_SUFFIX}" deploy/
 
           ls -l deploy
 

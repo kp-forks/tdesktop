@@ -86,3 +86,20 @@ Rehearse first: `win_release.yml`'s `telegram: testing` input writes the
 `testing` key of the feed, which no client reads without an explicit
 `Updater::test()`. Packer re-runs the client's own verification on what it
 produced, so a bad key fails the build rather than the update.
+
+## Beta releases
+
+`BetaChannel` in `Telegram/build/version`, set by `set_version.py 7.2.6.beta`,
+is the only switch. The packer signs for the `beta` channel and appends
+`-beta` to the package name, `deploy.sh` tags `v7.2.6.beta` as a prerelease,
+both workflows compute `UPD_CHANNEL` and `UPD_SUFFIX`, and the publishers
+write only the feed's `beta` keys, carrying `stable` over from the previous
+post. A stable release writes both, so beta users move on once it is newer.
+`publish_telegram.py` takes the channel from the artifact name rather than
+the environment, so it cannot disagree with what the packer produced.
+
+The client needs nothing: the opt-in is in Settings → Advanced, and
+`ChannelPolicyAllows` installs a beta on a stable build only when it is set.
+The manifest covers both channels with `fg-2026a`, so betas need no key of
+their own — the v1 beta key was never replaced and is still upstream's, which
+is why this was impossible before v2.

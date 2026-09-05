@@ -166,6 +166,15 @@ jobs:
           else
             echo "AppVersionStrFull=${AppVersionStr}" >> $GITHUB_ENV
           fi
+
+          # Packer's channel and the file name suffix, both from BetaChannel.
+          if [ "$BetaChannel" != "0" ]; then
+            echo "UPD_CHANNEL=beta" >> $GITHUB_ENV
+            echo "UPD_SUFFIX=-beta" >> $GITHUB_ENV
+          else
+            echo "UPD_CHANNEL=stable" >> $GITHUB_ENV
+            echo "UPD_SUFFIX=" >> $GITHUB_ENV
+          fi
           echo "Building version $AppVersionStr ($AppVersion)."
 
           if [ "$ENABLE_LTO" == "true" ]; then
@@ -507,7 +516,7 @@ jobs:
           if (-not (Test-Path $d3d)) { Write-Error "missing $d3d for ANGLE"; exit 1 }
           $packerArgs += @('-path', $d3d)
           $packerArgs += @('-target', $env:BUILD_TARGET)
-          $packerArgs += @('-channel', 'stable')
+          $packerArgs += @('-channel', $env:UPD_CHANNEL)
           $packerArgs += @('-keys-loc', "$env:TBUILD\$env:REPO_NAME\Telegram\Resources\update")
           $packerArgs += @('-local-key', "$env:TBUILD\DesktopPrivate\forkgram-release-2026a.pem")
           $packerArgs += @('-local-key-id', 'fg-2026a')
@@ -515,7 +524,7 @@ jobs:
           & .\Packer.exe @packerArgs
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
-          $update = "${env:UPD_PREFIX}${env:AppVersion}"
+          $update = "${env:UPD_PREFIX}${env:AppVersion}${env:UPD_SUFFIX}"
           if (-not (Test-Path $update)) { Write-Error "$update was not produced"; exit 1 }
           echo "Produced $update ($((Get-Item $update).Length) bytes)"
 
@@ -576,7 +585,7 @@ jobs:
           if (-not (Test-Path $installer)) { Write-Error "missing installer: $installer"; exit 1 }
           Copy-Item $installer (Join-Path $deploy $env:ASSET_INSTALLER)
 
-          $update = Join-Path $release "${env:UPD_PREFIX}${env:AppVersion}"
+          $update = Join-Path $release "${env:UPD_PREFIX}${env:AppVersion}${env:UPD_SUFFIX}"
           if (-not (Test-Path $update)) { Write-Error "missing update file: $update"; exit 1 }
           Copy-Item $update $deploy
 
