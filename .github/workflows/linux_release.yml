@@ -41,7 +41,7 @@ jobs:
     env:
       IMAGE_TAG: tdesktop:centos_env
       BUILD_CONFIG: MinSizeRel
-      UPD_PREFIX: tlinuxupd
+      UPD_PREFIX: td-update-linux-x64-
       ASSET_PORTABLE: Forkgram.tar.xz
       ONLY_CACHE: ${{ (github.event_name == 'schedule' || inputs.only_cache) && 'true' || 'false' }}
       PUBLISH_RELEASE: ${{ (inputs.publish_release || startsWith(github.ref, 'refs/tags/')) && 'true' || 'false' }}
@@ -74,6 +74,7 @@ jobs:
           PACKER_KEY: ${{ secrets.PACKER_PRIVATE_KEY }}
           PACKER_BETA_KEY: ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
           ALPHA_KEY: ${{ secrets.ALPHA_PRIVATE_KEY }}
+          UPDATE_LOCAL_KEY: ${{ secrets.UPDATE_LOCAL_KEY }}
         run: |
           set -e
           python3 - <<'PY'
@@ -103,6 +104,10 @@ jobs:
           # packer.cpp's only use of this is commented out, and -Werror rejects an unused static.
           (private / 'alpha_private.h').write_text(
               literal('AlphaPrivateKey', os.environ['ALPHA_KEY'], static=True))
+
+          # The v2 release key, passed to Packer as a file path, not compiled in.
+          (private / 'forkgram-release-2026a.pem').write_text(
+              os.environ['UPDATE_LOCAL_KEY'].strip() + '\n')
           PY
 
           ls -l $GITHUB_WORKSPACE/../DesktopPrivate
@@ -211,7 +216,11 @@ jobs:
         run: |
           set -e
           cd out/$BUILD_CONFIG
-          ./Packer -path Forkgram -path Updater -version "$AppVersion"
+          ./Packer -path Forkgram -path Updater -version "$AppVersion" \
+            -channel stable \
+            -keys-loc "$GITHUB_WORKSPACE/Telegram/Resources/update" \
+            -local-key "$GITHUB_WORKSPACE/../DesktopPrivate/forkgram-release-2026a.pem" \
+            -local-key-id fg-2026a
 
           update="${UPD_PREFIX}${AppVersion}"
           if [ ! -f "$update" ]; then

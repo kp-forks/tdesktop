@@ -47,21 +47,27 @@ date could only ever cut users off.
 
 ## The flip
 
-Lands in 7.2.5. Five producers pack and two scripts publish, so it is not one
-commit; none of it is in place yet.
+Lands in 7.2.5, and is done for the three producers that actually release
+today: macOS from `~/TBuild/deploy.sh`, Windows and Linux from CI. The legacy
+`~/TBuild/linux_deploy.sh` and the Windows VM batch scripts were left on v1
+and the old feed, so they no longer work as a fallback.
 
 Add to every Packer invocation:
 
     -channel stable -keys-loc <repo>/Telegram/Resources/update \
     -local-key <release key pem> -local-key-id fg-2026a
 
-| producer | where | Packer call |
-|---|---|---|
-| macOS | `~/TBuild/deploy.sh` (local) | `thin_and_package()` |
-| Linux | `~/TBuild/linux_deploy.sh` (local) | the docker `bash -c` line |
-| Linux CI | `.github/workflows/linux_release.yml` | the `./Packer` step |
-| Windows CI | `.github/workflows/win_release.yml` | `$packerArgs` |
-| Windows VM | `C:\TBuild\0python_tg\*.bat` | not in this repository |
+| producer | where | Packer call | done |
+|---|---|---|---|
+| macOS | `~/TBuild/deploy.sh` (local) | `thin_and_package()` | yes |
+| Windows CI | `.github/workflows/win_release.yml` | `$packerArgs` | yes |
+| Linux CI | `.github/workflows/linux_release.yml` | the `./Packer` step | yes |
+| Linux | `~/TBuild/linux_deploy.sh` (local) | the docker `bash -c` line | no |
+| Windows VM | `C:\TBuild\0python_tg\*.bat` | not in this repository | no |
+
+CI reads the release key from the `UPDATE_LOCAL_KEY` secret and writes it into
+`DesktopPrivate/` alongside the packer keys; the local scripts read it from
+there directly.
 
 Packer then writes `td-update-{win,mac,linux}-{x86,x64,arm}-<AppVersion>`
 instead of `tx64upd` / `tupdate` / `tlinuxupd` / `tmacupd` / `tarmacupd`, so
@@ -72,8 +78,9 @@ in `feed_bot.py` (both copies).
 
 The feed channel is the `TG_FEED_CHANNEL` secret in CI and the `FEED_CHANNEL`
 constant in `feed_bot.py`; both move to `frkgrmfeed` only after 7.1.5 has
-shipped to the old one. `TG_FILES_CHANNEL` stays — both feeds can share one
-files channel.
+shipped to the old one. `TG_FILES_CHANNEL` stays — both feeds share one files
+channel. A legacy `winxp` key rides along in the feed, pointing at 7.0.7; the
+publishers carry unknown keys through untouched and it is left that way.
 
 Rehearse first: `win_release.yml`'s `telegram: testing` input writes the
 `testing` key of the feed, which no client reads without an explicit

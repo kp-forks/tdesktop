@@ -58,7 +58,7 @@ jobs:
       MSVC_ARCH: ${{ matrix.arch == 'x64' && 'x64' || 'x64_x86' }}
       LIBS_SUBDIR: ${{ matrix.arch == 'x64' && '\win64' || '' }}
       ISS_TARGET: ${{ matrix.arch == 'x64' && 'win64' || 'win32' }}
-      UPD_PREFIX: ${{ matrix.arch == 'x64' && 'tx64upd' || 'tupdate' }}
+      UPD_PREFIX: ${{ matrix.arch == 'x64' && 'td-update-win-x64-' || 'td-update-win-x86-' }}
       SETUP_PREFIX: ${{ matrix.arch == 'x64' && 'tsetup-x64' || 'tsetup' }}
       MODULES_ARCH: ${{ matrix.arch == 'x64' && 'x64' || 'x86' }}
       # Release asset names as the fork labels them (x86 = x32).
@@ -182,6 +182,7 @@ jobs:
           PACKER_KEY: ${{ secrets.PACKER_PRIVATE_KEY }}
           PACKER_BETA_KEY: ${{ secrets.PACKER_PRIVATE_BETA_KEY }}
           ALPHA_KEY: ${{ secrets.ALPHA_PRIVATE_KEY }}
+          UPDATE_LOCAL_KEY: ${{ secrets.UPDATE_LOCAL_KEY }}
         run: |
           set -e
           python3 - <<'PY'
@@ -211,6 +212,10 @@ jobs:
           # packer.cpp's only use of this is commented out, and -Werror rejects an unused static.
           (private / 'alpha_private.h').write_text(
               literal('AlphaPrivateKey', os.environ['ALPHA_KEY'], static=True))
+
+          # The v2 release key, passed to Packer as a file path, not compiled in.
+          (private / 'forkgram-release-2026a.pem').write_text(
+              os.environ['UPDATE_LOCAL_KEY'].strip() + '\n')
           PY
 
           # Presence of this file makes run_cmake.py build Packer (DESKTOP_APP_SPECIAL_TARGET).
@@ -404,8 +409,10 @@ jobs:
           rem Re-running cmake rewrites the .vcxproj files, and the fresh
           rem timestamps make MSBuild rebuild everything - which throws away the
           rem restored build tree. Reuse the tree when it was configured with the
-          rem same flags, and record them so a changed flag still reconfigures.
-          set "CFG_FLAGS=lto=%LTO_FLAG% target=%BUILD_TARGET% qt6win7=on nodebug=1"
+          rem same flags and against the same libraries, and record both so that
+          rem a change in either still reconfigures - a tree carries absolute
+          rem paths and link lines resolved against the libraries of its own run.
+          set "CFG_FLAGS=lto=%LTO_FLAG% target=%BUILD_TARGET% qt6win7=on nodebug=1 libs=%CACHE_KEY%"
           set "CFG_MARKER=..\out\.ci_configure_flags"
           set "REUSE_TREE=0"
           if exist ..\out\CMakeCache.txt if exist "%CFG_MARKER%" (
@@ -500,6 +507,10 @@ jobs:
           if (-not (Test-Path $d3d)) { Write-Error "missing $d3d for ANGLE"; exit 1 }
           $packerArgs += @('-path', $d3d)
           $packerArgs += @('-target', $env:BUILD_TARGET)
+          $packerArgs += @('-channel', 'stable')
+          $packerArgs += @('-keys-loc', "$env:TBUILD\$env:REPO_NAME\Telegram\Resources\update")
+          $packerArgs += @('-local-key', "$env:TBUILD\DesktopPrivate\forkgram-release-2026a.pem")
+          $packerArgs += @('-local-key-id', 'fg-2026a')
 
           & .\Packer.exe @packerArgs
           if ($LASTEXITCODE -ne 0) { exit 1 }
