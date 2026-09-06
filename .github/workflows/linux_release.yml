@@ -273,13 +273,18 @@ jobs:
             TAG="${GITHUB_REF#refs/tags/}"
             TARGET=()
           else
-            TAG="v$AppVersionStrFull"
+            TAG="v$AppVersionStr"
             TARGET=(--target dev)
           fi
 
           # Create only if missing, else just add assets, so the Windows and macOS legs share one release.
+          if [ "$BetaChannel" != "0" ]; then
+            PRERELEASE=(--prerelease)
+          else
+            PRERELEASE=()
+          fi
           if ! gh release view "$TAG" -R "$R" >/dev/null 2>&1; then
-            gh release create "$TAG" -R "$R" "${TARGET[@]}" \
+            gh release create "$TAG" -R "$R" "${TARGET[@]}" "${PRERELEASE[@]}" \
               --title "Forkgram $TAG" \
               --notes "Forkgram $TAG" >/dev/null 2>&1 \
               || gh release view "$TAG" -R "$R" >/dev/null

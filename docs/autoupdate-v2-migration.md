@@ -91,12 +91,18 @@ produced, so a bad key fails the build rather than the update.
 
 `BetaChannel` in `Telegram/build/version`, set by `set_version.py 7.2.6.beta`,
 is the only switch. The packer signs for the `beta` channel and appends
-`-beta` to the package name, `deploy.sh` tags `v7.2.6.beta` as a prerelease,
-both workflows compute `UPD_CHANNEL` and `UPD_SUFFIX`, and the publishers
+`-beta` to the package name, `deploy.sh` marks the GitHub release a
+prerelease, both workflows compute `UPD_CHANNEL` and `UPD_SUFFIX`, and the
+publishers
 write only the feed's `beta` keys, carrying `stable` over from the previous
 post. A stable release writes both, so beta users move on once it is newer.
 `publish_telegram.py` takes the channel from the artifact name rather than
 the environment, so it cannot disagree with what the packer produced.
+
+The git tag stays a plain `vX.Y.Z`, the way upstream tags its own betas: a
+beta burns its version number and the next stable takes the following one, so
+the two never collide. Nothing downstream can read the channel off the tag,
+so the channel announcement asks the release whether it is a prerelease.
 
 The client needs nothing: the opt-in is in Settings → Advanced, and
 `ChannelPolicyAllows` installs a beta on a stable build only when it is set.
