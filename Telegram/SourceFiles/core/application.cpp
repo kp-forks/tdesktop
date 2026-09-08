@@ -1483,7 +1483,7 @@ Window::Controller *Application::separateWindowFor(
 	return nullptr;
 }
 
-Window::Controller *Application::ensureSeparateWindowFor(
+not_null<Window::Controller*> Application::ensureSeparateWindowFor(
 		Window::SeparateId id,
 		MsgId showAtMsgId) {
 	const auto activate = [&](not_null<Window::Controller*> window) {
@@ -1501,6 +1501,8 @@ Window::Controller *Application::ensureSeparateWindowFor(
 		}
 		return activate(existing);
 	}
+
+	Assert(Window::CanShowSeparateWindow(id));
 
 	const auto result = _windows.emplace(
 		id,
